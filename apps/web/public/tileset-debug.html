@@ -1,0 +1,35 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Tileset Debug</title>
+    <style>
+      body { margin: 0; background: #111; color: #ddd; font-family: system-ui, sans-serif; }
+      .grid { display: grid; grid-template-columns: repeat(30, 16px); gap: 2px; padding: 12px; }
+      .tile { width: 16px; height: 16px; background-image: url('/tilesets/offie-space-tileset.png'); image-rendering: pixelated; position: relative; outline: 1px solid rgba(255,255,255,0.05); }
+      .label { position: absolute; left: 1px; top: 1px; font-size: 8px; background: rgba(0,0,0,0.6); padding: 1px 2px; border-radius: 2px; }
+    </style>
+  </head>
+  <body>
+    <div class="grid" id="grid"></div>
+    <script>
+      const cols = 30;
+      const rows = 12;
+      const grid = document.getElementById('grid');
+      for (let y = 0; y < rows; y++) {
+        for (let x = 0; x < cols; x++) {
+          const idx = y * cols + x;
+          const tile = document.createElement('div');
+          tile.className = 'tile';
+          tile.style.backgroundPosition = `-${x * 16}px -${y * 16}px`;
+          const label = document.createElement('div');
+          label.className = 'label';
+          label.textContent = idx.toString();
+          tile.appendChild(label);
+          grid.appendChild(tile);
+        }
+      }
+    </script>
+  </body>
+</html>

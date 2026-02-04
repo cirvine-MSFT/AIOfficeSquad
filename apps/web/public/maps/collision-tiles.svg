@@ -1,0 +1,10 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="32" height="16" viewBox="0 0 32 16" shape-rendering="crispEdges">
+  <!-- tile 1: floor -->
+  <rect x="0" y="0" width="16" height="16" fill="#545a65" />
+  <path d="M0 8 H16" stroke="#5f6672" stroke-width="1" />
+  <path d="M8 0 V16" stroke="#5f6672" stroke-width="1" />
+  <!-- tile 2: wall -->
+  <rect x="16" y="0" width="16" height="16" fill="#2f333b" />
+  <rect x="16" y="0" width="16" height="4" fill="#3b414b" />
+  <rect x="16" y="12" width="16" height="4" fill="#242830" />
+</svg>

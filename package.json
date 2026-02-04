@@ -1,0 +1,23 @@
+{
+  "name": "office-agent-world",
+  "version": "0.1.0",
+  "description": "A cozy pixel-art virtual office where AI agents work alongside you — each with their own desk, personality, and expertise.",
+  "private": true,
+  "workspaces": [
+    "apps/web",
+    "apps/server",
+    "apps/cli-bridge",
+    "apps/officeagent",
+    "shared"
+  ],
+  "scripts": {
+    "dev": "npm run dev:server & npm run dev:web & npm run dev:bridge",
+    "dev:server": "npm --workspace apps/server run dev",
+    "dev:web": "npm --workspace apps/web run dev",
+    "dev:bridge": "npm --workspace apps/cli-bridge run dev",
+    "build:server": "npm --workspace apps/server run build",
+    "build:web": "npm --workspace apps/web run build",
+    "build:bridge": "npm --workspace apps/cli-bridge run build",
+    "agent": "npx tsx apps/officeagent/src/index.ts"
+  }
+}

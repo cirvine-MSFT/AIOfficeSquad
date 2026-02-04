@@ -1,0 +1,38 @@
+# Dependencies
+node_modules/
+
+# Build output
+dist/
+
+# Runtime data
+data/*.json
+data/*.jsonl
+data/*.jpg
+data/people/
+data/PixelOffice/
+data/FREE Pixel Art Characters - Starter Pack/
+data/Free Pixel Character Base Pack/
+
+# Config with personal paths
+apps/cli-bridge/cli-bridge.config.json
+
+# Environment
+.env
+.env.local
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Editor
+.vscode/
+.idea/
+
+# Logs
+*.log
+
+# Downloaded assets (keep source sprites, ignore zips)
+*.zip
+
+# Test projects
+testApp/
