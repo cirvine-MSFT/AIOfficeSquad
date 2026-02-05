@@ -43,6 +43,7 @@
 
 ## Nice to Have
 
+- [ ] Add player movement speed setting (for slower machines)
 - [ ] Make clock in game working (show real time)
 - [ ] Docker setup for easy deployment
 - [ ] Hosted demo (deploy web UI somewhere)
