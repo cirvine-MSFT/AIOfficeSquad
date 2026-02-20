@@ -35,10 +35,13 @@ officeagent demo
 - 🔄 **Hire and fire** — spawn, reset, and delete agents on the fly
 - 🎵 **Vibes** — lo-fi office background music
 - ⌨️ **CLI tool** — script your whole team from the terminal
+- 🔒 **100% local** — no cloud, no API keys, nothing leaves your machine
 
 ## How It Works
 
-Each agent is a real CLI process (Claude Code or Copilot) running in a PTY. The server watches JSONL output for responses, bridges messages over WebSocket, and Phaser renders it all as a cozy pixel-art office. See [Architecture →](docs/ARCHITECTURE.md)
+**100% local.** No cloud, no API keys, no data leaves your machine. Each agent is a real CLI process (Claude Code or Copilot) running in a PTY on your computer. The server watches JSONL output for responses, bridges messages over WebSocket, and Phaser renders it all as a cozy pixel-art office. Your existing CLI auth handles everything.
+
+See [Architecture →](docs/ARCHITECTURE.md)
 
 ## CLI
 
