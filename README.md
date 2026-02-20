@@ -168,7 +168,7 @@ officeagent demo    # Auto-detect CLIs, start world, spawn agents
 ## Acknowledgements
 
 - **[2dPig](https://2dpig.itch.io/pixel-office)** — for the beautiful Pixel Office tileset (CC0). The cozy office vibe is all thanks to your pixel art 🐷
-- The **[ai16z](https://github.com/ai16z)** project for inspiration on AI agent frameworks
+- **[AI Town](https://github.com/a16z-infra/ai-town)** by a16z — for the inspiration. Their virtual town of AI characters sparked the idea of bringing that concept to a dev workflow
 - The **[Claude Code](https://docs.anthropic.com/en/docs/claude-code)** team at Anthropic — for building an incredible CLI that makes this whole thing possible
 - The **[GitHub Copilot CLI](https://docs.github.com/copilot/github-copilot-in-the-cli)** team — for pushing the boundaries of AI-assisted development in the terminal
 
