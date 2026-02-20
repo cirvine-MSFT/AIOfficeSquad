@@ -15,14 +15,14 @@
 
 ## Try it now
 
-<img src="demo/demo.gif" alt="officeagent demo — CLI detection and agent spawning" width="600">
-
 ```bash
 git clone https://github.com/ChristianFJung/AIOffice
 cd AIOffice
 npm i
 officeagent demo
 ```
+
+<img src="demo/demo.gif" alt="officeagent demo — CLI detection and agent spawning" width="600">
 
 > Open **http://localhost:3000** — your office is ready. Walk around, assign tasks, be the boss.
 
@@ -52,6 +52,8 @@ officeagent demo                         # Auto-detect CLIs, full demo
 ## Adding Agents
 
 **From the UI** — click **+**, fill in name, CLI type, working directory, and personality.
+
+<img src="demo/spawn.gif" alt="Spawning a new agent into the office" width="100%">
 
 **From the terminal:**
 ```bash
