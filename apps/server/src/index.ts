@@ -773,6 +773,14 @@ function bridgeChatToPty(agentId: string, text: string) {
     if (session.isBusy) {
       console.log(`[chat→pty:${agentId}] Busy timeout — forcing unlock`);
       session.isBusy = false;
+      const unlockEvent: EventEnvelope = {
+        type: "agent.status",
+        agentId,
+        timestamp: new Date().toISOString(),
+        payload: { status: "available", summary: "Ready" }
+      };
+      applyEvent(unlockEvent);
+      broadcast(unlockEvent);
     }
   }, 60000);
 
