@@ -1,14 +1,23 @@
 const fs = require('fs');
 const path = require('path');
 
-const target = path.join(__dirname, '..', 'bin', 'officeagent');
+const isWin = process.platform === 'win32';
 const linkDir = path.join(__dirname, '..', 'node_modules', '.bin');
+
+// Bash wrapper (Mac/Linux)
+const target = path.join(__dirname, '..', 'bin', 'officeagent');
 const link = path.join(linkDir, 'officeagent');
+
+// Cmd wrapper (Windows)
+const targetCmd = path.join(__dirname, '..', 'bin', 'officeagent.cmd');
+const linkCmd = path.join(linkDir, 'officeagent.cmd');
 
 try {
   fs.mkdirSync(linkDir, { recursive: true });
   try { fs.unlinkSync(link); } catch (e) {}
+  try { fs.unlinkSync(linkCmd); } catch (e) {}
   fs.symlinkSync(target, link);
+  fs.symlinkSync(targetCmd, linkCmd);
 } catch (e) {
   // Symlinks may require admin on Windows — not fatal
 }
