@@ -315,6 +315,32 @@ Install at least one:
 `);
 }
 
+// ── clear command ─────────────────────────────────────────────────────
+
+async function clearAgents(args: string[]) {
+  let server = "http://localhost:3003";
+  for (let i = 0; i < args.length; i++) {
+    if ((args[i] === "--server" || args[i] === "-s") && args[i + 1]) server = args[++i];
+  }
+
+  const res = await fetch(`${server}/agents`);
+  if (!res.ok) { console.error("❌ Could not reach server at", server); process.exit(1); }
+  const agents = await res.json();
+
+  if (agents.length === 0) { console.log("No agents to remove."); return; }
+
+  console.log(`\n🗑  Removing ${agents.length} agent(s)...\n`);
+  for (const agent of agents) {
+    const del = await fetch(`${server}/agents/${agent.id}`, { method: "DELETE" });
+    if (del.ok) {
+      console.log(`   ✅ ${agent.name} removed`);
+    } else {
+      console.log(`   ❌ ${agent.name} failed`);
+    }
+  }
+  console.log("\n✨ Office cleared.\n");
+}
+
 // ── main ─────────────────────────────────────────────────────────────
 
 function showHelp() {
@@ -328,6 +354,7 @@ Commands:
   start    Launch the server and web app
   spawn    Spawn an AI agent into the world
   demo     Launch a full demo with auto-detected agents
+  clear    Remove all agents from the office
 
 Run "officeagent <command> --help" for command-specific options.
 `);
@@ -347,6 +374,12 @@ switch (command) {
     break;
   case "demo":
     runDemo(rest).catch((e) => {
+      console.error("Fatal:", e.message || e);
+      process.exit(1);
+    });
+    break;
+  case "clear":
+    clearAgents(rest).catch((e) => {
       console.error("Fatal:", e.message || e);
       process.exit(1);
     });
