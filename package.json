@@ -4,7 +4,7 @@
   "description": "A pixel-art virtual office where AI coding agents work at desks — watch Claude and Copilot build software in real-time.",
   "private": true,
   "bin": {
-    "officeagent": "./bin/officeagent"
+    "officeagent": "./bin/officeagent.js"
   },
   "workspaces": [
     "apps/web",
