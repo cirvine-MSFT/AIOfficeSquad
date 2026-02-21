@@ -5,7 +5,7 @@
 **You're the boss. Claude and Copilot are your employees.**
 **Give them desks, assign them work, and watch them build — in a pixel-art office.**
 
-https://github.com/user-attachments/assets/f44e3004-eff9-4846-b5f0-b85100620b98
+https://github.com/user-attachments/assets/8083f778-1ab3-4c74-b1f4-34611d50191d
 
 [Getting Started](#try-it-now) · [Features](#features) · [CLI](#cli) · [Architecture](docs/ARCHITECTURE.md)
 
