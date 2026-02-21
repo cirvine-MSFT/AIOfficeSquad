@@ -22,7 +22,7 @@ npm i
 npx officeagent demo
 ```
 
-> **Windows users:** Run in [Git Bash](https://git-scm.com/) or [WSL](https://learn.microsoft.com/en-us/windows/wsl/install), not PowerShell.
+> **Windows:** Support is still in development. For best results, use macOS or Linux. WSL works but may have issues with chat bridging.
 
 <img src="demo/demo.gif" alt="officeagent demo — CLI detection and agent spawning" width="600">
 
