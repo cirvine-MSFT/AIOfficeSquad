@@ -309,7 +309,7 @@ Install at least one:
   🌐 Office ready → http://localhost:3000
 
   👔 You're the boss. Go manage your team.
-     Walk up to an agent and press Enter to chat.
+     Walk up to an agent and press E to chat.
      Press Ctrl+C to stop.
 `);
 }
