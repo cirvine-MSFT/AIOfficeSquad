@@ -7,6 +7,8 @@
 
 <img src="demo/hero.gif" alt="AIOffice — walk around, chat with AI agents, watch them code" width="100%">
 
+📺 [Watch full demo video](https://github.com/user-attachments/assets/f44e3004-eff9-4846-b5f0-b85100620b98)
+
 [Getting Started](#try-it-now) · [Features](#features) · [CLI](#cli) · [Architecture](docs/ARCHITECTURE.md)
 
 </div>
