@@ -13,7 +13,7 @@
     "shared"
   ],
   "scripts": {
-    "postinstall": "ln -sf ../../bin/officeagent node_modules/.bin/officeagent 2>/dev/null || true",
+    "postinstall": "node scripts/postinstall.js",
     "dev": "npm run dev:server & npm run dev:web",
     "dev:server": "npm --workspace apps/server run dev",
     "dev:web": "npm --workspace apps/web run dev",
