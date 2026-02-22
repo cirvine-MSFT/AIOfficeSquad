@@ -964,3 +964,84 @@ AIOffice is a Phaser 3 + Express + node-pty app that renders AI agents (Claude C
 - No end-to-end tests with real SDK (requires GitHub auth)
 
 ---
+
+### 2026-02-22T22:48Z: User directive — Squad Campus Rebrand
+**By:** Casey Irvine (via Copilot)
+**Date:** 2026-02-22
+**Status:** Implemented
+
+**What:** Rebrand the project from "Squad Office" / "AI Office Squad" to "Squad Campus"
+
+**Why:** User request — the project has diverged enough from the original AIOffice to warrant its own identity.
+
+---
+
+### 2026-02-22T22:48Z: Design decision — Single-Floor Buildings for Hub Mapping
+**By:** Casey Irvine (via Copilot)
+**Date:** 2026-02-22
+**Status:** Implemented
+
+**What:** Every building should be a single-floor building for now, but keep the building-with-floor concept intact so it naturally maps to Squad Hub once that SDK functionality ships. Don't blank out the building level — it should still render and be interactive.
+
+**Why:** User request — forward-thinking architecture so the UI scales when multi-squad hub support arrives in the SDK.
+
+---
+
+### 2026-02-22T22:56Z: Hub-Mapping Architecture — Single-Floor Buildings to Multi-Squad Hub
+**By:** Dutch (Lead)
+**Date:** 2026-02-22
+**Status:** Decision — Forward-Looking Architecture Note
+
+**What:** Documented 3-level navigation hierarchy (Building → Floor → Office) and how it maps cleanly to current Phase 1 (single squad) and future Phase 3 (multi-squad hub).
+
+**Key Contracts Identified:**
+- `useNavigation` hook: selectSquad(id), selectSession(id), back()
+- `SquadRuntime` interfaces: getSession(squadId, sessionId), createSession(squadId, config)
+- IPC handlers: Phase 1 → Phase 3 are additive (no breaking changes)
+- Component props: BuildingView, FloorView, OfficeView — data source changes only
+
+**Phase Evolution:**
+| Phase | Building Level | Squad Runtime | IPC Channels |
+|-------|---|---|---|
+| **Phase 1 (now)** | Single squad from config | Single SquadClientWithPool | `squad:*` |
+| **Phase 2** | Multi-squad from config | Single client, switch per squad | `squad:*` (no change) |
+| **Phase 3 (hub)** | Multi-squad from hub | Map<squadId, SquadClientWithPool> | `squad:*` + `hub:*` (additive) |
+
+**Why:** Forward stability. Build now knowing Phase 3 only adds SDK integration and multi-squad session pooling — the navigation, components, and IPC layer already accommodate N squads.
+
+---
+
+### 2026-02-22T22:56Z: Phase 6d Polish & Integration — Priority Guidance
+**By:** Dutch (Lead)
+**Date:** 2026-02-22
+**Status:** Priority Guidance
+
+**What:** Evaluated remaining Phase 6d items post-rebrand. Re-prioritized 3 major initiatives.
+
+**Items & Priority:**
+
+| Item | Effort | Priority | Owner | Status |
+|------|--------|----------|-------|--------|
+| **Hooks Panel** | 12h | 🔴 HIGH (Tier 1) | Poncho + Mac | Launch blocker — multi-squad coordination UI |
+| **SDK Casting** | 8h | 🟠 MEDIUM (Tier 2) | Billy | First release — persistent agent identity |
+| **WebSocket Bridge** | 16h | 🟡 LOW (Tier 3) | Mac | Phase 3 — defer to scale testing |
+
+**Sprint Plan (3 weeks):**
+- **Week 1 (2026-02-24):** Mac backend prep, Poncho design, Blain E2E tests
+- **Week 2 (2026-03-03):** Poncho implementation, Mac socket wiring, Blain verification
+- **Week 3 (2026-03-10):** Billy SDK casting, Hawkins avatars, Scribe UX docs
+
+**Why:** Rebrand to "Squad Campus" emphasizes multi-squad coordination. Hooks Panel makes the "campus" metaphor real. Casting adds personality but is not launch-blocking. WebSocket optimization is technical debt — defer to Phase 3 when multi-squad stress testing begins.
+
+---
+
+### 2026-02-22T23:00Z: Squad Campus Rebrand Applied to Desktop App
+**By:** Poncho (Frontend Dev)
+**Date:** 2026-02-22
+**Status:** Implemented
+
+**What:** Renamed all user-visible "Squad Office" strings to "Squad Campus" across the Electron desktop app. Updated BuildingView to show a campus header with building cards that display "Floor 1" — keeping 3-level navigation intact for future Hub SDK mapping.
+
+**Why:** Casey's directive to rebrand the project identity. The building→floor→office hierarchy is preserved so it maps cleanly when multi-squad Hub support ships.
+
+---

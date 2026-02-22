@@ -80,3 +80,10 @@
   - Preload: Added `getDecisions()` to SquadAPI interface + ipcRenderer invoke in preload/index.ts. Channel: `squad:get-decisions`.
   - App.tsx: Toolbar row added below Header with toggle buttons for Decisions/Cost panels. Panels render as 320px-wide side panels on the right edge, using `animate-fade-in`. `activePanel` state: 'none' | 'decisions' | 'cost'.
   - Pattern: Side panels are siblings of ChatPanel in the flex layout, not overlays. This keeps them composable with the existing 3-panel structure.
+- Squad Campus Rebrand completed:
+  - All user-visible strings changed from "Squad Office" to "Squad Campus" across: Header.tsx, App.tsx hubName fallback, index.html title, squad-runtime.ts loadSquadConfig fallback, package.json name, DESIGN.md, mockup.html, e2e tests/README.
+  - Header emoji changed from 🏢 to 🏫 to match campus theme.
+  - E2e test selectors updated with `Squad Campus|Squad Office` regex fallback for backward compat with varying squad names.
+  - BuildingView updated: campus header ("🏫 Squad Campus" + building count), each squad card shows 🏢 building icon + "Floor 1" badge pill. 3-level navigation (building→floor→office) preserved — not flattened.
+  - Empty state emoji also changed to 🏫 for consistency.
+  - Key rebrand files: Header.tsx, App.tsx:230, squad-runtime.ts:249, index.html:6, package.json:2, BuildingView.tsx.
