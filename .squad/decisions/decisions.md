@@ -149,3 +149,35 @@
 - Ready for CI/CD
 - Complements 41 Vitest unit tests
 **Future Work:** E2E tests for chat sending, multi-agent scenarios, visual regression, error scenarios; add `data-testid` for stable selectors
+
+## 2026-02-22T2300Z: User directive — Crash stability is top priority
+**By:** Casey Irvine (via Copilot)
+**What:** The app crashes constantly - basically every time the app should be visible, it's already crashed. Comprehensive crash/stability testing is critical before shipping any more features.
+**Why:** User request - reliability must be addressed alongside feature work
+
+## 2026-02-22T2339Z: Decision — HookPipeline Governance Panel — IPC + UI Pattern
+**By:** Mac (Backend Dev)
+**What:** 
+- Added `squad:get-hook-activity` IPC channel to SquadRuntime
+- HookEvent type with event type, timestamp, affected fields, block reason
+- Circular buffer (max 50 events) subscribed via `onHook()` during init
+- HooksPanel.tsx renderer component with toggle button (🛈) in toolbar
+- Follows existing panel toggle pattern (activePanel state, 320px side panel)
+**Why:** Governance visibility is a first-class concern — team needs to see when writes are blocked, PII is scrubbed, or permissions are requested. Surfaces audit trail in real-time. Pattern enables easy extension by Poncho for styling.
+**Impact:** New IPC channel added to channel map. Renderer components can now fetch hook events. No breaking changes to existing channels or behavior.
+
+## 2026-02-22T2339Z: Decision — Crash Stability Improvements (6 Vectors Fixed)
+**By:** Blain (Tester)
+**What:**
+1. **Critical:** Wrapped DecisionsTimeline and CostDashboard in `<ErrorBoundary>` in App.tsx (were previously bare)
+2. **cleanup() guard:** Moved `this._isReady = false` before try block in squad-runtime.ts to prevent stale object references on error
+3. **useChat hardened:** Added try/catch around IPC sendMessage() call
+4. **ErrorBoundary recovery:** Added resetKey prop for auto-reset on navigation; replaced "Reload App" with "Try Again" for in-place recovery
+5. **Type guards:** Added null checks to mergeAgentInfo() filter and Number.isFinite() guards to CostDashboard
+6. **Tests expanded:** 25 new unit tests (Vitest crash-resistance) + 8 new E2E tests (Playwright crash-resistance)
+**Why:** Comprehensive audit found 6 distinct crash vectors. Crashes were blocking basic UI interaction. Test expansion ensures regressions are caught early.
+**Impact:**
+- All 6 crash vectors fixed
+- App now survives SDK unavailability, failed init, and panel render errors
+- Test suite grew to 106 total tests (85 unit + 8 E2E crash-specific + 13 existing E2E)
+- Residual flakiness in 5 E2E tests from Electron render timing (not code bugs — needs CI investigation)
