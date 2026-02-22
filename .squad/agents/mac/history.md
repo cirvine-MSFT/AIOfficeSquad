@@ -30,3 +30,10 @@
 - @electron-toolkit/utils used for `is.dev` check and ELECTRON_RENDERER_URL loading.
 - Preload exposes `window.squadAPI` via contextBridge with unsubscribe-returning event listeners.
 - Poncho's pre-existing tailwind.config.ts and postcss.config.js in apps/desktop/ — no conflicts with backend scaffold.
+- Phase 1a types added: HubStats, SquadInfo, SquadStatus, SessionMetadata, SessionDetail, AgentInSession — all in main/types.ts and mirrored in renderer/types.ts.
+- IPC channel `squad:get-session-detail` added: fetches session via listSessions(), cross-references roster + agent statuses, returns SessionDetail.
+- IpcInvokeChannels and IpcPushChannels maps updated with new channels (squad:get-session-detail, hub:stats-updated, hub:squad-status).
+- Preload exposes `getSessionDetail(sessionId)` method on the squadAPI bridge.
+- Vitest added as devDependency, vitest.config.ts created at apps/desktop/ root, test/test:watch scripts in package.json.
+- Test directory structure: apps/desktop/src/__tests__/{main,renderer/{hooks,components}}.
+- AgentStatus 'busy' maps to AgentInSession 'active' in the session-detail handler (SDK uses busy/idle, UI uses active/idle).

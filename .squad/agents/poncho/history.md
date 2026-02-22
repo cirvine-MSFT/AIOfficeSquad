@@ -49,3 +49,12 @@
   - Keyboard shortcuts: Escape to deselect, 1-9 to select agents.
   - Error banner for failed operations, loading states for connect/send.
   - Renderer types mirrored in src/renderer/types.ts (can't import from main/ due to rootDir boundary in tsconfig).
+- Phase 1a — Hooks + Shared Components extraction completed:
+  - `hooks/useNavigation.ts`: 3-level state machine (building→floor→office), breadcrumb generation, single-squad auto-select. Types: NavLevel, NavigationState, BreadcrumbItem, SquadLookup, SessionLookup.
+  - `hooks/useChat.ts`: Extracted all chat state from App.tsx — sessions Map, messagesMap, streamingMap, usage tracking, stream delta/usage subscriptions. Identical logic to App.tsx, just relocated.
+  - `components/shared/RoleAvatar.tsx`: Canonical source for getInitials(), getRoleKey(), getAvatarBg(), getRoleLabel(), getRoleTextColor(). Replaces 3 duplicated copies (AgentCard, ChatPanel, Sidebar).
+  - `components/shared/StatusDot.tsx`: Tiny dot indicator with STATUS_LABELS and STATUS_BADGE_CLASSES exports. Auto-pulse for active/working.
+  - `components/shared/Breadcrumb.tsx`: Clickable trail, last item non-clickable (current location). Uses BreadcrumbItem type from useNavigation.
+  - Barrel index files at hooks/index.ts and components/shared/index.ts for clean imports.
+  - Pattern: App.tsx chat state uses Maps keyed by agentName (sessions, messages) and sessionId (streaming). This pattern is preserved in useChat.
+  - `tsconfig.renderer.json` compiles clean with strict mode — no errors in new files.

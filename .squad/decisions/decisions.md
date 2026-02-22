@@ -39,3 +39,44 @@
 **Why:** Casey's review feedback led to clarifying that water cooler is session-scoped, not squad-scoped. Maintaining consistent office aesthetic across all 3 navigation levels improves intuitiveness and visual hierarchy.
 **Status:** Implemented in mockup
 **Impact:** Better understanding of session membership; consistent design language; clearer working vs. idle states per session
+
+## 2026-02-22T19:01Z: Decision — Mac Phase 1a: Type definitions, IPC handler, vitest setup
+**By:** Mac (Backend Dev)
+**What:**
+1. Type Definitions (Dutch arch doc §H)
+   - Added 6 new interfaces: `HubStats`, `SquadInfo`, `SquadStatus`, `SessionMetadata`, `SessionDetail`, `AgentInSession`
+   - Mirrored in both main and renderer type files
+   - Updated IPC channels: `squad:get-session-detail` (invoke), `hub:stats-updated` and `hub:squad-status` (push)
+2. IPC Handler: `squad:get-session-detail`
+   - Composes `SessionDetail` from `listSessions()`, `loadSquadConfig()`, `getAgentStatuses()`
+   - Maps SDK status `busy` → UI schema `active` for consistency
+   - Handles session ID lookup edge case (both `session.id` and `session.sessionId`)
+   - Exposed on `window.squadAPI`
+3. Vitest Setup
+   - Added vitest and config at repo root
+   - Directory: `src/__tests__/{main, renderer/{hooks, components}}`
+   - Scripts: `test` (run), `test:watch` (watch mode)
+   - Smoke test `types.test.ts` — 7 tests, all passing
+**Why:** Establish backend foundation for Phase 1a: types for session detail querying, IPC contract between main and renderer, test infrastructure ready.
+**Status:** Complete
+**Handoff Notes:** Poncho expects `active` status (not `busy`) from `getSessionDetail()`. Session names always present (fallback: `Session {first8chars}`).
+
+## 2026-02-22T19:01Z: Decision — Poncho Phase 1a: Hooks & shared components
+**By:** Poncho (Frontend Dev)
+**What:**
+1. useNavigation Hook
+   - Accepts `SquadLookup[]` and `SessionLookup[]` params for breadcrumb labels
+   - Returns breadcrumb data and navigation state
+   - File: `apps/desktop/src/renderer/hooks/useNavigation.ts`
+2. useChat Hook
+   - Bundles usage stats (totalTokens, estimatedCost, model) with chat state
+   - Single subscription to `onStreamUsage` avoids dual subscriptions
+   - File: `apps/desktop/src/renderer/hooks/useChat.ts`
+3. Shared Components
+   - **RoleAvatar.tsx:** Component + 5 named helper exports (`getInitials`, `getRoleKey`, `getAvatarBg`, `getRoleLabel`, `getRoleTextColor`)
+   - **StatusDot.tsx:** Component + canonical exports `STATUS_LABELS`, `STATUS_BADGE_CLASSES`
+   - **Breadcrumb.tsx:** Navigation breadcrumb renderer
+   - Organized under `apps/desktop/src/renderer/{hooks,components/shared}/` with index re-exports
+**Why:** Establish frontend foundation for Phase 1a: reusable hooks for navigation and chat, shared components for status/role UI, helper functions for style calculations in Phase 1d.
+**Status:** Complete (7 new files)
+**Handoff Notes:** RoleAvatar helpers enable Phase 1d inline style usage without importing component. StatusDot constants replace inline status maps. useNavigation keeps data-fetching in parent (App.tsx) — will integrate with Mac's `useSquadData` hook in Phase 1b.
