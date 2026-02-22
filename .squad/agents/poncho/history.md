@@ -58,3 +58,19 @@
   - Barrel index files at hooks/index.ts and components/shared/index.ts for clean imports.
   - Pattern: App.tsx chat state uses Maps keyed by agentName (sessions, messages) and sessionId (streaming). This pattern is preserved in useChat.
   - `tsconfig.renderer.json` compiles clean with strict mode — no errors in new files.
+- Phase 1b — FloorView components completed:
+  - `components/floor/FloorHeader.tsx`: Squad name, floor number badge, member count, active sessions badge with pulse animation.
+  - `components/floor/SessionCard.tsx`: Glass-walled office room card. Status indicator (active/idle/error), mini desk previews with occupied/empty chairs, working vs idle counts, hover lift effect. Active rooms get green glow border.
+  - `components/floor/NewSessionCard.tsx`: Dashed "+" card for starting new sessions. Hover highlights in accent color.
+  - `components/floor/FloorView.tsx`: Grid of SessionCards + NewSessionCard, FloorHeader at top, hallway label dividers. Handles loading/empty/populated states. Dark floor background (#12151c).
+  - `components/floor/types.ts`: SessionSummary and SquadDetail interfaces per Dutch's §C.5 spec.
+  - `components/floor/index.ts`: Barrel re-exports for all floor components and types.
+- Phase 1c — OfficeView components completed:
+  - `components/office/OfficeView.tsx`: Session detail view. Two-column layout (workspace left, chat right — chat mounted by parent in Phase 1d). Header with back button, door emoji, session name/task/member count. Workspace has desk grid + water cooler side by side. Terminal panel at bottom.
+  - `components/office/DeskWorkstation.tsx`: Monitor with glow effect (blue pulse when active, red for error, spinner for spawning). Nameplate with agent name + role-colored label. Chair slot with typing animation. Activity text below.
+  - `components/office/WaterCooler.tsx`: Dashed-border break area with warm glow overlay. Water cooler emoji with drip animation. Idle agent cards with RoleAvatar, role label, and fun bubble text (☕ Coffee break, etc.). Empty state message.
+  - `components/office/TerminalPanel.tsx`: Live streaming output with line parsing (▶ commands, ✓ success, ✗ errors). Auto-scroll, monospace font, blinking cursor when active. Max height 240px.
+  - `components/office/index.ts`: Barrel re-exports for all office components and types.
+- Added custom keyframe animations to globals.css: typing (desk bounce), drip (water cooler), chat (idle avatar wobble). These match the mockup animations.
+- Design pattern: OfficeView does NOT render ChatPanel directly — it only renders the workspace half. ChatPanel integration happens at App.tsx level in Phase 1d, consistent with the separation of concerns.
+- Pattern: Status indicator styling uses inline Tailwind for each status variant rather than CSS class maps, keeping the logic self-contained in each component.

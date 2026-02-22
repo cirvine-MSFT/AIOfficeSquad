@@ -913,3 +913,54 @@ AIOffice is a Phaser 3 + Express + node-pty app that renders AI agents (Claude C
 
 ---
 
+### 2026-02-22T20:14Z: SDK API Corrections for @bradygaster/squad-sdk@0.8.2
+**Author:** Mac (Backend Dev)
+**Date:** 2026-02-22
+**Status:** Implemented
+
+**Context:** Electron desktop app crashed when clicking "New Session" due to incorrect usage of the Squad SDK API. Casey diagnosed the root causes by inspecting the actual SDK surface.
+
+**Decisions:**
+1. **Connection lifecycle:** Call wait client.connect() immediately after instantiating SquadClientWithPool in SquadRuntime.initialize().
+2. **Session-based messaging:** Store session objects in Map<string, session> and call session.sendAndWait(prompt) instead of client.sendMessage(sessionId, prompt).
+3. **Shutdown method:** Use client.shutdown() instead of client.close() in cleanup.
+4. **Error handling in renderer:** Wrap all IPC createSession calls in try/catch and add a React ErrorBoundary.
+
+**Files Changed:**
+- pps/desktop/src/main/squad-runtime.ts — connect(), session Map, sendMessage via session, shutdown()
+- pps/desktop/src/renderer/hooks/useChat.ts — try/catch in createSession
+- pps/desktop/src/renderer/components/ErrorBoundary.tsx — NEW
+- pps/desktop/src/renderer/main.tsx — wrap App with ErrorBoundary
+
+**Verification:** Build passes: 55 modules, 0 errors
+
+**Impact:** Fixes "New Session" crash, prevents white-screen render errors, improves error visibility for debugging.
+
+---
+
+### 2026-02-22T20:14Z: Desktop Session Creation Test Strategy
+**Author:** Blain (Tester)
+**Date:** 2026-02-22
+**Status:** Implemented
+
+**Context:** Desktop app crashed when clicking "New Session." Root cause: 3 SDK integration bugs in squad-runtime.ts.
+
+**Decision:** Created comprehensive regression test suite with 34 new tests.
+
+**Test Files Created:**
+1. pps/desktop/src/__tests__/main/squad-runtime.test.ts (16 tests) — SquadRuntime lifecycle, verifies connect/session storage/sendAndWait/shutdown
+2. pps/desktop/src/__tests__/main/ipc-handlers.test.ts (18 tests) — IPC error handling, IpcResult format, SDK unavailable scenarios
+
+**Results:** All 41 desktop tests passing (7 types + 16 runtime + 18 IPC)
+
+**Consequences (Positive):**
+- Session creation crash cannot happen again without test failure
+- Tests document expected SDK integration patterns
+- Mock infrastructure reusable for future SDK tests
+- IPC error handling verified — renderer won't crash on SDK errors
+
+**Consequences (Negative):**
+- Tests depend on SDK mock structure — may need updates if SDK API changes
+- No end-to-end tests with real SDK (requires GitHub auth)
+
+---

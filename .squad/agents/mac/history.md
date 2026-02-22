@@ -37,3 +37,18 @@
 - Vitest added as devDependency, vitest.config.ts created at apps/desktop/ root, test/test:watch scripts in package.json.
 - Test directory structure: apps/desktop/src/__tests__/{main,renderer/{hooks,components}}.
 - AgentStatus 'busy' maps to AgentInSession 'active' in the session-detail handler (SDK uses busy/idle, UI uses active/idle).
+- Phase 1d: Refactored App.tsx to use useNavigation() and useChat() hooks — replaced ~200 lines of inline state with hook calls.
+- App.tsx now renders 3-level conditional: BuildingView (building) | FloorView (floor) | OfficeView (office) based on navigation.state.level.
+- Header.tsx wired with Breadcrumb component from shared/ — shows clickable Hub › Squad › Session trail.
+- Sidebar.tsx updated to accept SquadSummary[] (with id, floor, memberCount) instead of string[]; shows hub name header and floor numbers.
+- StatusBar.tsx extended with totalMembers and connected props — shows connection dot and member count.
+- Agent selection uses dual-state: local state for floor-level sidebar clicks, navigation hook's selectAgent for office-level.
+- effectiveAgent pattern: nav hook's selectedAgentName at office level, local selectedAgent otherwise — feeds into useChat().
+- ChatPanel renders at any level when an agent is selected; OfficeView (per Poncho's comment) delegates chat integration to App.tsx.
+- Keyboard: Escape clears agent selection first, then calls navigation.back(). Number keys 1-9 select agents at floor level.
+- Breadcrumb navigate to Hub from office level calls navigation.back() twice — functional state updates chain correctly in React.
+- Poncho built all floor/ and office/ components (FloorView, SessionCard, FloorHeader, OfficeView, DeskWorkstation, WaterCooler, TerminalPanel) before Phase 1d.
+- electron-vite build passes with all Phase 1d changes (54 modules, no errors).
+- **SDK API fixes (2026-02-22):** SquadClientWithPool requires `connect()` call after instantiation; sessions are objects with `send`/`sendAndWait` methods (not `client.sendMessage`); shutdown via `client.shutdown()` not `close()`. Session objects stored in Map<string, session> for message routing. ErrorBoundary added to renderer to prevent white-screen crashes.
+- **Session object patterns learned:** Squad SDK session objects are the primary messaging interface; they have `send`, `sendAndWait`, `on`, `getMessages`, `destroy`, and `abort` methods. The SquadClientWithPool doesn't have direct message methods — all I/O is session-mediated. Lifecycle: instantiate → connect → createSession → operations via session → session.destroy → shutdown on cleanup.
+
