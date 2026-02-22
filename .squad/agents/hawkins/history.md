@@ -23,3 +23,10 @@ AI Office Squad: Native Electron desktop app for managing AI agent squads. Uses 
 - Working members are "at their desk" with 🧑‍💻 emoji and subtle typing animation
 - Floor view uses CSS floor-plan feel with office pods (rooms with doorways), desks, and walls instead of flat cards
 - Lit windows on building view use warm yellow glow (#fbbf24) to feel like real office lights at night
+- **Water cooler placement:** The water cooler is ONLY inside session views (office view), NOT at the floor level. Idle members within a specific session hang at the water cooler in that session's office space.
+- **Floor view as hallway:** Sessions are rendered as office rooms you peek into through glass walls - not flat cards. Each room shows miniature desks, activity indicators, and a summary of who's working vs. at the cooler.
+- **Session view maintains office aesthetic:** The drilled-in session view looks like stepping into an office room with workstations (desks with monitors) on one side and a break lounge (water cooler area) on the other. No cardy/dashboard feel.
+- **Glass wall effect:** Office rooms on floor view use subtle gradient overlays to simulate looking through glass, with reflection effects and depth via shadows.
+- **Workstation design:** Individual desks in session view show monitors with glow effects, desk surfaces, chairs, and nameplates - feels like real office furniture, not abstract cards.
+- **Chat panel as control center:** Styled with stronger borders, accent bars, and a terminal output monitor at the bottom - feels like a command center or coordination space within the office.
+

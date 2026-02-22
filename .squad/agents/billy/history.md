@@ -37,3 +37,16 @@
   - Gap: Cross-squad routing, cross-squad event aggregation, squad discovery/enumeration all need custom code
   - Recommended: SquadFloor wrapper → IPC Event Bridge → SquadRegistry → Cross-Squad Aggregation
   - Mapping deliverable: `.squad/decisions/inbox/billy-sdk-building-mapping.md`
+- **2026-02-22:** Completed SDK feasibility review of Building/Floor/Office mockup (apps/desktop/mockup.html):
+  - Mockup defines 3-level drill-down: Building (hub) → Floor (squad) → Office (session)
+  - Floor level: ~90% SDK coverage — `loadConfig()`, `SessionPool`, `AgentLifecycleManager` cover almost everything
+  - Office level: ~95% SDK coverage — `StreamingPipeline`, `SquadSession.sendMessage()`, `EventBus` cover chat + terminal + status
+  - Building level: 0% SDK coverage — multi-squad discovery/aggregation requires custom `SquadRegistry` + `HubAggregator` (~350 LOC)
+  - None of the gaps require SDK changes; all buildable as app-layer code
+  - Key missing mockup features identified: CostTracker (real-time $), WS Bridge (push events), SquadObserver (file watch feed), permissions/ask_user dialogs, ReasoningDelta display
+  - `startWSBridge(bus)` on port 6277 is the critical integration point — built specifically for external consumers like us
+  - CostTracker has per-agent and per-session breakdowns with `wireToEventBus()` for live updates
+  - RalphMonitor can power auto-idle detection (move agents to water cooler after inactivity)
+  - SDK v0.8.2 added: upstream module (cross-squad context inheritance), casting engine, marketplace, sharing, benchmarks, i18n, offline mode, OTel metrics
+  - Recommended 4-phase implementation: easy wins (Floor+Office) → WS Bridge+Cost+Observer → Building hub → polish
+  - Feasibility deliverable: `.squad/decisions/inbox/billy-mockup-feasibility.md`

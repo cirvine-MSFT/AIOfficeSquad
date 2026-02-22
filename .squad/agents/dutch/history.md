@@ -99,3 +99,25 @@
 **Dependency chain:** #21 (bug fix) first → #18/#19 parallel → #20 → #22. Backend: #23 first → #24/#25 parallel.
 
 **Written to:** `.squad/decisions/inbox/dutch-phase5-planning.md`
+
+### 2026-02-22: Implementation Architecture Plan — Building/Floor/Office
+
+**What happened:** Billy completed SDK feasibility review. Casey approved mockup. Dutch reviewed full codebase (main process, renderer, preload, all 8 components, types, design tokens, mockup HTML) and wrote the implementation architecture plan.
+
+**Architecture decisions made:**
+- Extend existing codebase, don't rewrite. All existing files modified in-place. New files only where structural clarity demands it.
+- 3-level navigation is a state machine in a `useNavigation` hook: building → floor → office. Escape pops one level. Single-squad auto-selects.
+- Extract `useChat` and `useSquadData` hooks from App.tsx for testability, not because App.tsx is too big.
+- Extract `RoleAvatar` and `StatusDot` shared components — `getInitials()` + `getRoleKey()` duplicated in AgentCard, ChatPanel, Sidebar.
+- Component subdirs: `building/`, `floor/`, `office/`, `shared/` under `renderer/components/`.
+- PodView.tsx becomes FloorView — session room cards (glass-wall preview) instead of agent card grid.
+- OfficeView is NEW — desk grid + water cooler + chat panel + terminal panel in two-column layout.
+- Phase 1 is single-squad only (28h estimated). Building visual (multi-squad hub) is Phase 3.
+- IPC contract extended with `hub:*` channels for Phase 3, but Phase 1 only adds `squad:get-session-detail`.
+- New types: `HubStats`, `SquadInfo`, `SquadStatus`, `SessionMetadata`, `SessionDetail`, `AgentInSession`.
+- Testing: Vitest for hooks and components. No E2E for Electron in Phase 1.
+- 6 review gates (G1-G6) before any code merges.
+
+**Implementation order:** Phase 1a (hooks + types) → 1b (FloorView) → 1c (OfficeView) → 1d (integration + tests). Mac and Poncho can parallelize on 1a.
+
+**Written to:** `.squad/decisions/inbox/dutch-implementation-architecture.md`
