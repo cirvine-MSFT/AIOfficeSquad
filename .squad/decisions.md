@@ -666,3 +666,62 @@ AIOffice is a Phaser 3 + Express + node-pty app that renders AI agents (Claude C
 **By:** Casey Irvine (via Copilot)
 **What:** The visual metaphor should be an office building / org chart, not a single office. Each squad session is a separate open-space office or "pod" (like Microsoft pods). You walk into a pod to see a team of agents working together. You can talk to the whole room (CLI session). The building holds multiple squads/sessions. Individual agents are visible inside their team's pod doing work. The concept scales from "office workers" to "teams in an office building."
 **Why:** User request — captured for team memory. This is the core creative vision for the project.
+---
+
+### 2026-02-22T04:08:07Z: Architecture Decision — Building / Pod / Agent Model
+
+**By:** Dutch (Lead)
+**Status:** Proposed
+**Supersedes:** dutch-scope-plan.md (single flat office model)
+
+**Decision Summary:** Reorganize spatial hierarchy from single flat office to building → pod → agent structure, mapping directly to Squad's collection → team → member hierarchy.
+
+**Key Technical Decisions:**
+
+1. **Scene Architecture (Phaser 3):**
+   - **BuildingScene:** Top-level hallway view. Programmatically generated pod grid (not tilemap, because pod count varies). Player walks between pods. Door zones trigger transitions.
+   - **PodScene:** Per-squad interior. Refactored from existing OfficeScene. Tilemap-based office with squad's agents only. Add exit door and "Talk to Room" interaction.
+   - **Agent Interaction:** UI overlay on PodScene (chat panels, terminal). No separate AgentScene — flattens navigation complexity.
+
+2. **Squad Discovery:** squadoffice.config.json (config file) over auto-scan. Explicit, versionable, supports custom naming. Squads may live at different filesystem paths.
+
+3. **API Hierarchy:**
+   - GET /building — Building summary (all squads)
+   - GET /squads/:id — Squad roster, state, decisions
+   - POST /squads/:id/chat — Room-level chat (coordinator routing)
+   - POST /squads/:id/agents/:aid/chat — Agent-specific chat
+
+4. **Room-Level Interaction:** "Talk to Room" is first-class (hotkey R or UI button). Routes through Squad coordinator. Separate from walk-up proximity chat ("Talk to Person").
+
+5. **Pod Rendering:** All pods reuse same office interior tilemap in MVP. Squad identity comes from agents inside, not room decor.
+
+**Impact on Issues #1–#10:**
+- Issues updated with multi-squad scope annotations
+- Room-level chat (#2 updated)
+- Per-squad decisions display (#3 updated)
+- Scoped agent spawning (#4 updated)
+- No change to terminal (#5), badges (#6), ceremonies (#7 scoped to pod)
+- Two-level dashboard (#8 split to building + pod views)
+- CLI updated for building commands (#9)
+- Spawn modal becomes pod-aware (#10)
+
+**New Issues Needed (Phase 0 — Foundation):**
+- **#11:** BuildingScene implementation
+- **#12:** PodScene refactor from OfficeScene
+- **#13:** Building config and multi-squad server (BuildingManager, SquadManager)
+- **#14:** Scene transitions and navigation (BuildingScene ↔ PodScene)
+- **#15:** "Talk to Room" coordinator chat (Phase 1)
+- **#16:** Building-level activity dashboard (Phase 2)
+- **#17:** Pod preview rendering in BuildingScene (Phase 2)
+
+**Phasing Reorganized:**
+- **Phase 0 (NEW):** #11, #12, #13, #14 — Multi-pod foundation (prerequisite for everything)
+- **Phase 1 (Core):** #1, #4, #2, #15 — Team roster, spawning, walk-up chat, room chat
+- **Phase 2 (Comms):** #5, #3, #16, #17 — Terminal, decisions, dashboards, pod previews
+- **Phase 3 (Polish):** #6, #7, #8 — Badges, ceremonies, dashboards
+- **Phase 4 (Tooling):** #9, #10 — CLI, spawn modal
+
+**Key Insight:** Existing OfficeScene code maps almost directly to PodScene. BuildingScene and multi-squad server are additive. Less disruptive than architectural complexity suggests.
+
+**Next Steps:** Kickoff Phase 0. BuildingScene and PodScene refactor are blocking dependencies for all downstream work.
+
