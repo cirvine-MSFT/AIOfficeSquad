@@ -54,3 +54,29 @@
 - Casey to enable GitHub Issues on fork
 - Create 10 GitHub issues from scope plan
 - Start Phase 1 (Issue 1: parse team roster, Issue 4: spawn squad agents)
+
+### 2026-02-22: Vision Shift — Building/Pod/Agent Model
+**What changed:** Casey directed a fundamental shift from single flat office to office building metaphor. Building → Pods → Agents maps to Squad hierarchy (collection → team → member).
+
+**Architecture decisions made:**
+- Three Phaser scenes: BuildingScene (hallway, pod grid) → PodScene (refactored OfficeScene, squad-scoped) → Agent interaction (UI overlay, not separate scene)
+- BuildingScene is programmatic (not tilemap) because pod count varies per config
+- PodScene reuses existing office tilemap — all pods look the same in MVP
+- Squad discovery via `squadoffice.config.json` (config file over auto-scan, because repos live at different paths)
+- REST API becomes hierarchical: `/building` → `/squads/:id` → `/squads/:id/agents/:aid`
+- WebSocket events gain `squadId` field for routing
+- "Talk to Room" is first-class interaction (maps to Squad coordinator)
+- "Talk to Person" is walk-up proximity chat (existing behavior, scoped to pod)
+
+**Issue changes:**
+- Created 7 new issues (#11-#17) for building-level features
+- Added Phase 0 (Multi-Pod Foundation): #11 BuildingScene, #12 PodScene refactor, #13 multi-squad server, #14 scene transitions
+- Updated issues #1, #2, #3, #4, #8 with building-model scope changes
+- Created phase labels (phase:0 through phase:4) and architecture label
+- Phase 0 is now the prerequisite — nothing else makes sense without scene hierarchy
+
+**Key insight:** The original OfficeScene code (game.ts) maps almost directly to PodScene with minimal refactoring. The building layer is additive new code. This is less disruptive than it initially appears.
+
+**Server architecture:** New modules: BuildingManager (loads config, manages squads), SquadManager (per-squad state, roster, file watching). Existing agent management becomes squad-scoped.
+
+**Written to:** `.squad/decisions/inbox/dutch-building-architecture.md`
