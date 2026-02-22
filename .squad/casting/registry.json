@@ -1,0 +1,44 @@
+{
+  "persistent_names": [
+    {
+      "persistent_name": "Dutch",
+      "universe": "predator",
+      "role": "Lead",
+      "created_at": "2026-02-22T03:46:00Z",
+      "legacy_named": false,
+      "status": "active"
+    },
+    {
+      "persistent_name": "Poncho",
+      "universe": "predator",
+      "role": "Frontend Dev",
+      "created_at": "2026-02-22T03:46:00Z",
+      "legacy_named": false,
+      "status": "active"
+    },
+    {
+      "persistent_name": "Mac",
+      "universe": "predator",
+      "role": "Backend Dev",
+      "created_at": "2026-02-22T03:46:00Z",
+      "legacy_named": false,
+      "status": "active"
+    },
+    {
+      "persistent_name": "Blain",
+      "universe": "predator",
+      "role": "Tester",
+      "created_at": "2026-02-22T03:46:00Z",
+      "legacy_named": false,
+      "status": "active"
+    },
+    {
+      "persistent_name": "Billy",
+      "universe": "predator",
+      "role": "Squad Expert",
+      "created_at": "2026-02-22T03:46:00Z",
+      "legacy_named": false,
+      "status": "active"
+    }
+  ]
+}
