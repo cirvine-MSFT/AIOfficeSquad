@@ -11,3 +11,9 @@ AI Office Squad: Native Electron desktop app for managing AI agent squads. Uses 
 - Inter variable font with `cv02 cv03 cv04 cv11` feature settings gives better number and character readability at small sizes
 - Status indicators should be instant (no transition) for urgency, but working state uses a 2s pulse to show "alive" visually
 - Shadows on dark themes must be heavier (0.3–0.5 opacity) than light themes to register visually
+- **Building/Floor/Office UI hierarchy** maps Squad concepts to a physical metaphor: Hub=Building (shows squads as floors), Squad=Floor (shows sessions as office rooms), Session=Office (shows agents working). Each level drills down with smooth transitions.
+- Building visualization uses lit/unlit windows to indicate activity — lit windows correlate to active sessions on that floor
+- Floor cards work well with a status indicator dot in the top-right corner + subtle glow for active sessions
+- Breadcrumb navigation is essential for the drill-down model: Hub > Squad Name > Session #N
+- Agent workspace cards should show activity text in a mono-font code-style box to feel like real dev work
+- Chat panel with streaming output creates a "control room" feel where you observe and direct the squad

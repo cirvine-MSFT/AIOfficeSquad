@@ -772,3 +772,144 @@ AIOffice is a Phaser 3 + Express + node-pty app that renders AI agents (Claude C
 
 **Next Steps:** Kickoff Phase 0. BuildingScene and PodScene refactor are blocking dependencies for all downstream work.
 
+
+---
+
+### 2026-02-22T15:48:40Z: User directive — product direction shift
+**By:** Casey Irvine (via Copilot)
+**What:** Take the video gameyness out. Make it a practical productivity tool, not a novelty game. Hotkey into rooms instead of walking. Squad chat vs individual member chat with easy switching. Click/jump to areas. Keep the visualization but make navigation instant. Terminal integration needs to actually work. Fix label overlap in PodScene.
+**Why:** User request — captured for team memory. This is a fundamental product direction that affects all future work.
+
+---
+
+### 2026-02-22T17:24:00Z: User directive — CLI integration
+**By:** Casey Irvine (via Copilot)
+**What:** Remove Claude Code CLI integration. Default to GitHub Copilot CLI. Integrate with Squad SDK (via @bradygaster/squad-sdk) instead of raw CLI spawning.
+**Why:** User request — captured for team memory. The app should be Squad-native, not a generic AI office.
+
+---
+
+### 2026-02-22T18:17Z: User directive — Building/Floor/Office UI hierarchy
+**By:** Casey Irvine (via Copilot)
+**What:** The UI concept is Buildings, Floors, and Offices: Building = Squad Hub (collection of squads); Floor = Individual Squad; Office = Session with that squad. Within each office, see squad members working, chat with them. Aligns with new squad hub PR in bradygaster/squad (not yet merged).
+**Why:** User request — core UI architecture for Squad Office app.
+
+---
+
+### 2026-02-22T18:30Z: Decision — Electron Desktop App Scaffold Architecture
+**Author:** Mac (Backend Dev)  
+**Date:** 2026-02-22
+**Status:** Implemented
+
+**Context:** Electron desktop shell at `apps/desktop/` that runs Squad SDK via @bradygaster/squad-sdk in main process and exposes to React renderer via IPC.
+
+**Key Decisions:**
+1. **Main process owns all SDK state** — Renderer never imports @bradygaster/squad-sdk; all SDK classes in SquadRuntime via typed IPC.
+2. **Dynamic imports for ESM-only SDK** — Uses import() at runtime for correct ESM context.
+3. **Typed IPC with IpcResult wrapper** — All handlers return `{ ok: true, data }` or `{ ok: false, error }`.
+4. **Push channels with unsubscribe pattern** — React components clean up in useEffect.
+5. **electron-vite for build tooling** — Handles three-target build (main/preload/renderer) with single config.
+
+**Files Created:** `apps/desktop/` scaffold with main/preload/renderer structure, Squad SDK integration points, IPC channel types.
+
+---
+
+### 2026-02-22T18:45Z: Decision — Design System Foundation
+**Author:** Hawkins (UI/Design)
+**Date:** 2026-02-22
+**Status:** Implemented
+
+**Key Decisions:**
+1. **Dark navy-charcoal palette** (#0f1117 base) — reduces eye strain, layered surfaces
+2. **13px default body text** — smaller than web, standard for dev tools
+3. **8 distinct role accent colors** with 3 variants each
+4. **Dual token system** — Tailwind + CSS custom properties + TypeScript constants, all synced
+5. **150ms snappy transitions** with custom cubic-bezier
+6. **Inter + JetBrains Mono** from Google Fonts
+
+**Files Created:** `apps/desktop/tailwind.config.ts`, PostCSS config, globals.css, design-tokens.ts, DESIGN.md.
+
+---
+
+### 2026-02-22T19:00Z: Decision — React Renderer Architecture for Desktop App
+**Author:** Poncho (Frontend Dev)
+**Date:** 2026-02-22
+**Status:** Implemented
+
+**Key Decisions:**
+1. **Type boundary: local types.ts** — Renderer tsconfig prevents importing main/types.ts. Created mirroring types subset.
+2. **State management: useState + useRef** — No external library. Map<string, T> for per-agent isolation.
+3. **Streaming text commit pattern** — Deltas accumulate in Map; UsageEvent triggers commit and buffer clear.
+4. **Auto-select single squad** — If one squad found, skip BuildingView and land in PodView.
+
+---
+
+### 2026-02-22T19:15Z: Building/Floor/Office — Squad SDK Mapping
+**Author:** Billy (Squad Expert)
+**Date:** 2026-02-22
+**Status:** Analysis complete
+
+**Gap Analysis:**
+- **Building (multi-squad hub):** 0% SDK, 100% custom (SquadRegistry). Need multi-directory discovery, cross-squad aggregation.
+- **Floor (squad):** 90% SDK. Thin wrapper combining SquadClientWithPool + SquadCoordinator + SquadObserver.
+- **Office (session):** 95% SDK. Mostly IPC bridge work.
+
+**Capabilities Mapped:** Session management OK, Real-time streaming OK, File watching OK, Health monitoring OK (aggregatable), Session pool management OK.
+
+**Recommended Order:** 1) SquadFloor wrapper, 2) IPC Event Bridge, 3) SquadRegistry, 4) Cross-squad aggregation.
+
+---
+
+### 2026-02-22T20:30Z: Phase 2 Backend — Charter/history context in chat + Decisions API
+**Author:** Mac (Backend Dev)
+**Date:** 2026-02-22
+**Status:** Implemented
+
+**Features:**
+1. bridgeChatToPty() loads charter.md and history.md for squad agents, replacing generic personality with role-specific context.
+2. GET /api/squads/:squadId/decisions parses decisions.md into structured JSON with ?limit=N and ?member=name filters. File watcher broadcasts decisions.update WebSocket events.
+
+**Why:** Walk-up chat needs context (charter). Decisions API enables UI panels. Phase 2 requirements (Issues #2, #3).
+
+---
+
+### 2026-02-22T21:00Z: Phase 2 Frontend — Decisions Panel, Dashboard, Pod Previews
+**Author:** Poncho (Frontend Dev)
+**Date:** 2026-02-22
+**Status:** Implemented
+
+**Features:**
+1. **Decisions Panel:** 'D' toggles slide-in from left with decisions as cards. Auto-refresh on WebSocket events. PodScene only.
+2. **Building Dashboard:** 'Tab' toggles centered overlay with all squads, activity dots, member counts. Click navigates.
+3. **Pod Previews:** Mini colored circles for squad members in BuildingScene, pulsing for active. Colors encode roles.
+
+**Why:** Makes office feel alive, gives visibility into activity without entering pods.
+
+---
+
+### 2026-02-28T04:30Z: Phase 2 Test Strategy — inline parsers with swap-for-import
+**Author:** Blain (Tester)
+**Date:** 2026-02-28
+**Status:** Implemented
+
+**What:** 3 Phase 2 test files with inline reference implementations for pure logic. 5 fixture files in tests/test-data/. 39 tests total (36 passing, 3 skipped).
+
+**Why:** Inline parsers validate expected behavior before real modules land. Graceful skips keep CI green. Follows Phase 1 pattern.
+
+---
+
+### 2026-02-22T16:30Z: Phase 5 Planning — Productivity UX Overhaul (PROPOSED)
+**Author:** Dutch (Lead)
+**Date:** 2026-02-22
+**Issues:** #18—#25
+**Status:** Proposed
+
+**Direction:** Strip out mandatory walking, add instant navigation. Product shift from "novelty" to "command-center productivity tool." Pixel-art remains as visual context.
+
+**Phase 5a (Navigation & Core UX):** Instant pod navigation, agent selection, unified chat panel, label fix, roster sidebar.
+**Phase 5b (Working Features):** Agent process spawning, end-to-end terminal (xterm.js), chat round-trip.
+
+**Definition of Done:** Open app, click/hotkey into pods, click agents to chat, switch room/individual chat, send/receive, view terminal, jump via roster. **No walking required.**
+
+---
+

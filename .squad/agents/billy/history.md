@@ -19,3 +19,21 @@
   - Squad ceremonies: design review (before complex work), retrospective (after failures), configurable in ceremonies.md
   - AIOffice architecture: Express server with PTY management, JSONL watcher for Claude output, Phaser 3 web app for visualization
   - Mapping deliverable: `.squad/decisions/inbox/billy-squad-concept-mapping.md` created with full analysis
+- **2026-02-22:** Completed SDK capabilities audit and Building/Floor/Office mapping for @bradygaster/squad-sdk@0.8.2:
+  - SDK upgraded from v0.7.0 to v0.8.2 — now has full programmatic API (no longer just a single index.js)
+  - Key client: `SquadClientWithPool` — combines connection management, `SessionPool`, and `EventBus`
+  - Session lifecycle fully supported: create, resume, list, delete, send messages, streaming, hooks
+  - `AgentLifecycleManager` handles spawn-to-destroy with charter compilation + model selection
+  - `SquadCoordinator` routes messages to agents (direct/single/multi/fallback strategies)
+  - `StreamingPipeline` provides token-by-token streaming with delta, usage, and reasoning handlers
+  - `EventBus` has typed payloads for 9 event types (session:created/idle/error/destroyed, message, tool_call, routing, milestone, pool:health)
+  - `startWSBridge()` broadcasts EventBus over WebSocket — key for external consumers
+  - `SquadObserver` watches `.squad/` directory for file changes (agent, casting, config, decision, skill categories)
+  - **Building (Hub) = 0% SDK coverage** — No multi-squad concept. Need custom SquadRegistry for multi-directory discovery
+  - **Floor (Squad) = ~90% SDK coverage** — One SquadClientWithPool + Coordinator + Observer per squad
+  - **Office (Session) = ~95% SDK coverage** — Full session lifecycle, streaming, hooks, permissions
+  - Config resolution: walks up directory tree for squad.config.ts/js/json or .squad/config.json
+  - `resolveSquad(startDir)` finds `.squad/` directory but only for single squad scope
+  - Gap: Cross-squad routing, cross-squad event aggregation, squad discovery/enumeration all need custom code
+  - Recommended: SquadFloor wrapper → IPC Event Bridge → SquadRegistry → Cross-Squad Aggregation
+  - Mapping deliverable: `.squad/decisions/inbox/billy-sdk-building-mapping.md`
