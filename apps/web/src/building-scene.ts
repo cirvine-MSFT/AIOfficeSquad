@@ -56,6 +56,7 @@ export class BuildingScene extends Phaser.Scene {
   private shiftKey?: Phaser.Input.Keyboard.Key;
   private pods: PodInfo[] = [];
   private podZones: Array<{ zone: Phaser.GameObjects.Zone; squadId: string; name: string }> = [];
+  private podRects: Array<{ rect: Phaser.GameObjects.Rectangle; squadId: string; name: string }> = [];
   private enterPrompt?: Phaser.GameObjects.Text;
   private nearbyPodId: string | null = null;
   private desiredPlayerHeight = 120;
@@ -92,16 +93,22 @@ export class BuildingScene extends Phaser.Scene {
     const startX = (HALLWAY_WIDTH - totalWidth) / 2 + POD_WIDTH / 2;
 
     this.podZones = [];
+    this.podRects = [];
     this.pods.forEach((pod, i) => {
       const cx = startX + i * (POD_WIDTH + POD_GAP);
       const cy = POD_Y;
 
-      // Pod room background
+      // Pod room background — clickable (#18)
       const roomBg = this.add.rectangle(cx, cy, POD_WIDTH, POD_HEIGHT, 0x2a2d32);
       roomBg.setStrokeStyle(2, 0x4a4d55);
+      roomBg.setInteractive({ useHandCursor: true });
+      roomBg.on("pointerover", () => roomBg.setStrokeStyle(2, 0xd9a441));
+      roomBg.on("pointerout", () => roomBg.setStrokeStyle(2, 0x4a4d55));
+      roomBg.on("pointerdown", () => this.enterPod(pod.squadId));
+      this.podRects.push({ rect: roomBg, squadId: pod.squadId, name: pod.name });
 
-      // Squad name label
-      this.add.text(cx, cy - 40, pod.name, {
+      // Squad name label with number key hint
+      this.add.text(cx, cy - 40, `[${i + 1}] ${pod.name}`, {
         fontSize: "14px",
         fontFamily: '"Space Grotesk", sans-serif',
         color: "#f5e7c4",
@@ -196,23 +203,28 @@ export class BuildingScene extends Phaser.Scene {
       fontStyle: "bold",
     }).setOrigin(0.5, 0.5);
 
-    this.add.text(HALLWAY_WIDTH / 2, 56, "Walk to a pod door and press E to enter", {
+    this.add.text(HALLWAY_WIDTH / 2, 56, "Click a pod or press 1-9 to enter • Walk with WASD", {
       fontSize: "11px",
       fontFamily: '"Space Grotesk", sans-serif',
       color: "#888",
     }).setOrigin(0.5, 0.5);
 
-    // E key to enter pod
+    // E key to enter pod (walk-up legacy)
     this.input.keyboard?.on("keydown-E", () => {
       if (this.nearbyPodId) {
-        const pod = this.pods.find((p) => p.squadId === this.nearbyPodId);
-        this.scene.start("PodScene", {
-          squadId: this.nearbyPodId,
-          squadName: pod?.name ?? this.nearbyPodId,
-          hasBuilding: true,
-        });
+        this.enterPod(this.nearbyPodId);
       }
     });
+
+    // Number keys 1-9 to jump directly to pods (#18)
+    for (let n = 1; n <= 9; n++) {
+      this.input.keyboard?.on(`keydown-${n === 0 ? "ZERO" : ["ONE","TWO","THREE","FOUR","FIVE","SIX","SEVEN","EIGHT","NINE"][n-1]}`, () => {
+        const idx = n - 1;
+        if (idx < this.pods.length) {
+          this.enterPod(this.pods[idx].squadId);
+        }
+      });
+    }
 
     // Camera
     this.cameras.main.setBounds(0, 0, HALLWAY_WIDTH, HALLWAY_HEIGHT);
@@ -224,6 +236,16 @@ export class BuildingScene extends Phaser.Scene {
       delay: 30000,
       callback: () => this.fetchAndRenderPreviews(),
       loop: true,
+    });
+  }
+
+  /** Enter a pod by squadId — used by click, number key, and walk-up */
+  enterPod(squadId: string) {
+    const pod = this.pods.find((p) => p.squadId === squadId);
+    this.scene.start("PodScene", {
+      squadId,
+      squadName: pod?.name ?? squadId,
+      hasBuilding: true,
     });
   }
 

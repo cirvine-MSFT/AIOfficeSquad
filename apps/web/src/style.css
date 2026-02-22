@@ -1024,6 +1024,186 @@ body {
 }
 #ceremony-end-btn.hidden { display: none; }
 
+/* ============ Roster Sidebar (#22) ============ */
+.roster-sidebar {
+  position: absolute;
+  top: 70px;
+  left: 0;
+  width: 180px;
+  background: rgba(15, 15, 15, 0.92);
+  border-right: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 0 8px 8px 0;
+  z-index: 8;
+  display: flex;
+  flex-direction: column;
+  max-height: calc(100vh - 90px);
+  transition: transform 0.2s ease;
+  box-shadow: 4px 0 16px rgba(0, 0, 0, 0.3);
+}
+.roster-sidebar.collapsed {
+  transform: translateX(-150px);
+}
+.roster-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 8px 10px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+  flex-shrink: 0;
+}
+.roster-title {
+  font-size: 12px;
+  font-weight: 600;
+  color: #f5e7c4;
+}
+.roster-toggle {
+  background: none;
+  border: none;
+  color: rgba(255, 255, 255, 0.4);
+  font-size: 10px;
+  cursor: pointer;
+  padding: 2px 4px;
+  transition: color 0.15s;
+}
+.roster-toggle:hover { color: #fff; }
+.roster-sidebar.collapsed .roster-toggle { transform: rotate(180deg); }
+
+.roster-list {
+  overflow-y: auto;
+  padding: 4px 0;
+}
+.roster-item {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 5px 10px;
+  cursor: pointer;
+  transition: background 0.12s;
+  font-size: 11px;
+  color: rgba(255, 255, 255, 0.7);
+}
+.roster-item:hover {
+  background: rgba(255, 255, 255, 0.06);
+}
+.roster-item.active {
+  background: rgba(217, 164, 65, 0.15);
+  color: #d9a441;
+}
+.roster-item-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+.roster-item-dot.status-available { background: #60d394; }
+.roster-item-dot.status-thinking { background: #d9a441; }
+.roster-item-dot.status-replied { background: #4fb0ff; }
+.roster-item-dot.status-error { background: #e05d5d; }
+.roster-item-dot.status-idle { background: #555; }
+.roster-item-key {
+  color: rgba(255, 255, 255, 0.25);
+  font-size: 9px;
+  min-width: 12px;
+}
+.roster-item-name {
+  flex: 1;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* ============ Help Overlay (#22) ============ */
+.help-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: rgba(0, 0, 0, 0.7);
+  backdrop-filter: blur(4px);
+  z-index: 200;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.help-overlay.hidden { display: none; }
+.help-content {
+  background: rgba(26, 27, 30, 0.97);
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  border-radius: 12px;
+  padding: 24px 32px;
+  max-width: 380px;
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.5);
+}
+.help-content h3 {
+  margin: 0 0 16px;
+  font-size: 16px;
+  color: #f5e7c4;
+}
+.help-grid {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  gap: 6px 14px;
+  font-size: 12px;
+}
+.help-grid kbd {
+  background: rgba(255, 255, 255, 0.08);
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  border-radius: 4px;
+  padding: 1px 6px;
+  font-family: "SF Mono", monospace;
+  font-size: 11px;
+  color: #d9a441;
+  text-align: center;
+}
+.help-grid span {
+  color: rgba(255, 255, 255, 0.7);
+}
+.help-footer {
+  text-align: center;
+  margin-top: 16px;
+  font-size: 11px;
+  color: rgba(255, 255, 255, 0.3);
+}
+
+/* ============ Chat Target Bar (#20) ============ */
+.chat-target-bar {
+  display: flex;
+  gap: 4px;
+  padding: 0;
+  overflow-x: auto;
+  flex-shrink: 0;
+}
+.chat-target-bar.hidden { display: none; }
+
+.chat-target-btn {
+  padding: 4px 10px;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-radius: 6px;
+  background: transparent;
+  color: rgba(255, 255, 255, 0.5);
+  font-size: 11px;
+  font-weight: 600;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: all 0.15s;
+  font-family: inherit;
+}
+.chat-target-btn:hover {
+  background: rgba(255, 255, 255, 0.06);
+  color: rgba(255, 255, 255, 0.8);
+}
+.chat-target-btn.active {
+  background: rgba(96, 211, 148, 0.2);
+  border-color: rgba(96, 211, 148, 0.5);
+  color: #60d394;
+}
+.chat-target-btn.agent-target.active {
+  background: rgba(217, 164, 65, 0.2);
+  border-color: rgba(217, 164, 65, 0.5);
+  color: #d9a441;
+}
+
 /* ============ Squad Member Spawn Modal (Issue #10) ============ */
 .squad-member-select { width: 100%; padding: 10px; background: #2a2d32; border: 1px solid #3a3d44; border-radius: 8px; color: #f5e7c4; font-size: 13px; margin-bottom: 12px; }
 .squad-member-preview { background: #2a2d32; border-radius: 8px; padding: 12px; margin-bottom: 12px; border-left: 3px solid #d9a441; }

@@ -96,6 +96,51 @@ let bannerTimeout: number | undefined;
 let dismissedBanners = new Set<string>();
 let activeBannerAgentId: string | null = null;
 let roomChatMode = false; // Issue #15: "Talk to Room" mode
+let chatTarget: "room" | string = "room"; // #20: "room" or agentId
+
+// Chat target bar element
+const chatTargetBar = document.getElementById("chat-target-bar") as HTMLDivElement;
+
+// ============ Roster Sidebar (#22) ============
+const rosterSidebar = document.getElementById("roster-sidebar") as HTMLDivElement;
+const rosterList = document.getElementById("roster-list") as HTMLDivElement;
+const rosterToggle = document.getElementById("roster-toggle") as HTMLButtonElement;
+let rosterCollapsed = false;
+
+rosterToggle.addEventListener("click", () => {
+  rosterCollapsed = !rosterCollapsed;
+  rosterSidebar.classList.toggle("collapsed", rosterCollapsed);
+});
+
+function renderRoster() {
+  rosterList.innerHTML = "";
+  agents.forEach((agent, i) => {
+    const item = document.createElement("div");
+    item.className = `roster-item${currentAgentId === agent.agentId ? " active" : ""}`;
+    const statusCls = agent.status ? `status-${agent.status}` : "status-idle";
+    item.innerHTML = `
+      <span class="roster-item-key">${i + 1}</span>
+      <span class="roster-item-dot ${statusCls}"></span>
+      <span class="roster-item-name">${(agent as any).squadBadge || ""} ${(agent.name || agent.agentId).slice(0, 14)}</span>
+    `;
+    item.addEventListener("click", () => openPanel(agent.agentId, true));
+    rosterList.appendChild(item);
+  });
+}
+
+// ============ Help Overlay (#22) ============
+const helpOverlay = document.getElementById("help-overlay") as HTMLDivElement;
+let helpOpen = false;
+
+function toggleHelp() {
+  helpOpen = !helpOpen;
+  helpOverlay.classList.toggle("hidden", !helpOpen);
+  scene.lockInput(helpOpen);
+}
+
+helpOverlay.addEventListener("click", (e) => {
+  if (e.target === helpOverlay && helpOpen) toggleHelp();
+});
 
 // ============ Decisions Panel State (Issue #3) ============
 const decisionsPanel = document.getElementById("decisions-panel") as HTMLDivElement;
@@ -505,8 +550,52 @@ function setAudioState(isPlaying: boolean) {
 
 audioEl.addEventListener("ended", () => setAudioState(false));
 
+// ============ Unified Chat Target Bar (#20) ============
+function renderChatTargetBar() {
+  if (!currentAgentId && !roomChatMode) {
+    chatTargetBar.classList.add("hidden");
+    return;
+  }
+  chatTargetBar.classList.remove("hidden");
+  chatTargetBar.innerHTML = "";
+
+  // Room button
+  const roomBtn = document.createElement("button");
+  roomBtn.className = `chat-target-btn${chatTarget === "room" ? " active" : ""}`;
+  roomBtn.textContent = `🏠 Room`;
+  roomBtn.addEventListener("click", () => {
+    chatTarget = "room";
+    roomChatMode = true;
+    renderChatTargetBar();
+    renderPanel();
+    chatInput.focus();
+  });
+  chatTargetBar.appendChild(roomBtn);
+
+  // Individual agent buttons
+  agents.forEach((agent, i) => {
+    const btn = document.createElement("button");
+    const isActive = chatTarget === agent.agentId;
+    btn.className = `chat-target-btn agent-target${isActive ? " active" : ""}`;
+    btn.textContent = `${(agent as any).squadBadge || ""} ${(agent.name || agent.agentId).slice(0, 10)}`.trim();
+    btn.title = `[${i + 1}] ${agent.name || agent.agentId}`;
+    btn.addEventListener("click", () => {
+      chatTarget = agent.agentId;
+      roomChatMode = false;
+      currentAgentId = agent.agentId;
+      renderChatTargetBar();
+      renderPanel();
+      chatInput.focus();
+    });
+    chatTargetBar.appendChild(btn);
+  });
+}
+
 function renderPanel() {
-  // Room chat mode (Issue #15)
+  // Always render chat target bar when panel is open
+  renderChatTargetBar();
+
+  // Room chat mode (Issue #15 / #20)
   if (roomChatMode) {
     panelTitle.textContent = podScene.squadName || "Room Chat";
     panelProvider.textContent = "Room";
@@ -740,6 +829,8 @@ terminalContainer.addEventListener("keydown", (event) => {
 
 function openPanel(agentId: string, deferFocus = false) {
   currentAgentId = agentId;
+  chatTarget = agentId; // #20: set chat target to this agent
+  roomChatMode = false;
   panelTabs.classList.remove("hidden");
   // Restore last tab mode (chat or terminal)
   setPanelMode(panelMode);
@@ -774,7 +865,9 @@ function openPanel(agentId: string, deferFocus = false) {
 function closePanel() {
   currentAgentId = null;
   roomChatMode = false;
+  chatTarget = "room";
   chatInput.placeholder = "Message this agent...";
+  chatTargetBar.classList.add("hidden");
   panelTabs.classList.add("hidden");
   disconnectTerminal();
   // Visually reset to chat layout without changing panelMode (preserves user preference)
@@ -832,6 +925,10 @@ window.addEventListener("keydown", (event) => {
   const isTyping = active?.tagName === "INPUT" || active?.tagName === "TEXTAREA" || active?.tagName === "SELECT";
 
   if (event.key === "Escape") {
+    if (helpOpen) {
+      toggleHelp();
+      return;
+    }
     if (ceremonyModalOpen) {
       closeCeremonyModal();
       return;
@@ -910,11 +1007,12 @@ window.addEventListener("keydown", (event) => {
     }
   }
 
-  // R key: toggle "Talk to Room" mode (Issue #15)
+  // R key: open Room chat via unified panel (#20)
   if (event.key.toLowerCase() === "r" && !currentAgentId) {
     event.preventDefault();
     roomChatMode = !roomChatMode;
     if (roomChatMode) {
+      chatTarget = "room";
       panelTabs.classList.remove("hidden");
       setPanelMode("chat");
       renderPanel();
@@ -960,6 +1058,12 @@ window.addEventListener("keydown", (event) => {
       event.preventDefault();
       openCeremonyModal();
     }
+  }
+
+  // ? key: toggle help overlay (#22)
+  if (event.key === "?" || (event.shiftKey && event.code === "Slash")) {
+    event.preventDefault();
+    toggleHelp();
   }
 }, true); // Capture phase - fires before Phaser
 
@@ -1017,6 +1121,15 @@ scene.setProximityHandler((agentId) => {
   nearbyAgentId = agentId;
 });
 
+// Click-to-select agent in PodScene (#19)
+podScene.onAgentClick = (agentId: string) => {
+  if (currentAgentId === agentId) {
+    closePanel();
+  } else {
+    openPanel(agentId, true);
+  }
+};
+
 function applyEvent(event: EventEnvelope) {
   if (event.type === "snapshot") {
     const payload = event.payload as any;
@@ -1032,6 +1145,7 @@ function applyEvent(event: EventEnvelope) {
     tasks = payload.tasks ?? [];
     scene.syncAgents(agents);
     renderPanel();
+    renderRoster();
     return;
   }
 
@@ -1079,6 +1193,7 @@ function applyEvent(event: EventEnvelope) {
 
   scene.syncAgents(agents);
   renderPanel();
+  renderRoster();
 
   // Auto-refresh decisions panel on decisions.update event (Issue #3)
   if (event.type === "decisions.update" && decisionsPanelOpen) {

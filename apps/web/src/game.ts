@@ -86,6 +86,7 @@ export class PodScene extends Phaser.Scene {
   private exitZone?: Phaser.GameObjects.Zone;
   private exitPrompt?: Phaser.GameObjects.Text;
   private roomChatHandler?: RoomChatHandler;
+  onAgentClick?: (agentId: string) => void;
 
   constructor() {
     super("PodScene");
@@ -376,7 +377,7 @@ export class PodScene extends Phaser.Scene {
         status.setDepth(5);
         this.npcStatus.set(agent.agentId, status);
 
-        // Task summary text below status
+        // Task summary text above status (spaced to avoid overlap)
         const summaryText = this.add.text(pos.x, pos.y - 56, "", {
           fontSize: "8px",
           color: "#888888"
@@ -387,6 +388,12 @@ export class PodScene extends Phaser.Scene {
         summaryText.setOrigin(0.5, 1);
         summaryText.setDepth(5);
         this.npcSummaryTexts.set(agent.agentId, summaryText);
+
+        // Make NPC sprite clickable for instant selection (#19)
+        sprite.setInteractive({ useHandCursor: true });
+        sprite.on("pointerdown", () => {
+          if (this.onAgentClick) this.onAgentClick(agent.agentId);
+        });
       }
       if (!this.typingIndicators.has(agent.agentId)) {
         const dot1 = this.add.circle(0, 0, 2, 0xffffff);
@@ -400,7 +407,7 @@ export class PodScene extends Phaser.Scene {
       sprite.setPosition(pos.x, pos.y);
       const label = this.npcLabels.get(agent.agentId);
       if (label) {
-        const offset = sprite ? sprite.displayHeight + 6 : 22;
+        const offset = sprite ? sprite.displayHeight + 4 : 22;
         label.setPosition(pos.x, pos.y - offset);
         label.setText((agent.name ?? agent.agentId).slice(0, 14));
       }
@@ -410,10 +417,9 @@ export class PodScene extends Phaser.Scene {
         status.setText(statusText);
         const statusColor = this.getStatusColor(agent.status);
         status.setColor(statusColor);
-        // Status background color-coding
         const statusBg = this.getStatusBgColor(agent.status);
         status.setBackgroundColor(statusBg);
-        const offset = (sprite ? sprite.displayHeight + 20 : 38);
+        const offset = (sprite ? sprite.displayHeight + 30 : 48);
         status.setPosition(pos.x, pos.y - offset);
 
         // Pulsing animation for "thinking" status
@@ -440,7 +446,7 @@ export class PodScene extends Phaser.Scene {
         }
       }
 
-      // Role badge emoji above name label
+      // Role badge emoji above status label (spaced to avoid overlap)
       const badgeEmoji = agent.squadBadge;
       let badge = this.npcBadges.get(agent.agentId);
       if (badgeEmoji) {
@@ -453,19 +459,19 @@ export class PodScene extends Phaser.Scene {
           this.npcBadges.set(agent.agentId, badge);
         }
         badge.setText(badgeEmoji);
-        const badgeOffset = (sprite ? sprite.displayHeight + 32 : 50);
+        const badgeOffset = (sprite ? sprite.displayHeight + 44 : 62);
         badge.setPosition(pos.x, pos.y - badgeOffset);
       } else if (badge) {
         badge.setText("");
       }
 
-      // Task summary text below status
+      // Task summary text above name label (spaced to avoid overlap)
       const summaryTextObj = this.npcSummaryTexts.get(agent.agentId);
       if (summaryTextObj) {
         const scope = agent.squadScope || agent.summary || "";
         const trimmedScope = scope.length > 28 ? `${scope.slice(0, 28)}…` : scope;
         summaryTextObj.setText(trimmedScope);
-        const summaryOffset = (sprite ? sprite.displayHeight + 10 : 28);
+        const summaryOffset = (sprite ? sprite.displayHeight + 18 : 36);
         summaryTextObj.setPosition(pos.x, pos.y - summaryOffset);
       }
       const typing = this.typingIndicators.get(agent.agentId);
@@ -760,25 +766,25 @@ export class PodScene extends Phaser.Scene {
           else sprite.setFlipX(false);
         },
       });
-      // Move labels with sprite
+      // Move labels with sprite (matching updated offsets)
       const label = this.npcLabels.get(agentId);
       if (label) {
-        const offset = sprite.displayHeight + 6;
+        const offset = sprite.displayHeight + 4;
         this.tweens.add({ targets: label, x: seat.x, y: seat.y - offset, duration: 800, ease: "Power2" });
       }
       const status = this.npcStatus.get(agentId);
       if (status) {
-        const offset = sprite.displayHeight + 20;
+        const offset = sprite.displayHeight + 30;
         this.tweens.add({ targets: status, x: seat.x, y: seat.y - offset, duration: 800, ease: "Power2" });
       }
       const badge = this.npcBadges.get(agentId);
       if (badge) {
-        const offset = sprite.displayHeight + 32;
+        const offset = sprite.displayHeight + 44;
         this.tweens.add({ targets: badge, x: seat.x, y: seat.y - offset, duration: 800, ease: "Power2" });
       }
       const summaryText = this.npcSummaryTexts.get(agentId);
       if (summaryText) {
-        const offset = sprite.displayHeight + 10;
+        const offset = sprite.displayHeight + 18;
         this.tweens.add({ targets: summaryText, x: seat.x, y: seat.y - offset, duration: 800, ease: "Power2" });
       }
       const typing = this.typingIndicators.get(agentId);
@@ -817,22 +823,22 @@ export class PodScene extends Phaser.Scene {
       });
       const label = this.npcLabels.get(agentId);
       if (label) {
-        const offset = sprite.displayHeight + 6;
+        const offset = sprite.displayHeight + 4;
         this.tweens.add({ targets: label, x: desk.x, y: desk.y - offset, duration: 600, ease: "Power2" });
       }
       const status = this.npcStatus.get(agentId);
       if (status) {
-        const offset = sprite.displayHeight + 20;
+        const offset = sprite.displayHeight + 30;
         this.tweens.add({ targets: status, x: desk.x, y: desk.y - offset, duration: 600, ease: "Power2" });
       }
       const badge = this.npcBadges.get(agentId);
       if (badge) {
-        const offset = sprite.displayHeight + 32;
+        const offset = sprite.displayHeight + 44;
         this.tweens.add({ targets: badge, x: desk.x, y: desk.y - offset, duration: 600, ease: "Power2" });
       }
       const summaryText = this.npcSummaryTexts.get(agentId);
       if (summaryText) {
-        const offset = sprite.displayHeight + 10;
+        const offset = sprite.displayHeight + 18;
         this.tweens.add({ targets: summaryText, x: desk.x, y: desk.y - offset, duration: 600, ease: "Power2" });
       }
       const typing = this.typingIndicators.get(agentId);

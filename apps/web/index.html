@@ -30,9 +30,10 @@
           <button id="tab-chat" class="panel-tab active">Chat</button>
           <button id="tab-terminal" class="panel-tab">Terminal</button>
         </div>
-        <div id="panel-empty" class="panel-empty hidden">
+        <div id="chat-target-bar" class="chat-target-bar hidden"></div>
+        <div id="panel-empty" class="panel-empty">
           <div class="panel-empty-title">Chat not active</div>
-          <div class="panel-empty-subtitle">Walk up to an agent and press E.</div>
+          <div class="panel-empty-subtitle">Click an agent or press 1-9 to start chatting.</div>
         </div>
         <div id="panel-messages" class="panel-messages panel-chat"></div>
         <div id="terminal-container" class="terminal-container hidden"></div>
@@ -40,11 +41,11 @@
           <input id="chat-input" type="text" placeholder="Message this agent..." />
           <button id="chat-send" class="panel-send">Send</button>
         </div>
-        <div class="panel-hint">Press E near an agent. Esc to close.</div>
+        <div class="panel-hint">Click agent or press 1-9. Esc to close.</div>
       </div>
       <div id="hud" class="hud">
         <div class="hud-title">AIOffice</div>
-        <div class="hud-subtitle">WASD to move. E to talk. R for room chat. D for decisions. 1-9 to jump. Tab for dashboard.</div>
+        <div class="hud-subtitle">Click/1-9: select agent • D: decisions • S: status • C: ceremony • ?: help</div>
       </div>
       <div id="audio-controls" class="audio-controls">
         <button id="audio-play" class="audio-btn" aria-label="Play music">
@@ -87,6 +88,34 @@
           </div>
           <div id="dashboard-squads" class="dashboard-squads"></div>
           <div class="dashboard-footer">Press Tab or Escape to close</div>
+        </div>
+      </div>
+
+      <!-- Roster Sidebar (#22) -->
+      <div id="roster-sidebar" class="roster-sidebar">
+        <div class="roster-header">
+          <span class="roster-title">👥 Team</span>
+          <button id="roster-toggle" class="roster-toggle" aria-label="Toggle roster">◀</button>
+        </div>
+        <div id="roster-list" class="roster-list"></div>
+      </div>
+
+      <!-- Help Overlay (#22) -->
+      <div id="help-overlay" class="help-overlay hidden" role="dialog" aria-label="Keyboard Shortcuts">
+        <div class="help-content">
+          <h3>⌨️ Keyboard Shortcuts</h3>
+          <div class="help-grid">
+            <kbd>1-9</kbd><span>Select agent / Enter pod</span>
+            <kbd>R</kbd><span>Room chat</span>
+            <kbd>D</kbd><span>Decisions panel</span>
+            <kbd>S</kbd><span>Status dashboard</span>
+            <kbd>C</kbd><span>Start ceremony</span>
+            <kbd>Tab</kbd><span>Building dashboard</span>
+            <kbd>Esc</kbd><span>Close / Back</span>
+            <kbd>?</kbd><span>This help</span>
+            <kbd>Click</kbd><span>Select agent / Enter pod</span>
+          </div>
+          <div class="help-footer">Press ? or Esc to close</div>
         </div>
       </div>
 
