@@ -1023,3 +1023,11 @@ body {
   font-family: "Space Grotesk", sans-serif;
 }
 #ceremony-end-btn.hidden { display: none; }
+
+/* ============ Squad Member Spawn Modal (Issue #10) ============ */
+.squad-member-select { width: 100%; padding: 10px; background: #2a2d32; border: 1px solid #3a3d44; border-radius: 8px; color: #f5e7c4; font-size: 13px; margin-bottom: 12px; }
+.squad-member-preview { background: #2a2d32; border-radius: 8px; padding: 12px; margin-bottom: 12px; border-left: 3px solid #d9a441; }
+.squad-member-preview .member-badge { font-size: 24px; margin-right: 8px; }
+.squad-member-preview .member-name { color: #f5e7c4; font-weight: 600; }
+.squad-member-preview .member-role { color: #888; font-size: 12px; display: block; margin-top: 4px; }
+.squad-member-preview .member-scope { color: #b0b0b0; font-size: 11px; display: block; margin-top: 6px; line-height: 1.4; }

@@ -1132,6 +1132,24 @@ const agentPersonalityInput = document.getElementById("agent-personality") as HT
 const agentContinueCheckbox = document.getElementById("agent-continue") as HTMLInputElement;
 const agentCommandDiv = document.getElementById("agent-command") as HTMLDivElement;
 const agentCommandText = document.getElementById("agent-command-text") as HTMLElement;
+const squadMemberSelect = document.getElementById("squad-member-select") as HTMLSelectElement;
+const squadMemberPreview = document.getElementById("squad-member-preview") as HTMLDivElement;
+const previewBadge = document.getElementById("preview-badge") as HTMLSpanElement;
+const previewName = document.getElementById("preview-name") as HTMLSpanElement;
+const previewRole = document.getElementById("preview-role") as HTMLSpanElement;
+const previewScope = document.getElementById("preview-scope") as HTMLSpanElement;
+
+// Squad roster cache for the modal
+interface SquadMemberOption {
+  id: string;
+  name: string;
+  role: string;
+  scope: string;
+  badge: string;
+  status: string;
+  hasCharter: boolean;
+}
+let cachedSquadMembers: SquadMemberOption[] = [];
 
 // Random name generator
 const adjectives = ["Swift", "Clever", "Brave", "Calm", "Eager", "Fancy", "Jolly", "Lucky", "Noble", "Quick"];
@@ -1154,6 +1172,48 @@ function randomDesk(): { x: number; y: number } {
   };
 }
 
+/** Fetch squad roster and populate the member dropdown */
+async function loadSquadRoster() {
+  const squadId = podScene.squadId || "default";
+  try {
+    const res = await fetch(`${SERVER_URL}/api/building/squads/${squadId}`);
+    if (!res.ok) return;
+    const data = await res.json();
+    cachedSquadMembers = data.members || [];
+
+    // Populate dropdown
+    squadMemberSelect.innerHTML = '<option value="">— Select a squad member —</option>';
+    for (const m of cachedSquadMembers) {
+      const opt = document.createElement("option");
+      opt.value = m.id;
+      opt.textContent = `${m.badge} ${m.name} — ${m.role}`;
+      squadMemberSelect.appendChild(opt);
+    }
+  } catch (err) {
+    console.error("[modal] Failed to load squad roster:", err);
+  }
+}
+
+/** Show member preview when selected from dropdown */
+squadMemberSelect.addEventListener("change", () => {
+  const memberId = squadMemberSelect.value;
+  const member = cachedSquadMembers.find((m) => m.id === memberId);
+
+  if (member) {
+    previewBadge.textContent = member.badge;
+    previewName.textContent = member.name;
+    previewRole.textContent = member.role;
+    previewScope.textContent = member.scope;
+    squadMemberPreview.classList.remove("hidden");
+    agentNameInput.value = member.name;
+    // Default to copilot-cli for squad members
+    agentCliSelect.value = "copilot-cli";
+  } else {
+    squadMemberPreview.classList.add("hidden");
+    agentNameInput.value = "";
+  }
+});
+
 // Stop keys in modal inputs from reaching Phaser
 addAgentModal.addEventListener("keydown", (event) => {
   if (event.key !== "Escape") {
@@ -1169,7 +1229,11 @@ addAgentBtn.addEventListener("click", () => {
   agentPersonalityInput.value = "";
   agentContinueCheckbox.checked = false;
   agentCommandDiv.classList.add("hidden");
+  squadMemberSelect.value = "";
+  squadMemberPreview.classList.add("hidden");
   scene.lockInput(true);
+  // Fetch latest squad roster when modal opens
+  loadSquadRoster();
 });
 
 modalClose.addEventListener("click", () => {
@@ -1185,7 +1249,10 @@ addAgentModal.addEventListener("click", (e) => {
 });
 
 createAgentBtn.addEventListener("click", async () => {
-  const name = agentNameInput.value.trim() || randomName();
+  const selectedMemberId = squadMemberSelect.value;
+  const selectedMember = cachedSquadMembers.find((m) => m.id === selectedMemberId);
+
+  const name = agentNameInput.value.trim() || (selectedMember?.name) || randomName();
   const cliType = agentCliSelect.value;
   const dir = agentDirInput.value.trim();
   const personality = agentPersonalityInput.value.trim();
@@ -1196,9 +1263,15 @@ createAgentBtn.addEventListener("click", async () => {
     return;
   }
 
+  // Build personality from squad member context if available
+  let effectivePersonality = personality;
+  if (selectedMember && !personality) {
+    effectivePersonality = `You are ${selectedMember.name} (${selectedMember.badge}), the ${selectedMember.role}. Your scope: ${selectedMember.scope}`;
+  }
+
   // Spawn agent via server
   try {
-    createAgentBtn.textContent = "Starting...";
+    createAgentBtn.textContent = "Spawning...";
     createAgentBtn.disabled = true;
 
     const response = await fetch(`${SERVER_URL}/agents/spawn`, {
@@ -1208,7 +1281,7 @@ createAgentBtn.addEventListener("click", async () => {
         name,
         cliType,
         workingDirectory: dir,
-        personality: personality || undefined,
+        personality: effectivePersonality || undefined,
         continueConversation,
       }),
     });
@@ -1216,12 +1289,12 @@ createAgentBtn.addEventListener("click", async () => {
     const result = await response.json();
 
     if (response.ok) {
-      agentCommandText.textContent = `✅ Agent "${name}" is starting in ${dir}`;
+      agentCommandText.textContent = `✅ ${selectedMember ? selectedMember.badge + " " : ""}Agent "${name}" is starting in ${dir}`;
       agentCommandDiv.classList.remove("hidden");
 
-      createAgentBtn.textContent = "Agent Started!";
+      createAgentBtn.textContent = "Member Spawned!";
       setTimeout(() => {
-        createAgentBtn.textContent = "Create Agent";
+        createAgentBtn.textContent = "Spawn Member";
         createAgentBtn.disabled = false;
         // Close modal after success
         addAgentModal.classList.add("hidden");
@@ -1234,7 +1307,7 @@ createAgentBtn.addEventListener("click", async () => {
   } catch (error) {
     console.error("Failed to spawn agent:", error);
     alert(`Failed to spawn agent: ${error}`);
-    createAgentBtn.textContent = "Create Agent";
+    createAgentBtn.textContent = "Spawn Member";
     createAgentBtn.disabled = false;
   }
 });
