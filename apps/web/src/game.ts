@@ -11,7 +11,9 @@ export type AgentView = {
 
 export type ProximityHandler = (agentId: string | null) => void;
 
-export class OfficeScene extends Phaser.Scene {
+export type RoomChatHandler = (squadId: string, text: string) => void;
+
+export class PodScene extends Phaser.Scene {
   private player?: Phaser.Physics.Arcade.Sprite;
   private cursors?: Phaser.Types.Input.Keyboard.CursorKeys;
   private wasdKeys?: { [key: string]: Phaser.Input.Keyboard.Key };
@@ -63,8 +65,22 @@ export class OfficeScene extends Phaser.Scene {
   private inputLocked = false;
   private clockText!: Phaser.GameObjects.Text;
 
+  // Pod/squad context
+  squadId: string = "";
+  squadName: string = "";
+  private hasBuilding = false;
+  private exitZone?: Phaser.GameObjects.Zone;
+  private exitPrompt?: Phaser.GameObjects.Text;
+  private roomChatHandler?: RoomChatHandler;
+
   constructor() {
-    super("OfficeScene");
+    super("PodScene");
+  }
+
+  init(data?: { squadId?: string; squadName?: string; hasBuilding?: boolean }) {
+    this.squadId = data?.squadId ?? "";
+    this.squadName = data?.squadName ?? "";
+    this.hasBuilding = data?.hasBuilding ?? false;
   }
 
   preload() {
@@ -195,6 +211,44 @@ export class OfficeScene extends Phaser.Scene {
     this.input.keyboard?.on("keydown-SPACE", () => {
       this.inputLocked = false;
     });
+
+    // Exit zone: bottom of map, allows returning to BuildingScene
+    if (this.hasBuilding) {
+      const exitY = map.heightInPixels - 20;
+      this.exitZone = this.add.zone(map.widthInPixels / 2, exitY, map.widthInPixels, 40);
+      this.physics.world.enable(this.exitZone);
+      (this.exitZone.body as Phaser.Physics.Arcade.Body).setAllowGravity(false);
+      (this.exitZone.body as Phaser.Physics.Arcade.Body).setImmovable(true);
+
+      this.exitPrompt = this.add.text(map.widthInPixels / 2, exitY - 30, "↓ Exit to Building (Esc)", {
+        fontSize: "10px",
+        color: "#d9a441",
+        backgroundColor: "rgba(0,0,0,0.6)",
+        padding: { x: 6, y: 3 },
+      }).setOrigin(0.5, 0.5).setDepth(10).setScrollFactor(1);
+
+      this.input.keyboard?.on("keydown-ESC", () => {
+        if (!this.inputLocked) {
+          this.returnToBuilding();
+        }
+      });
+    }
+  }
+
+  private returnToBuilding() {
+    if (this.hasBuilding) {
+      this.scene.start("BuildingScene");
+    }
+  }
+
+  setRoomChatHandler(handler: RoomChatHandler) {
+    this.roomChatHandler = handler;
+  }
+
+  emitRoomChat(text: string) {
+    if (this.roomChatHandler && this.squadId) {
+      this.roomChatHandler(this.squadId, text);
+    }
   }
 
   setProximityHandler(handler: ProximityHandler) {
@@ -402,6 +456,7 @@ export class OfficeScene extends Phaser.Scene {
 
     this.updatePlayerAnimation(body);
     this.checkProximity();
+    this.checkExitProximity();
     this.updateTypingIndicators();
   }
 
@@ -534,6 +589,17 @@ export class OfficeScene extends Phaser.Scene {
     }
   }
 
+  private checkExitProximity() {
+    if (!this.player || !this.exitZone || !this.hasBuilding) return;
+    const dist = Phaser.Math.Distance.Between(
+      this.player.x, this.player.y,
+      this.exitZone.x, this.exitZone.y
+    );
+    if (dist < 60) {
+      this.returnToBuilding();
+    }
+  }
+
   private getStatusColor(status?: string) {
     switch (status) {
       case "thinking":
@@ -549,3 +615,6 @@ export class OfficeScene extends Phaser.Scene {
     }
   }
 }
+
+/** @deprecated Use PodScene instead */
+export const OfficeScene = PodScene;

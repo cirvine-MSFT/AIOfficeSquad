@@ -694,3 +694,9 @@ body {
 .terminal-container .xterm-screen {
   width: 100% !important;
 }
+
+/* Room chat mode indicator */
+.panel-provider.room-mode {
+  background: rgba(96, 211, 148, 0.2);
+  color: #60d394;
+}

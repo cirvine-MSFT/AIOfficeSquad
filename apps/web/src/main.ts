@@ -3,7 +3,8 @@ import { marked } from "marked";
 import { Terminal } from "@xterm/xterm";
 import { FitAddon } from "@xterm/addon-fit";
 import "@xterm/xterm/css/xterm.css";
-import { OfficeScene, type AgentView } from "./game";
+import { PodScene, OfficeScene, type AgentView } from "./game";
+import { BuildingScene } from "./building-scene";
 import { EventEnvelopeSchema, validatePayload, type EventEnvelope } from "@office/shared";
 
 // Configure marked for safe rendering
@@ -15,9 +16,17 @@ marked.setOptions({
 const SERVER_URL = "http://localhost:3003";
 const WS_URL = "ws://localhost:3003/ws";
 
-const scene = new OfficeScene();
+// Multi-squad mode: if URL has ?building=1 or server provides multiple squads, start with BuildingScene
+const urlParams = new URLSearchParams(window.location.search);
+const multiSquadMode = urlParams.has("building");
+
+const podScene = new PodScene();
+const buildingScene = new BuildingScene();
 const TYPING_JITTER_ENABLED = true;
-scene.setTypingJitterEnabled(TYPING_JITTER_ENABLED);
+podScene.setTypingJitterEnabled(TYPING_JITTER_ENABLED);
+
+// Alias for backward compatibility
+const scene = podScene;
 
 let sidebarWidth = 360;
 const config: Phaser.Types.Core.GameConfig = {
@@ -36,7 +45,7 @@ const config: Phaser.Types.Core.GameConfig = {
       roundPixels: true
     }
   },
-  scene
+  scene: multiSquadMode ? [buildingScene, podScene] : [podScene]
 };
 
 const game = new Phaser.Game(config);
@@ -86,6 +95,7 @@ let knownAgents = new Set<string>();
 let bannerTimeout: number | undefined;
 let dismissedBanners = new Set<string>();
 let activeBannerAgentId: string | null = null;
+let roomChatMode = false; // Issue #15: "Talk to Room" mode
 
 const statusClasses = [
   "status-available",
@@ -167,6 +177,24 @@ function setAudioState(isPlaying: boolean) {
 audioEl.addEventListener("ended", () => setAudioState(false));
 
 function renderPanel() {
+  // Room chat mode (Issue #15)
+  if (roomChatMode) {
+    panelTitle.textContent = podScene.squadName || "Room Chat";
+    panelProvider.textContent = "Room";
+    panelProvider.className = "panel-provider room-mode";
+    panelStatus.textContent = "talking to room";
+    setPanelStatusClass("available");
+    panelEmpty.classList.add("hidden");
+    panelMessages.innerHTML = "";
+    chatInput.disabled = false;
+    chatSend.disabled = false;
+    chatInput.placeholder = "Message the room coordinator...";
+    panelNewChat.style.display = "none";
+    panelDelete.style.display = "none";
+    scene.setSelectedAgent(null);
+    return;
+  }
+
   if (!currentAgentId) {
     panelTitle.textContent = "Chat";
     panelProvider.textContent = "";
@@ -416,6 +444,8 @@ function openPanel(agentId: string, deferFocus = false) {
 
 function closePanel() {
   currentAgentId = null;
+  roomChatMode = false;
+  chatInput.placeholder = "Message this agent...";
   panelTabs.classList.add("hidden");
   disconnectTerminal();
   // Visually reset to chat layout without changing panelMode (preserves user preference)
@@ -517,9 +547,47 @@ window.addEventListener("keydown", (event) => {
       openPanel(nearbyAgentId, true);
     }
   }
+
+  // R key: toggle "Talk to Room" mode (Issue #15)
+  if (event.key.toLowerCase() === "r" && !currentAgentId) {
+    event.preventDefault();
+    roomChatMode = !roomChatMode;
+    if (roomChatMode) {
+      panelTabs.classList.remove("hidden");
+      setPanelMode("chat");
+      renderPanel();
+      chatInput.focus();
+      scene.lockInput(true);
+    } else {
+      closePanel();
+    }
+  }
 }, true); // Capture phase - fires before Phaser
 
 chatSend.addEventListener("click", async () => {
+  // Room chat mode: send to squad coordinator endpoint
+  if (roomChatMode && chatInput.value.trim()) {
+    const squadId = podScene.squadId || "default";
+    const text = chatInput.value.trim();
+    try {
+      await fetch(`${SERVER_URL}/squads/${squadId}/chat`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ text, timestamp: new Date().toISOString() })
+      });
+    } catch (err) {
+      console.warn("Room chat send failed (endpoint may not exist yet):", err);
+    }
+    // Show sent message in panel
+    const div = document.createElement("div");
+    div.className = "panel-message you";
+    div.innerHTML = marked.parse(text) as string;
+    panelMessages.appendChild(div);
+    panelMessages.scrollTop = panelMessages.scrollHeight;
+    chatInput.value = "";
+    return;
+  }
+
   if (!currentAgentId || !chatInput.value.trim()) return;
   const payload = {
     type: "agent.message",

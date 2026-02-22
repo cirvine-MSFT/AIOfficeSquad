@@ -541,6 +541,53 @@ AIOffice is a Phaser 3 + Express + node-pty app that renders AI agents (Claude C
 - Selecting member shows role, charter summary, last active time
 - "Spawn" button launches with full context
 - "Add New Member" flow triggers squad init for new agents
+
+---
+
+### 2026-02-22T06:30:00Z: Building/Pod Scene Architecture
+**By:** Poncho (Frontend Dev)  
+**Issues:** #11, #12, #14, #15
+
+**What:** Implemented two-tier scene architecture: BuildingScene (hallway of pods) → PodScene (single squad office).
+
+**Key Decisions:**
+1. **Multi-squad activated by URL param** (`?building=1`). Without it, app starts directly in PodScene (single-squad backward compat). Server can switch this later.
+2. **PodScene = OfficeScene renamed**. `OfficeScene` exported as deprecated alias so nothing breaks.
+3. **Scene data passing**: `squadId` and `squadName` passed via Phaser's `scene.start(key, data)` + `init(data)` pattern.
+4. **"Talk to Room" targets** `/squads/{squadId}/chat` — Mac needs to build this endpoint. For now it fires-and-forgets.
+5. **BuildingScene is programmatic** (colored rectangles, no tilemap). This is prototype quality — will need art later.
+
+**Why:**
+- Separating building/pod lets us scale to multiple squads without changing the per-squad office logic.
+- URL-param activation means zero risk to existing single-squad users.
+- Room chat mode is visually distinct (green "Room" badge) so users know they're talking to the coordinator, not a specific agent.
+
+---
+
+### 2026-02-22T06:30:00Z: Multi-Squad Server Architecture
+**By:** Mac (Backend Dev)  
+**Issues:** #13, #1, #4
+
+**What:** Implemented Phase 0 + Phase 1 of the building/pod/agent model:
+
+1. **Multi-squad config** (`squadoffice.config.json`) — lists squad directories. Auto-detects if file missing.
+2. **squad-reader.ts** — parses `.squad/team.md` `## Members` table into typed roster. Watches file for live changes.
+3. **building-routes.ts** — REST endpoints: `GET /api/building/squads`, `GET /api/building/squads/:id`, `GET /api/squads/:id/agents`, `POST /api/squads/:id/agents/:agentId/chat`.
+4. **Auto-seeding** — on startup, squad members populate the agents list automatically. No manual spawn needed.
+5. **Charter injection** — when chatting with a squad agent, their `.squad/agents/{name}/charter.md` + `history.md` are loaded as personality context for the PTY process.
+6. **Backward compat** — existing `/agents/*` and `/agents/spawn` endpoints remain untouched.
+
+**Why:**
+- Agents should come from the squad roster, not be manually spawned one by one.
+- Multi-squad support is foundational for the building model (multiple pods in one office).
+- Charter injection gives each agent their actual role context when spawned.
+
+**Key Decisions:**
+- **Scribe and Ralph are hidden** — they're system agents, not visible NPCs.
+- **Agent IDs use format `squad-{squadId}-{memberId}`** — scoped to squad for uniqueness.
+- **fs.watchFile** used for team.md watching (no extra deps needed for prototype).
+- **New modules instead of bloating index.ts** — squad-reader.ts and building-routes.ts are separate.
+- **Shared types** in `shared/src/squad-types.ts` for cross-package use.
 - Remove generic CLI type selection (Claude/Copilot) — squad only
 
 **Acceptance criteria:**
