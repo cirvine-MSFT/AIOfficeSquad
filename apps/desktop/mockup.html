@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Squad Office — Building/Floor/Office UI Mockup</title>
+  <title>Squad Campus — Building/Floor/Office UI Mockup</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
@@ -488,62 +488,126 @@
       padding: 24px;
       overflow: auto;
       background: var(--bg-floor);
+      position: relative;
     }
     
-    .floor-plan {
-      display: flex;
-      gap: 24px;
-      min-height: 100%;
+    .floor-plan-hallway {
+      max-width: 1200px;
+      margin: 0 auto;
     }
     
-    /* Office Pods */
-    .offices-row {
+    .hallway-label {
+      font-size: 11px;
+      color: var(--text-tertiary);
+      text-transform: uppercase;
+      letter-spacing: 1px;
+      margin-bottom: 20px;
       display: flex;
-      flex-direction: column;
-      gap: 16px;
+      align-items: center;
+      gap: 8px;
+    }
+    
+    .hallway-label::before,
+    .hallway-label::after {
+      content: '';
       flex: 1;
+      height: 1px;
+      background: var(--border);
     }
     
-    .office-pod {
-      background: var(--bg-surface);
-      border: 2px solid var(--bg-wall);
-      border-radius: 8px;
-      padding: 16px;
+    /* Office Room Pods - Glass Wall View */
+    .office-rooms {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+      gap: 24px;
+    }
+    
+    .office-room {
+      background: linear-gradient(180deg, var(--bg-surface) 0%, var(--bg-raised) 100%);
+      border: 3px solid var(--bg-wall);
+      border-radius: 12px;
+      overflow: hidden;
       cursor: pointer;
       transition: all 0.2s;
       position: relative;
-      min-height: 140px;
+      min-height: 200px;
     }
     
-    .office-pod::before {
+    /* Glass wall reflection effect */
+    .office-room::before {
       content: '';
       position: absolute;
-      bottom: -2px;
-      left: 30px;
-      width: 40px;
-      height: 4px;
-      background: var(--bg-floor);
-      border-radius: 0 0 4px 4px;
+      top: 0;
+      left: 0;
+      right: 0;
+      height: 100%;
+      background: linear-gradient(135deg, 
+        rgba(255,255,255,0.02) 0%, 
+        transparent 30%, 
+        transparent 70%, 
+        rgba(255,255,255,0.01) 100%);
+      pointer-events: none;
     }
     
-    .office-pod:hover {
+    .office-room:hover {
       border-color: var(--accent);
-      box-shadow: 0 4px 20px rgba(0,0,0,0.3);
+      box-shadow: 0 8px 30px rgba(0,0,0,0.4);
+      transform: translateY(-2px);
     }
     
-    .office-pod.active {
+    .office-room.active {
       border-color: var(--status-active);
-      box-shadow: 0 0 20px rgba(74, 222, 128, 0.15);
+      box-shadow: 0 0 30px rgba(74, 222, 128, 0.2), 0 0 10px rgba(74, 222, 128, 0.1) inset;
     }
     
-    .office-pod.active::after {
-      content: '';
-      position: absolute;
-      top: 12px;
-      right: 12px;
-      width: 10px;
-      height: 10px;
+    .office-room.active .room-header {
+      background: linear-gradient(90deg, rgba(74, 222, 128, 0.1) 0%, transparent 100%);
+    }
+    
+    .room-header {
+      padding: 16px;
+      border-bottom: 1px solid var(--border);
+      background: var(--bg);
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+    
+    .room-title {
+      font-size: 14px;
+      font-weight: 600;
+      margin-bottom: 2px;
+    }
+    
+    .room-task {
+      font-size: 11px;
+      color: var(--text-secondary);
+    }
+    
+    .room-indicator {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      font-size: 10px;
+      padding: 4px 10px;
+      border-radius: 12px;
+      background: var(--bg-raised);
+      border: 1px solid var(--border);
+    }
+    
+    .room-indicator.active {
+      background: rgba(74, 222, 128, 0.15);
+      border-color: var(--status-active);
+      color: var(--status-active);
+    }
+    
+    .room-indicator .dot {
+      width: 6px;
+      height: 6px;
       border-radius: 50%;
+    }
+    
+    .room-indicator.active .dot {
       background: var(--status-active);
       box-shadow: var(--glow-active);
       animation: pulse 2s ease-in-out infinite;
@@ -554,56 +618,41 @@
       50% { opacity: 0.5; }
     }
     
-    .office-header {
+    .room-indicator.idle {
+      color: var(--text-tertiary);
+    }
+    
+    .room-indicator.idle .dot {
+      background: var(--text-tertiary);
+    }
+    
+    /* Peek-through view of office interior */
+    .room-interior {
+      padding: 20px;
+      min-height: 140px;
       display: flex;
-      justify-content: space-between;
-      align-items: flex-start;
+      flex-direction: column;
+      justify-content: center;
+    }
+    
+    /* Mini desk layout for preview */
+    .room-desks {
+      display: flex;
+      gap: 12px;
+      flex-wrap: wrap;
       margin-bottom: 12px;
     }
     
-    .office-title {
-      font-size: 13px;
-      font-weight: 600;
-    }
-    
-    .office-meta {
-      font-size: 11px;
-      color: var(--text-secondary);
-      margin-top: 2px;
-    }
-    
-    .office-status {
-      font-size: 10px;
-      padding: 2px 8px;
-      border-radius: 10px;
-      background: var(--bg);
-    }
-    
-    .office-status.working {
-      color: var(--status-working);
-    }
-    
-    .office-status.idle {
-      color: var(--status-idle);
-    }
-    
-    /* Desk layout inside office */
-    .office-desks {
-      display: flex;
-      gap: 8px;
-      flex-wrap: wrap;
-    }
-    
-    .desk {
+    .mini-desk {
       display: flex;
       flex-direction: column;
       align-items: center;
       gap: 4px;
     }
     
-    .desk-surface {
-      width: 44px;
-      height: 24px;
+    .mini-desk-surface {
+      width: 40px;
+      height: 22px;
       background: var(--bg-desk);
       border-radius: 4px;
       border: 1px solid #3d4555;
@@ -614,23 +663,23 @@
       position: relative;
     }
     
-    .desk-surface.has-member::after {
+    .mini-desk-surface.occupied::after {
       content: '💻';
-      font-size: 12px;
+      font-size: 11px;
     }
     
-    .desk-chair {
-      width: 20px;
-      height: 14px;
+    .mini-desk-chair {
+      width: 18px;
+      height: 12px;
       background: var(--bg-active);
-      border-radius: 6px 6px 2px 2px;
+      border-radius: 5px 5px 2px 2px;
       display: flex;
       align-items: center;
       justify-content: center;
     }
     
-    .member-at-desk {
-      font-size: 14px;
+    .mini-member {
+      font-size: 12px;
       animation: typing 1.5s ease-in-out infinite;
     }
     
@@ -639,105 +688,26 @@
       50% { transform: translateY(-2px); }
     }
     
-    .desk.empty .desk-chair {
+    .mini-desk.empty .mini-desk-chair {
       background: var(--bg-surface);
     }
     
-    /* Water Cooler / Break Area */
-    .break-area {
-      background: linear-gradient(135deg, #1a2535 0%, #151d2a 100%);
-      border: 2px dashed #2a3545;
-      border-radius: 12px;
-      padding: 16px;
-      min-height: 180px;
-      position: relative;
-    }
-    
-    .break-area-header {
+    .room-summary {
       display: flex;
-      align-items: center;
-      gap: 8px;
-      margin-bottom: 16px;
-      font-size: 12px;
-      font-weight: 600;
+      gap: 16px;
+      font-size: 11px;
       color: var(--text-secondary);
+      padding-top: 12px;
+      border-top: 1px solid var(--border);
     }
     
-    .break-area-header span {
-      font-size: 16px;
-    }
-    
-    .water-cooler-scene {
+    .room-summary-item {
       display: flex;
-      flex-direction: column;
-      align-items: center;
-    }
-    
-    .water-cooler {
-      font-size: 32px;
-      margin-bottom: 8px;
-      position: relative;
-    }
-    
-    .water-cooler::after {
-      content: '💧';
-      position: absolute;
-      font-size: 12px;
-      bottom: -4px;
-      right: -8px;
-      animation: drip 2s ease-in-out infinite;
-    }
-    
-    @keyframes drip {
-      0%, 100% { opacity: 1; transform: translateY(0); }
-      50% { opacity: 0.5; transform: translateY(3px); }
-    }
-    
-    .idle-members {
-      display: flex;
-      gap: 8px;
-      flex-wrap: wrap;
-      justify-content: center;
-      margin-top: 8px;
-    }
-    
-    .idle-member {
-      display: flex;
-      flex-direction: column;
       align-items: center;
       gap: 4px;
-      padding: 8px;
-      background: var(--bg-surface);
-      border-radius: 8px;
-      border: 1px solid var(--border);
     }
     
-    .idle-member-avatar {
-      font-size: 20px;
-      animation: chat 3s ease-in-out infinite;
-    }
-    
-    @keyframes chat {
-      0%, 100% { transform: rotate(0deg); }
-      25% { transform: rotate(-5deg); }
-      75% { transform: rotate(5deg); }
-    }
-    
-    .idle-member-name {
-      font-size: 10px;
-      color: var(--text-secondary);
-      font-weight: 500;
-    }
-    
-    .idle-member-bubble {
-      font-size: 10px;
-      background: var(--bg);
-      padding: 2px 6px;
-      border-radius: 8px;
-      color: var(--status-idle);
-    }
-    
-    /* New Office Card */
+    /* New office card */
     .new-office-card {
       background: transparent;
       border: 2px dashed var(--border);
@@ -785,13 +755,32 @@
     .office-view-header {
       padding: 20px 24px;
       border-bottom: 1px solid var(--border);
-      background: var(--bg-raised);
+      background: linear-gradient(180deg, var(--bg-raised) 0%, var(--bg-surface) 100%);
+      position: relative;
+    }
+    
+    .office-view-header::after {
+      content: '';
+      position: absolute;
+      bottom: 0;
+      left: 0;
+      right: 0;
+      height: 1px;
+      background: linear-gradient(90deg, transparent, var(--border) 20%, var(--border) 80%, transparent);
     }
     
     .office-view-title {
       font-size: 18px;
       font-weight: 600;
       margin-bottom: 4px;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+    
+    .office-view-title::before {
+      content: '🚪';
+      font-size: 20px;
     }
     
     .office-view-meta {
@@ -799,126 +788,334 @@
       color: var(--text-secondary);
     }
     
+    /* Office workspace - maintain office room feel */
     .office-workspace {
       flex: 1;
       padding: 24px;
       overflow-y: auto;
-      background: var(--bg-floor);
+      background: linear-gradient(180deg, var(--bg-floor) 0%, var(--bg) 100%);
+      position: relative;
     }
     
-    .workspace-room {
-      background: var(--bg-surface);
-      border: 2px solid var(--bg-wall);
+    /* Office interior floor plan */
+    .office-floor-plan {
+      max-width: 1000px;
+      margin: 0 auto;
+      display: flex;
+      gap: 24px;
+    }
+    
+    /* Work area - desks section */
+    .work-area {
+      flex: 2;
+      background: linear-gradient(135deg, var(--bg-surface) 0%, var(--bg-raised) 100%);
+      border: 3px solid var(--bg-wall);
       border-radius: 12px;
-      padding: 20px;
-      margin-bottom: 20px;
+      padding: 24px;
+      position: relative;
+      box-shadow: 0 4px 20px rgba(0,0,0,0.3);
     }
     
-    .workspace-title {
+    .work-area::before {
+      content: '';
+      position: absolute;
+      top: 0;
+      left: 0;
+      right: 0;
+      height: 100%;
+      background: linear-gradient(135deg, 
+        rgba(255,255,255,0.02) 0%, 
+        transparent 40%);
+      pointer-events: none;
+      border-radius: 10px;
+    }
+    
+    .area-label {
       font-size: 12px;
       font-weight: 600;
       color: var(--text-secondary);
+      margin-bottom: 20px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+    }
+    
+    .area-label::before {
+      content: '';
+      width: 3px;
+      height: 14px;
+      background: var(--accent);
+      border-radius: 2px;
+    }
+    
+    /* Desk grid in office */
+    .office-desks-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+      gap: 20px;
+    }
+    
+    .office-desk {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 8px;
+    }
+    
+    .desk-workstation {
+      width: 100%;
+      aspect-ratio: 1.4;
+      background: var(--bg-desk);
+      border: 2px solid #3d4555;
+      border-radius: 8px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      padding: 12px;
+      position: relative;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.3);
+    }
+    
+    .desk-workstation.occupied {
+      border-color: var(--status-working);
+      box-shadow: 0 0 15px rgba(96, 165, 250, 0.2);
+    }
+    
+    .desk-monitor {
+      width: 60%;
+      aspect-ratio: 16/10;
+      background: linear-gradient(135deg, #1a2535 0%, #0f1420 100%);
+      border: 2px solid #3d4555;
+      border-radius: 4px 4px 0 0;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 16px;
+      position: relative;
+      margin-bottom: 4px;
+    }
+    
+    .desk-monitor.active {
+      background: linear-gradient(135deg, rgba(96, 165, 250, 0.2) 0%, rgba(96, 165, 250, 0.05) 100%);
+      border-color: var(--status-working);
+      box-shadow: 0 0 10px rgba(96, 165, 250, 0.3) inset;
+    }
+    
+    .desk-monitor.active::after {
+      content: '💻';
+      font-size: 18px;
+      animation: glow 2s ease-in-out infinite;
+    }
+    
+    @keyframes glow {
+      0%, 100% { opacity: 1; }
+      50% { opacity: 0.7; }
+    }
+    
+    .desk-base {
+      width: 70%;
+      height: 3px;
+      background: #3d4555;
+      border-radius: 2px;
+    }
+    
+    .desk-chair-slot {
+      width: 32px;
+      height: 24px;
+      background: var(--bg-active);
+      border-radius: 8px 8px 4px 4px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      border: 1px solid #3d4555;
+    }
+    
+    .desk-chair-slot.occupied {
+      background: var(--bg-raised);
+    }
+    
+    .member-at-workstation {
+      font-size: 16px;
+      animation: typing 1.5s ease-in-out infinite;
+    }
+    
+    @keyframes typing {
+      0%, 100% { transform: translateY(0); }
+      50% { transform: translateY(-2px); }
+    }
+    
+    .desk-nameplate {
+      font-size: 11px;
+      font-weight: 600;
+      color: var(--text-primary);
+      padding: 4px 10px;
+      background: var(--bg);
+      border-radius: 6px;
+      border: 1px solid var(--border);
+    }
+    
+    .desk-nameplate.occupied {
+      color: var(--status-working);
+      border-color: var(--status-working);
+    }
+    
+    /* Water Cooler / Break Area - ONLY in office view */
+    .break-lounge {
+      flex: 1;
+      background: linear-gradient(135deg, #1a2535 0%, #151d2a 100%);
+      border: 3px dashed #2a3545;
+      border-radius: 12px;
+      padding: 20px;
+      position: relative;
+      box-shadow: 0 4px 20px rgba(0,0,0,0.2);
+      min-height: 300px;
+    }
+    
+    .break-lounge::before {
+      content: '';
+      position: absolute;
+      top: 0;
+      left: 0;
+      right: 0;
+      height: 100%;
+      background: radial-gradient(circle at 30% 40%, rgba(251, 191, 36, 0.05) 0%, transparent 60%);
+      pointer-events: none;
+      border-radius: 10px;
+    }
+    
+    .area-label.cooler {
+      color: var(--status-idle);
+    }
+    
+    .area-label.cooler::before {
+      background: var(--status-idle);
+    }
+    
+    .water-cooler-scene {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      padding-top: 20px;
+    }
+    
+    .water-cooler {
+      font-size: 48px;
       margin-bottom: 16px;
+      position: relative;
+      filter: drop-shadow(0 2px 8px rgba(251, 191, 36, 0.2));
+    }
+    
+    .water-cooler::after {
+      content: '💧';
+      position: absolute;
+      font-size: 14px;
+      bottom: -6px;
+      right: -10px;
+      animation: drip 2s ease-in-out infinite;
+    }
+    
+    @keyframes drip {
+      0%, 100% { opacity: 1; transform: translateY(0); }
+      50% { opacity: 0.5; transform: translateY(4px); }
+    }
+    
+    .idle-members {
+      display: flex;
+      gap: 12px;
+      flex-wrap: wrap;
+      justify-content: center;
+      margin-top: 16px;
+    }
+    
+    .idle-member {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 6px;
+      padding: 12px;
+      background: var(--bg-surface);
+      border-radius: 10px;
+      border: 2px solid var(--border);
+      min-width: 80px;
+      transition: all 0.2s;
+    }
+    
+    .idle-member:hover {
+      border-color: var(--status-idle);
+      transform: translateY(-2px);
+    }
+    
+    .idle-member-avatar {
+      font-size: 28px;
+      animation: chat 3s ease-in-out infinite;
+    }
+    
+    @keyframes chat {
+      0%, 100% { transform: rotate(0deg); }
+      25% { transform: rotate(-5deg); }
+      75% { transform: rotate(5deg); }
+    }
+    
+    .idle-member-name {
+      font-size: 11px;
+      color: var(--text-primary);
+      font-weight: 600;
+    }
+    
+    .idle-member-role {
+      font-size: 9px;
+      color: var(--text-tertiary);
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+    }
+    
+    .idle-member-bubble {
+      font-size: 10px;
+      background: var(--bg);
+      padding: 3px 8px;
+      border-radius: 10px;
+      color: var(--status-idle);
+      margin-top: 4px;
+    }
+    
+    .empty-cooler-message {
+      color: var(--text-tertiary); 
+      font-size: 13px; 
+      text-align: center;
+      padding: 20px;
+      font-style: italic;
+    }
+    
+    /* Chat Panel - styled as office whiteboard */
+    .chat-panel {
+      width: 360px;
+      border-left: 3px solid var(--border);
+      display: flex;
+      flex-direction: column;
+      background: linear-gradient(180deg, var(--bg-raised) 0%, var(--bg-surface) 100%);
+      box-shadow: -4px 0 20px rgba(0,0,0,0.2);
+    }
+    
+    .chat-header {
+      padding: 16px;
+      border-bottom: 2px solid var(--border);
+      font-size: 14px;
+      font-weight: 600;
+      background: var(--bg);
       display: flex;
       align-items: center;
       gap: 8px;
     }
     
-    .members-grid {
-      display: grid;
-      grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
-      gap: 16px;
-    }
-    
-    .member-card {
-      background: var(--bg-raised);
-      border: 1px solid var(--border);
-      border-radius: 8px;
-      padding: 16px;
-      transition: all 0.2s;
-    }
-    
-    .member-card:hover {
-      border-color: var(--border-focus);
-    }
-    
-    .member-card.working {
-      border-color: var(--status-working);
-    }
-    
-    .member-header {
-      display: flex;
-      align-items: center;
-      gap: 12px;
-      margin-bottom: 12px;
-    }
-    
-    .member-avatar {
-      width: 40px;
-      height: 40px;
-      border-radius: 50%;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      font-size: 16px;
-      font-weight: 600;
-      color: white;
-    }
-    
-    .member-info { flex: 1; }
-    
-    .member-name {
-      font-size: 14px;
-      font-weight: 600;
-      margin-bottom: 2px;
-    }
-    
-    .member-role {
-      font-size: 11px;
-      color: var(--text-secondary);
-    }
-    
-    .member-status-dot {
-      width: 10px;
-      height: 10px;
-      border-radius: 50%;
-    }
-    
-    .member-status-dot.working {
-      background: var(--status-working);
-      animation: pulse 2s ease-in-out infinite;
-    }
-    
-    .member-status-dot.idle {
-      background: var(--status-idle);
-    }
-    
-    .member-activity {
-      font-size: 11px;
-      color: var(--text-secondary);
-      padding: 8px;
-      background: var(--bg);
-      border-radius: 4px;
-      font-family: 'JetBrains Mono', monospace;
-      white-space: nowrap;
-      overflow: hidden;
-      text-overflow: ellipsis;
-    }
-    
-    /* Chat Panel */
-    .chat-panel {
-      width: 340px;
-      border-left: 1px solid var(--border);
-      display: flex;
-      flex-direction: column;
-      background: var(--bg-raised);
-    }
-    
-    .chat-header {
-      padding: 16px;
-      border-bottom: 1px solid var(--border);
-      font-size: 14px;
-      font-weight: 600;
+    .chat-header::before {
+      content: '';
+      width: 3px;
+      height: 16px;
+      background: var(--accent);
+      border-radius: 2px;
     }
     
     .chat-messages {
@@ -993,22 +1190,30 @@
       color: var(--text-tertiary);
     }
     
-    /* Stream Output */
-    .stream-section {
-      margin-top: 20px;
+    /* Terminal monitor - styled as office screen */
+    .terminal-monitor {
+      border-top: 2px solid var(--border);
+      background: var(--bg);
+      max-height: 240px;
+      display: flex;
+      flex-direction: column;
     }
     
-    .stream-header {
-      font-size: 12px;
+    .terminal-header {
+      padding: 10px 16px;
+      background: var(--bg-raised);
+      border-bottom: 1px solid var(--border);
+      font-size: 11px;
       font-weight: 600;
       color: var(--text-secondary);
-      margin-bottom: 12px;
       display: flex;
       align-items: center;
       gap: 8px;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
     }
     
-    .stream-indicator {
+    .terminal-indicator {
       width: 6px;
       height: 6px;
       border-radius: 50%;
@@ -1016,21 +1221,28 @@
       animation: pulse 1.5s ease-in-out infinite;
     }
     
-    .stream-output {
-      background: var(--bg);
-      border: 1px solid var(--border);
-      border-radius: 6px;
+    .terminal-output {
+      flex: 1;
       padding: 12px;
       font-family: 'JetBrains Mono', monospace;
       font-size: 11px;
       line-height: 1.6;
       color: var(--text-secondary);
-      max-height: 180px;
       overflow-y: auto;
     }
     
-    .stream-line { margin-bottom: 4px; }
-    .stream-line .prefix { color: var(--accent); }
+    .terminal-line { 
+      margin-bottom: 4px; 
+    }
+    
+    .terminal-line .prefix { 
+      color: var(--accent); 
+      margin-right: 6px;
+    }
+    
+    .terminal-line.success .prefix {
+      color: var(--status-active);
+    }
     
     /* Role colors */
     .bg-lead { background: var(--role-lead); }
@@ -1056,7 +1268,7 @@
           <path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/>
           <polyline points="9 22 9 12 15 12 15 22"/>
         </svg>
-        <span>Squad Office</span>
+        <span>Squad Campus</span>
       </div>
       
       <nav class="breadcrumb" id="breadcrumb">
@@ -1140,6 +1352,19 @@
                 <div class="chat-input-area">
                   <textarea class="chat-input" placeholder="Send a message to the team..." rows="2"></textarea>
                 </div>
+                <div class="terminal-monitor">
+                  <div class="terminal-header">
+                    <div class="terminal-indicator"></div>
+                    Live Output
+                  </div>
+                  <div class="terminal-output" id="terminalOutput">
+                    <div class="terminal-line"><span class="prefix">▶</span> Building REST endpoints...</div>
+                    <div class="terminal-line"><span class="prefix">▶</span> Created /api/users route</div>
+                    <div class="terminal-line"><span class="prefix">▶</span> Added JWT authentication</div>
+                    <div class="terminal-line"><span class="prefix">▶</span> Writing tests for auth middleware</div>
+                    <div class="terminal-line success"><span class="prefix">✓</span> Tests passing: 12/12</div>
+                  </div>
+                </div>
               </div>
             </div>
           </div>
@@ -1156,8 +1381,8 @@
             <span>8 active sessions</span>
           </div>
           <div class="status-item">
-            <span>☕</span>
-            <span>6 at water cooler</span>
+            <span>🏢</span>
+            <span>4 floors</span>
           </div>
         </div>
       </main>
@@ -1306,83 +1531,86 @@
     // Render floor plan
     function renderFloorPlan() {
       const floorPlan = document.getElementById('floorPlan');
-      const workingMembers = currentSquad.members.filter(m => m.status === 'working');
-      const idleMembers = currentSquad.members.filter(m => m.status === 'idle');
       
-      // Office pods
-      const officePods = currentSquad.sessions.map(session => {
+      // Office rooms - peek-through glass wall view
+      const officeRooms = currentSquad.sessions.map(session => {
         const sessionMembers = currentSquad.members.filter(m => session.members.includes(m.id));
-        const desks = sessionMembers.map(member => `
-          <div class="desk">
-            <div class="desk-surface has-member"></div>
-            <div class="desk-chair">
-              <span class="member-at-desk" title="${member.name}">🧑‍💻</span>
-            </div>
-          </div>
-        `).join('');
+        const workingMembers = sessionMembers.filter(m => m.status === 'working');
+        const idleMembers = sessionMembers.filter(m => m.status === 'idle');
         
-        // Add empty desks
-        const emptyDesks = Array(Math.max(0, 3 - sessionMembers.length)).fill(`
-          <div class="desk empty">
-            <div class="desk-surface"></div>
-            <div class="desk-chair"></div>
-          </div>
-        `).join('');
+        // Mini desks for preview
+        const desks = Array(3).fill(0).map((_, i) => {
+          const member = sessionMembers[i];
+          if (member) {
+            return `
+              <div class="mini-desk">
+                <div class="mini-desk-surface occupied"></div>
+                <div class="mini-desk-chair">
+                  <span class="mini-member" title="${member.name}">🧑‍💻</span>
+                </div>
+              </div>
+            `;
+          } else {
+            return `
+              <div class="mini-desk empty">
+                <div class="mini-desk-surface"></div>
+                <div class="mini-desk-chair"></div>
+              </div>
+            `;
+          }
+        }).join('');
         
         return `
-          <div class="office-pod ${session.status === 'active' ? 'active' : ''}" onclick="showOffice(${session.id})">
-            <div class="office-header">
+          <div class="office-room ${session.status === 'active' ? 'active' : ''}" onclick="showOffice(${session.id})">
+            <div class="room-header">
               <div>
-                <div class="office-title">${session.name}</div>
-                <div class="office-meta">${session.task}</div>
+                <div class="room-title">${session.name}</div>
+                <div class="room-task">${session.task}</div>
               </div>
-              <div class="office-status ${session.status}">${session.status === 'active' ? '● Working' : '○ Idle'}</div>
+              <div class="room-indicator ${session.status}">
+                <div class="dot"></div>
+                ${session.status === 'active' ? 'Working' : 'Idle'}
+              </div>
             </div>
-            <div class="office-desks">
-              ${desks}
-              ${emptyDesks}
+            <div class="room-interior">
+              <div class="room-desks">
+                ${desks}
+              </div>
+              <div class="room-summary">
+                <div class="room-summary-item">
+                  <span>💼</span>
+                  ${workingMembers.length} working
+                </div>
+                <div class="room-summary-item">
+                  <span>☕</span>
+                  ${idleMembers.length} at cooler
+                </div>
+              </div>
             </div>
           </div>
         `;
       }).join('');
       
-      // Water cooler break area
-      const breakArea = `
-        <div class="break-area">
-          <div class="break-area-header">
-            <span>☕</span>
-            Water Cooler
-          </div>
-          <div class="water-cooler-scene">
-            <div class="water-cooler">🚰</div>
-            <div class="idle-members">
-              ${idleMembers.map(member => `
-                <div class="idle-member">
-                  <span class="idle-member-avatar">🧍</span>
-                  <span class="idle-member-name">${member.name}</span>
-                  <span class="idle-member-bubble">☕ chillin'</span>
-                </div>
-              `).join('')}
-              ${idleMembers.length === 0 ? '<div style="color: var(--text-tertiary); font-size: 12px;">Everyone\'s working! 💪</div>' : ''}
+      // New office card
+      const newOffice = `
+        <div class="office-room" style="border-style: dashed; background: transparent; min-height: 160px;">
+          <div class="room-interior" style="justify-content: center; align-items: center;">
+            <div style="text-align: center; color: var(--text-tertiary);">
+              <div style="font-size: 32px; margin-bottom: 8px;">+</div>
+              <div style="font-size: 12px;">Start new session</div>
             </div>
           </div>
         </div>
       `;
       
-      // New office card
-      const newOffice = `
-        <div class="new-office-card">
-          <div class="new-office-icon">+</div>
-          <div class="new-office-label">Start new session</div>
-        </div>
-      `;
-      
       floorPlan.innerHTML = `
-        <div class="offices-row">
-          ${officePods}
-          ${newOffice}
+        <div class="floor-plan-hallway">
+          <div class="hallway-label">Session Rooms</div>
+          <div class="office-rooms">
+            ${officeRooms}
+            ${newOffice}
+          </div>
         </div>
-        ${breakArea}
       `;
     }
 
@@ -1409,44 +1637,75 @@
     function renderOfficeWorkspace() {
       const workspace = document.getElementById('officeWorkspace');
       const sessionMembers = currentSquad.members.filter(m => currentSession.members.includes(m.id));
+      const workingMembers = sessionMembers.filter(m => m.status === 'working');
+      const idleMembers = sessionMembers.filter(m => m.status === 'idle');
       
-      const memberCards = sessionMembers.map(member => `
-        <div class="member-card ${member.status}">
-          <div class="member-header">
-            <div class="member-avatar bg-${member.roleClass}">${member.name.charAt(0)}</div>
-            <div class="member-info">
-              <div class="member-name">${member.name}</div>
-              <div class="member-role">${member.role}</div>
+      // Create desks for working members
+      const desks = Array(3).fill(0).map((_, i) => {
+        const member = workingMembers[i];
+        if (member) {
+          return `
+            <div class="office-desk">
+              <div class="desk-workstation occupied">
+                <div class="desk-monitor active"></div>
+                <div class="desk-base"></div>
+              </div>
+              <div class="desk-chair-slot occupied">
+                <span class="member-at-workstation" title="${member.name} - ${member.activity}">🧑‍💻</span>
+              </div>
+              <div class="desk-nameplate occupied">${member.name}</div>
             </div>
-            <div class="member-status-dot ${member.status}"></div>
+          `;
+        } else {
+          return `
+            <div class="office-desk">
+              <div class="desk-workstation">
+                <div class="desk-monitor"></div>
+                <div class="desk-base"></div>
+              </div>
+              <div class="desk-chair-slot"></div>
+              <div class="desk-nameplate">Empty</div>
+            </div>
+          `;
+        }
+      }).join('');
+      
+      // Water cooler area with idle members
+      const waterCoolerArea = `
+        <div class="break-lounge">
+          <div class="area-label cooler">
+            <span>☕</span>
+            Water Cooler
           </div>
-          <div class="member-activity">${member.activity}</div>
+          <div class="water-cooler-scene">
+            <div class="water-cooler">🚰</div>
+            <div class="idle-members">
+              ${idleMembers.map(member => `
+                <div class="idle-member">
+                  <span class="idle-member-avatar">🧍</span>
+                  <span class="idle-member-name">${member.name}</span>
+                  <span class="idle-member-role">${member.role}</span>
+                  <span class="idle-member-bubble">☕ on break</span>
+                </div>
+              `).join('')}
+              ${idleMembers.length === 0 ? '<div class="empty-cooler-message">Everyone\'s at their desk! 💪</div>' : ''}
+            </div>
+          </div>
         </div>
-      `).join('');
+      `;
       
       workspace.innerHTML = `
-        <div class="workspace-room">
-          <div class="workspace-title">
-            <span>👥</span>
-            Members at work
+        <div class="office-floor-plan">
+          <div class="work-area">
+            <div class="area-label">
+              <span>💼</span>
+              Workstations
+            </div>
+            <div class="office-desks-grid">
+              ${desks}
+            </div>
           </div>
-          <div class="members-grid">
-            ${memberCards}
-          </div>
-        </div>
-        
-        <div class="stream-section">
-          <div class="stream-header">
-            <div class="stream-indicator"></div>
-            Live Output
-          </div>
-          <div class="stream-output">
-            <div class="stream-line"><span class="prefix">▶</span> Building REST endpoints...</div>
-            <div class="stream-line"><span class="prefix">▶</span> Created /api/users route</div>
-            <div class="stream-line"><span class="prefix">▶</span> Added JWT authentication</div>
-            <div class="stream-line"><span class="prefix">▶</span> Writing tests for auth middleware</div>
-            <div class="stream-line"><span class="prefix">▶</span> Tests passing: 12/12 ✓</div>
-          </div>
+          ${waterCoolerArea}
         </div>
       `;
     }

@@ -1072,12 +1072,21 @@ pre code {
 .border-accent\/40{
   border-color: rgb(91 141 239 / 0.4);
 }
+.border-blue-500\/30{
+  border-color: rgb(59 130 246 / 0.3);
+}
 .border-border{
   --tw-border-opacity: 1;
   border-color: rgb(42 46 59 / var(--tw-border-opacity, 1));
 }
 .border-border\/50{
   border-color: rgb(42 46 59 / 0.5);
+}
+.border-green-500\/30{
+  border-color: rgb(34 197 94 / 0.3);
+}
+.border-red-500\/30{
+  border-color: rgb(239 68 68 / 0.3);
 }
 .border-status-active{
   --tw-border-opacity: 1;
@@ -1100,6 +1109,9 @@ pre code {
 }
 .border-transparent{
   border-color: transparent;
+}
+.border-yellow-500\/30{
+  border-color: rgb(234 179 8 / 0.3);
 }
 .border-t-accent{
   --tw-border-opacity: 1;
@@ -1139,9 +1151,18 @@ pre code {
   --tw-bg-opacity: 1;
   background-color: rgb(26 29 39 / var(--tw-bg-opacity, 1));
 }
+.bg-blue-500\/20{
+  background-color: rgb(59 130 246 / 0.2);
+}
 .bg-border{
   --tw-bg-opacity: 1;
   background-color: rgb(42 46 59 / var(--tw-bg-opacity, 1));
+}
+.bg-green-500\/20{
+  background-color: rgb(34 197 94 / 0.2);
+}
+.bg-red-500\/20{
+  background-color: rgb(239 68 68 / 0.2);
 }
 .bg-status-active{
   --tw-bg-opacity: 1;
@@ -1180,6 +1201,9 @@ pre code {
 }
 .bg-transparent{
   background-color: transparent;
+}
+.bg-yellow-500\/20{
+  background-color: rgb(234 179 8 / 0.2);
 }
 .bg-\[radial-gradient\(circle_at_30\%_40\%\2c rgba\(251\2c 191\2c 36\2c 0\.05\)_0\%\2c transparent_60\%\)\]{
   background-image: radial-gradient(circle at 30% 40%,rgba(251,191,36,0.05) 0%,transparent 60%);
@@ -1276,6 +1300,10 @@ pre code {
 }
 .p-6{
   padding: 1.5rem;
+}
+.px-1\.5{
+  padding-left: 0.375rem;
+  padding-right: 0.375rem;
 }
 .px-2{
   padding-left: 0.5rem;
@@ -1429,6 +1457,18 @@ pre code {
   --tw-text-opacity: 1;
   color: rgb(91 141 239 / var(--tw-text-opacity, 1));
 }
+.text-blue-400{
+  --tw-text-opacity: 1;
+  color: rgb(96 165 250 / var(--tw-text-opacity, 1));
+}
+.text-green-400{
+  --tw-text-opacity: 1;
+  color: rgb(74 222 128 / var(--tw-text-opacity, 1));
+}
+.text-red-400{
+  --tw-text-opacity: 1;
+  color: rgb(248 113 113 / var(--tw-text-opacity, 1));
+}
 .text-status-active{
   --tw-text-opacity: 1;
   color: rgb(74 222 128 / var(--tw-text-opacity, 1));
@@ -1460,6 +1500,10 @@ pre code {
 .text-white{
   --tw-text-opacity: 1;
   color: rgb(255 255 255 / var(--tw-text-opacity, 1));
+}
+.text-yellow-400{
+  --tw-text-opacity: 1;
+  color: rgb(250 204 21 / var(--tw-text-opacity, 1));
 }
 .opacity-70{
   opacity: 0.7;

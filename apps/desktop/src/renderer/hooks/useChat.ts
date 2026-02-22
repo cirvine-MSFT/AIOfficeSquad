@@ -142,6 +142,10 @@ export function useChat(selectedAgent: string | null): UseChatReturn {
   // ── Actions ──
 
   const createSession = useCallback(async (agentName: string) => {
+    if (!agentName) {
+      setError('Select an agent before starting a session')
+      return
+    }
     setCreatingSession(true)
     setError(null)
     try {
@@ -161,8 +165,9 @@ export function useChat(selectedAgent: string | null): UseChatReturn {
       }
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to create session')
+    } finally {
+      setCreatingSession(false)
     }
-    setCreatingSession(false)
   }, [])
 
   const sendMessage = useCallback(
@@ -185,14 +190,19 @@ export function useChat(selectedAgent: string | null): UseChatReturn {
         return next
       })
 
-      const res = (await window.squadAPI.sendMessage(sessionId, text)) as {
-        ok: boolean
-        error?: string
+      try {
+        const res = (await window.squadAPI.sendMessage(sessionId, text)) as {
+          ok: boolean
+          error?: string
+        }
+        if (!res.ok) {
+          setError(res.error ?? 'Failed to send message')
+        }
+      } catch (err) {
+        setError(err instanceof Error ? err.message : 'Failed to send message')
+      } finally {
+        setSending(false)
       }
-      if (!res.ok) {
-        setError(res.error ?? 'Failed to send message')
-      }
-      setSending(false)
     },
     [selectedAgent, sessionId]
   )

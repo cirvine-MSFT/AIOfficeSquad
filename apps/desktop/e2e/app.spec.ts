@@ -10,10 +10,10 @@ test.describe('Electron App E2E', () => {
   })
 
   test('window title and content loads', async ({ page }) => {
-    // Check for the Squad Office title in the header h1
+    // Check for the Squad Campus title in the header h1
     const heading = page.locator('h1').first()
     await expect(heading).toBeVisible({ timeout: 10_000 })
-    await expect(heading).toContainText('Squad Office')
+    await expect(heading).toContainText('Squad Campus')
   })
 
   test('header with breadcrumbs renders', async ({ page }) => {
@@ -44,7 +44,7 @@ test.describe('Electron App E2E', () => {
     await page.waitForTimeout(2000)
 
     // Click the first squad in sidebar (if exists)
-    const squadItem = page.locator('[role="button"], button').filter({ hasText: /Squad Office|ai-office-squad/i }).first()
+    const squadItem = page.locator('[role="button"], button').filter({ hasText: /Squad Campus|Squad Office|ai-office-squad/i }).first()
     
     if (await squadItem.isVisible()) {
       await squadItem.click()
@@ -60,7 +60,7 @@ test.describe('Electron App E2E', () => {
     // Navigate to floor view first
     await page.waitForTimeout(2000)
     
-    const squadItem = page.locator('[role="button"], button').filter({ hasText: /Squad Office|ai-office-squad/i }).first()
+    const squadItem = page.locator('[role="button"], button').filter({ hasText: /Squad Campus|Squad Office|ai-office-squad/i }).first()
     if (await squadItem.isVisible()) {
       await squadItem.click()
       await page.waitForTimeout(1000)
@@ -82,7 +82,7 @@ test.describe('Electron App E2E', () => {
     await page.waitForTimeout(2000)
     
     // Navigate to floor view
-    const squadItem = page.locator('[role="button"], button').filter({ hasText: /Squad Office|ai-office-squad/i }).first()
+    const squadItem = page.locator('[role="button"], button').filter({ hasText: /Squad Campus|Squad Office|ai-office-squad/i }).first()
     if (await squadItem.isVisible()) {
       await squadItem.click()
       await page.waitForTimeout(1000)
@@ -135,7 +135,7 @@ test.describe('Electron App E2E', () => {
     await page.waitForTimeout(2000)
     
     // Navigate deeper into the app
-    const squadItem = page.locator('[role="button"], button').filter({ hasText: /Squad Office|ai-office-squad/i }).first()
+    const squadItem = page.locator('[role="button"], button').filter({ hasText: /Squad Campus|Squad Office|ai-office-squad/i }).first()
     if (await squadItem.isVisible()) {
       await squadItem.click()
       await page.waitForTimeout(1000)
@@ -154,7 +154,7 @@ test.describe('Electron App E2E', () => {
     await page.waitForTimeout(2000)
     
     // Navigate to floor view
-    const squadItem = page.locator('[role="button"], button').filter({ hasText: /Squad Office|ai-office-squad/i }).first()
+    const squadItem = page.locator('[role="button"], button').filter({ hasText: /Squad Campus|Squad Office|ai-office-squad/i }).first()
     if (await squadItem.isVisible()) {
       await squadItem.click()
       await page.waitForTimeout(1000)

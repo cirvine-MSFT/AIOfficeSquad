@@ -5,6 +5,9 @@ interface CostDashboardProps {
 }
 
 export default function CostDashboard({ totalTokens, estimatedCost, model }: CostDashboardProps) {
+  const safeTokens = Number.isFinite(totalTokens) ? totalTokens : 0
+  const safeCost = Number.isFinite(estimatedCost) ? estimatedCost : 0
+
   return (
     <div className="flex flex-col h-full bg-bg-sunken p-4 overflow-y-auto">
       {/* Header */}
@@ -18,7 +21,7 @@ export default function CostDashboard({ totalTokens, estimatedCost, model }: Cos
         <div className="bg-bg-raised border border-border rounded-lg p-4">
           <div className="text-xs text-text-tertiary uppercase tracking-wide mb-1">Total Tokens</div>
           <div className="text-2xl font-bold text-text-primary font-mono">
-            {totalTokens.toLocaleString()}
+            {safeTokens.toLocaleString()}
           </div>
           <div className="text-xs text-text-secondary mt-1">
             Cumulative input + output tokens
@@ -28,8 +31,8 @@ export default function CostDashboard({ totalTokens, estimatedCost, model }: Cos
         {/* Estimated cost */}
         <div className="bg-bg-raised border border-border rounded-lg p-4">
           <div className="text-xs text-text-tertiary uppercase tracking-wide mb-1">Estimated Cost</div>
-          <div className="text-2xl font-bold font-mono" style={{ color: estimatedCost > 1 ? '#f87171' : '#4ade80' }}>
-            ${estimatedCost.toFixed(2)}
+          <div className="text-2xl font-bold font-mono" style={{ color: safeCost > 1 ? '#f87171' : '#4ade80' }}>
+            ${safeCost.toFixed(2)}
           </div>
           <div className="text-xs text-text-secondary mt-1">
             Based on ~$3/MTok input, ~$15/MTok output

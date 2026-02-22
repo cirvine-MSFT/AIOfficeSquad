@@ -6,6 +6,7 @@ import type {
   SessionMetadata,
   SessionDetail,
   AgentInSession,
+  HookEvent,
   IpcResult
 } from '../../main/types.js'
 
@@ -97,5 +98,25 @@ describe('Phase 1a type definitions', () => {
       error: 'Session not found'
     }
     expect(result.ok).toBe(false)
+  })
+
+  it('HookEvent has correct shape', () => {
+    const event: HookEvent = {
+      id: 'hook-1',
+      timestamp: Date.now(),
+      type: 'blocked',
+      description: 'Write blocked by governance policy',
+      agentName: 'Mac'
+    }
+    expect(event.type).toBe('blocked')
+    expect(event.agentName).toBe('Mac')
+  })
+
+  it('HookEvent supports all type variants', () => {
+    const types: HookEvent['type'][] = ['blocked', 'scrubbed', 'permitted', 'info']
+    for (const type of types) {
+      const event: HookEvent = { id: `hook-${type}`, timestamp: 0, type, description: 'test' }
+      expect(event.type).toBe(type)
+    }
   })
 })

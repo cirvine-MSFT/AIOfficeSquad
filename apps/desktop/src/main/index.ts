@@ -7,9 +7,16 @@ import { registerIpcHandlers, removeIpcHandlers } from './ipc-handlers.js'
 // ── Crash protection — keep the process alive ────────────────────
 process.on('uncaughtException', (err) => {
   console.error('[Main] UNCAUGHT EXCEPTION:', err)
+  // Don't exit — keep the app alive
 })
 process.on('unhandledRejection', (reason) => {
   console.error('[Main] UNHANDLED REJECTION:', reason)
+  // Don't exit — keep the app alive
+})
+
+// Prevent child process errors from crashing the main process
+process.on('exit', (code) => {
+  console.log('[Main] Process exit event with code:', code)
 })
 
 let mainWindow: BrowserWindow | null = null

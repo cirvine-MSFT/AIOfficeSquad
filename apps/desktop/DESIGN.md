@@ -1,4 +1,4 @@
-# Squad Office — Design System
+# Squad Campus — Design System
 
 > Dark-first, information-dense, keyboard-driven UI for managing AI agent squads.
 > Think VS Code meets Linear meets Discord.

@@ -27,6 +27,7 @@ const mockRuntime = {
     connected: false,
     squadRoot: '/test/squad/root'
   }),
+  getHookActivity: vi.fn().mockReturnValue([]),
   onEvent: vi.fn().mockReturnValue(() => {}),
   onStreamDelta: vi.fn().mockReturnValue(() => {}),
   onUsage: vi.fn().mockReturnValue(() => {}),
@@ -432,7 +433,8 @@ describe('IPC Handlers - Registration', () => {
       'squad:get-agent-statuses',
       'squad:get-decisions',
       'squad:get-connection-info',
-      'squad:get-session-detail'
+      'squad:get-session-detail',
+      'squad:get-hook-activity'
     ]
 
     for (const channel of expectedChannels) {

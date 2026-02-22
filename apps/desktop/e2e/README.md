@@ -1,6 +1,6 @@
 # Electron E2E Tests
 
-Playwright-based end-to-end tests for the Squad Office desktop app.
+Playwright-based end-to-end tests for the Squad Campus desktop app.
 
 ## Running Tests
 

@@ -7121,6 +7121,10 @@ function useChat(selectedAgent) {
     };
   }, []);
   const createSession = reactExports.useCallback(async (agentName) => {
+    if (!agentName) {
+      setError("Select an agent before starting a session");
+      return;
+    }
     setCreatingSession(true);
     setError(null);
     try {
@@ -7136,8 +7140,9 @@ function useChat(selectedAgent) {
       }
     } catch (err) {
       setError(err instanceof Error ? err.message : "Failed to create session");
+    } finally {
+      setCreatingSession(false);
     }
-    setCreatingSession(false);
   }, []);
   const sendMessage = reactExports.useCallback(
     async (text) => {
@@ -7156,11 +7161,16 @@ function useChat(selectedAgent) {
         next.set(selectedAgent, agentMsgs);
         return next;
       });
-      const res = await window.squadAPI.sendMessage(sessionId, text);
-      if (!res.ok) {
-        setError(res.error ?? "Failed to send message");
+      try {
+        const res = await window.squadAPI.sendMessage(sessionId, text);
+        if (!res.ok) {
+          setError(res.error ?? "Failed to send message");
+        }
+      } catch (err) {
+        setError(err instanceof Error ? err.message : "Failed to send message");
+      } finally {
+        setSending(false);
       }
-      setSending(false);
     },
     [selectedAgent, sessionId]
   );
@@ -7203,8 +7213,8 @@ function Breadcrumb({ items, onNavigate }) {
 function Header({ breadcrumbs, onNavigate, connected }) {
   return /* @__PURE__ */ jsxRuntimeExports.jsxs("header", { className: "flex items-center justify-between h-header px-4 bg-bg-raised border-b border-border app-drag select-none shrink-0", children: [
     /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "flex items-center gap-3", children: [
-      /* @__PURE__ */ jsxRuntimeExports.jsx("span", { className: "text-lg", children: "🏢" }),
-      /* @__PURE__ */ jsxRuntimeExports.jsx("h1", { className: "text-md font-semibold text-text-primary", children: "Squad Office" }),
+      /* @__PURE__ */ jsxRuntimeExports.jsx("span", { className: "text-lg", children: "🏫" }),
+      /* @__PURE__ */ jsxRuntimeExports.jsx("h1", { className: "text-md font-semibold text-text-primary", children: "Squad Campus" }),
       breadcrumbs.length > 0 && /* @__PURE__ */ jsxRuntimeExports.jsxs(jsxRuntimeExports.Fragment, { children: [
         /* @__PURE__ */ jsxRuntimeExports.jsx("span", { className: "text-text-tertiary", children: "·" }),
         /* @__PURE__ */ jsxRuntimeExports.jsx("div", { className: "app-no-drag", children: /* @__PURE__ */ jsxRuntimeExports.jsx(Breadcrumb, { items: breadcrumbs, onNavigate }) })
@@ -7393,7 +7403,7 @@ function BuildingView({ squads, onSelectSquad, loading }) {
   }
   if (squads.length === 0) {
     return /* @__PURE__ */ jsxRuntimeExports.jsx("div", { className: "flex-1 flex items-center justify-center animate-fade-in", children: /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "text-center px-6", children: [
-      /* @__PURE__ */ jsxRuntimeExports.jsx("div", { className: "text-4xl mb-4", children: "🏢" }),
+      /* @__PURE__ */ jsxRuntimeExports.jsx("div", { className: "text-4xl mb-4", children: "🏫" }),
       /* @__PURE__ */ jsxRuntimeExports.jsx("h2", { className: "text-lg font-semibold text-text-primary mb-2", children: "No squads found" }),
       /* @__PURE__ */ jsxRuntimeExports.jsxs("p", { className: "text-sm text-text-secondary max-w-sm", children: [
         "Open a project with a ",
@@ -7403,7 +7413,15 @@ function BuildingView({ squads, onSelectSquad, loading }) {
     ] }) });
   }
   return /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "flex-1 overflow-y-auto p-6 animate-fade-in", children: [
-    /* @__PURE__ */ jsxRuntimeExports.jsx("h2", { className: "text-xl font-semibold text-text-primary mb-4", children: "Squads" }),
+    /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "flex items-center gap-2 mb-6", children: [
+      /* @__PURE__ */ jsxRuntimeExports.jsx("span", { className: "text-2xl", children: "🏫" }),
+      /* @__PURE__ */ jsxRuntimeExports.jsx("h2", { className: "text-xl font-semibold text-text-primary", children: "Squad Campus" }),
+      /* @__PURE__ */ jsxRuntimeExports.jsxs("span", { className: "text-xs text-text-tertiary ml-2", children: [
+        squads.length,
+        " building",
+        squads.length !== 1 ? "s" : ""
+      ] })
+    ] }),
     /* @__PURE__ */ jsxRuntimeExports.jsx("div", { className: "grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4", children: squads.map((squad) => /* @__PURE__ */ jsxRuntimeExports.jsxs(
       "button",
       {
@@ -7411,13 +7429,16 @@ function BuildingView({ squads, onSelectSquad, loading }) {
         className: "text-left rounded-lg bg-bg-surface border border-border shadow-elevation-1 p-5 transition-default hover:bg-bg-hover hover:shadow-elevation-2 focus-visible:ring-2 focus-visible:ring-border-focus animate-fade-in-up",
         children: [
           /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "flex items-center gap-3 mb-3", children: [
-            /* @__PURE__ */ jsxRuntimeExports.jsx("span", { className: "text-2xl", children: "👥" }),
+            /* @__PURE__ */ jsxRuntimeExports.jsx("span", { className: "text-2xl", children: "🏢" }),
             /* @__PURE__ */ jsxRuntimeExports.jsx("h3", { className: "text-md font-semibold text-text-primary", children: squad.name })
           ] }),
-          /* @__PURE__ */ jsxRuntimeExports.jsxs("p", { className: "text-sm text-text-secondary", children: [
-            squad.memberCount,
-            " member",
-            squad.memberCount !== 1 ? "s" : ""
+          /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "flex items-center justify-between", children: [
+            /* @__PURE__ */ jsxRuntimeExports.jsxs("p", { className: "text-sm text-text-secondary", children: [
+              squad.memberCount,
+              " member",
+              squad.memberCount !== 1 ? "s" : ""
+            ] }),
+            /* @__PURE__ */ jsxRuntimeExports.jsx("span", { className: "text-xs text-text-tertiary bg-bg-raised px-2 py-0.5 rounded-full", children: "Floor 1" })
           ] })
         ]
       },
@@ -8131,19 +8152,21 @@ function DecisionsTimeline() {
   ] });
 }
 function CostDashboard({ totalTokens, estimatedCost, model }) {
+  const safeTokens = Number.isFinite(totalTokens) ? totalTokens : 0;
+  const safeCost = Number.isFinite(estimatedCost) ? estimatedCost : 0;
   return /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "flex flex-col h-full bg-bg-sunken p-4 overflow-y-auto", children: [
     /* @__PURE__ */ jsxRuntimeExports.jsx("h2", { className: "text-lg font-semibold text-text-primary flex items-center gap-2 mb-4", children: "💰 Cost Dashboard" }),
     /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "grid grid-cols-1 gap-3", children: [
       /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "bg-bg-raised border border-border rounded-lg p-4", children: [
         /* @__PURE__ */ jsxRuntimeExports.jsx("div", { className: "text-xs text-text-tertiary uppercase tracking-wide mb-1", children: "Total Tokens" }),
-        /* @__PURE__ */ jsxRuntimeExports.jsx("div", { className: "text-2xl font-bold text-text-primary font-mono", children: totalTokens.toLocaleString() }),
+        /* @__PURE__ */ jsxRuntimeExports.jsx("div", { className: "text-2xl font-bold text-text-primary font-mono", children: safeTokens.toLocaleString() }),
         /* @__PURE__ */ jsxRuntimeExports.jsx("div", { className: "text-xs text-text-secondary mt-1", children: "Cumulative input + output tokens" })
       ] }),
       /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "bg-bg-raised border border-border rounded-lg p-4", children: [
         /* @__PURE__ */ jsxRuntimeExports.jsx("div", { className: "text-xs text-text-tertiary uppercase tracking-wide mb-1", children: "Estimated Cost" }),
-        /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "text-2xl font-bold font-mono", style: { color: estimatedCost > 1 ? "#f87171" : "#4ade80" }, children: [
+        /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "text-2xl font-bold font-mono", style: { color: safeCost > 1 ? "#f87171" : "#4ade80" }, children: [
           "$",
-          estimatedCost.toFixed(2)
+          safeCost.toFixed(2)
         ] }),
         /* @__PURE__ */ jsxRuntimeExports.jsx("div", { className: "text-xs text-text-secondary mt-1", children: "Based on ~$3/MTok input, ~$15/MTok output" })
       ] }),
@@ -8156,8 +8179,114 @@ function CostDashboard({ totalTokens, estimatedCost, model }) {
     /* @__PURE__ */ jsxRuntimeExports.jsx("div", { className: "mt-4 p-3 bg-bg-raised border border-border/50 rounded-lg border-dashed", children: /* @__PURE__ */ jsxRuntimeExports.jsx("p", { className: "text-xs text-text-tertiary text-center", children: "📊 Detailed breakdowns coming when SDK connects" }) })
   ] });
 }
+const badgeStyles = {
+  blocked: "bg-red-500/20 text-red-400 border-red-500/30",
+  scrubbed: "bg-yellow-500/20 text-yellow-400 border-yellow-500/30",
+  permitted: "bg-green-500/20 text-green-400 border-green-500/30",
+  info: "bg-blue-500/20 text-blue-400 border-blue-500/30"
+};
+const badgeLabels = {
+  blocked: "🚫 Blocked",
+  scrubbed: "🧹 Scrubbed",
+  permitted: "✅ Permitted",
+  info: "ℹ️ Info"
+};
+function HooksPanel() {
+  const [events, setEvents] = reactExports.useState([]);
+  const [loading, setLoading] = reactExports.useState(false);
+  const [error, setError] = reactExports.useState(null);
+  const fetchHookActivity = reactExports.useCallback(async () => {
+    setLoading(true);
+    setError(null);
+    try {
+      const res = await window.squadAPI.getHookActivity();
+      const result = res;
+      if (result.ok && Array.isArray(result.data)) {
+        setEvents(result.data);
+      } else {
+        setError(result.error ?? "Failed to load hook activity");
+      }
+    } catch (_err) {
+      setError("Hook activity IPC not available yet");
+    } finally {
+      setLoading(false);
+    }
+  }, []);
+  reactExports.useEffect(() => {
+    fetchHookActivity();
+  }, [fetchHookActivity]);
+  return /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "flex flex-col h-full bg-bg-sunken p-4 overflow-y-auto", children: [
+    /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "flex items-center justify-between mb-4", children: [
+      /* @__PURE__ */ jsxRuntimeExports.jsx("h2", { className: "text-lg font-semibold text-text-primary flex items-center gap-2", children: "🛡️ Governance Hooks" }),
+      /* @__PURE__ */ jsxRuntimeExports.jsx(
+        "button",
+        {
+          onClick: fetchHookActivity,
+          disabled: loading,
+          className: "px-3 py-1 text-xs font-medium rounded bg-bg-raised border border-border text-text-secondary hover:text-text-primary hover:border-accent transition-default disabled:opacity-50",
+          children: loading ? "⟳ Loading…" : "↻ Refresh"
+        }
+      )
+    ] }),
+    error && /* @__PURE__ */ jsxRuntimeExports.jsx("div", { className: "px-3 py-2 mb-3 text-sm text-status-error bg-status-error/10 rounded border border-status-error/20", children: error }),
+    !loading && !error && events.length === 0 && /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "flex flex-col items-center justify-center flex-1 text-text-tertiary", children: [
+      /* @__PURE__ */ jsxRuntimeExports.jsx("span", { className: "text-3xl mb-2", children: "🛡️" }),
+      /* @__PURE__ */ jsxRuntimeExports.jsx("p", { className: "text-sm", children: "No governance events yet" }),
+      /* @__PURE__ */ jsxRuntimeExports.jsx("p", { className: "text-xs mt-1", children: "Hook events will appear as agents work" })
+    ] }),
+    events.length > 0 && /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "relative pl-6", children: [
+      /* @__PURE__ */ jsxRuntimeExports.jsx("div", { className: "absolute left-2 top-0 bottom-0 w-px bg-border" }),
+      [...events].reverse().map((event) => /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "relative mb-4 last:mb-0", children: [
+        /* @__PURE__ */ jsxRuntimeExports.jsx("div", { className: "absolute -left-4 top-2 w-2.5 h-2.5 rounded-full bg-accent border-2 border-bg-sunken" }),
+        /* @__PURE__ */ jsxRuntimeExports.jsx("div", { className: "text-xs text-text-tertiary font-mono mb-1", children: new Date(event.timestamp).toLocaleTimeString() }),
+        /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "bg-bg-raised border border-border rounded-lg p-3 hover:border-accent/40 transition-default", children: [
+          /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "flex items-center gap-2 mb-1", children: [
+            /* @__PURE__ */ jsxRuntimeExports.jsx("span", { className: `px-1.5 py-0.5 text-xs font-medium rounded border ${badgeStyles[event.type]}`, children: badgeLabels[event.type] }),
+            event.agentName && /* @__PURE__ */ jsxRuntimeExports.jsx("span", { className: "text-xs text-accent", children: event.agentName })
+          ] }),
+          /* @__PURE__ */ jsxRuntimeExports.jsx("p", { className: "text-xs text-text-secondary", children: event.description })
+        ] })
+      ] }, event.id))
+    ] })
+  ] });
+}
+class ErrorBoundary extends reactExports.Component {
+  constructor(props) {
+    super(props);
+    this.state = { hasError: false, error: null };
+  }
+  static getDerivedStateFromError(error) {
+    return { hasError: true, error };
+  }
+  componentDidCatch(error, errorInfo) {
+    console.error("[ErrorBoundary] Caught error:", error, errorInfo);
+  }
+  componentDidUpdate(prevProps) {
+    if (this.state.hasError && prevProps.resetKey !== this.props.resetKey) {
+      this.setState({ hasError: false, error: null });
+    }
+  }
+  render() {
+    if (this.state.hasError) {
+      return /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "flex flex-col items-center justify-center p-6 text-center min-h-[200px]", children: [
+        /* @__PURE__ */ jsxRuntimeExports.jsx("p", { className: "text-sm text-status-error mb-3", children: this.state.error?.message ?? "Something went wrong" }),
+        /* @__PURE__ */ jsxRuntimeExports.jsx(
+          "button",
+          {
+            onClick: () => this.setState({ hasError: false, error: null }),
+            className: "px-3 py-1.5 text-sm font-medium rounded-md bg-accent text-white hover:bg-accent-hover transition-default",
+            children: "Try Again"
+          }
+        )
+      ] });
+    }
+    return this.props.children;
+  }
+}
 function mergeAgentInfo(members, statuses) {
-  const statusMap = new Map(statuses.map((s) => [s.name.toLowerCase(), s]));
+  const statusMap = new Map(
+    statuses.filter((s) => s && typeof s.name === "string").map((s) => [s.name.toLowerCase(), s])
+  );
   return members.map((m2) => {
     const s = statusMap.get(m2.name.toLowerCase());
     return {
@@ -8221,6 +8350,7 @@ function App() {
       window.squadAPI.getAgentStatuses().then((res) => {
         const result = res;
         if (result.ok && result.data) setAgentStatuses(result.data);
+      }).catch(() => {
       });
     });
     return () => {
@@ -8305,6 +8435,14 @@ function App() {
           className: `px-2.5 py-1 text-xs font-medium rounded transition-default ${activePanel === "cost" ? "bg-accent/20 text-accent border border-accent/40" : "text-text-secondary hover:text-text-primary hover:bg-bg-hover border border-transparent"}`,
           children: "💰 Cost"
         }
+      ),
+      /* @__PURE__ */ jsxRuntimeExports.jsx(
+        "button",
+        {
+          onClick: () => setActivePanel((p2) => p2 === "hooks" ? "none" : "hooks"),
+          className: `px-2.5 py-1 text-xs font-medium rounded transition-default ${activePanel === "hooks" ? "bg-accent/20 text-accent border border-accent/40" : "text-text-secondary hover:text-text-primary hover:bg-bg-hover border border-transparent"}`,
+          children: "🛡️ Hooks"
+        }
       )
     ] }),
     chat.error && /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "flex items-center justify-between px-4 py-2 bg-status-error/10 border-b border-status-error/20 text-sm text-status-error animate-fade-in", children: [
@@ -8322,7 +8460,7 @@ function App() {
       /* @__PURE__ */ jsxRuntimeExports.jsx(
         Sidebar,
         {
-          hubName: config?.name ?? "Squad Office",
+          hubName: config?.name ?? "Squad Campus",
           squads: squads.map((s) => ({
             id: s.id,
             name: s.name,
@@ -8362,9 +8500,8 @@ function App() {
           },
           onSelectSession: navigation.selectSession,
           onCreateSession: () => {
-            if (effectiveAgent) {
-              chat.createSession(effectiveAgent);
-            }
+            const agent = effectiveAgent ?? "";
+            chat.createSession(agent);
           },
           loading
         }
@@ -8378,7 +8515,7 @@ function App() {
           loading
         }
       ),
-      selectedAgentInfo && /* @__PURE__ */ jsxRuntimeExports.jsx(
+      selectedAgentInfo && /* @__PURE__ */ jsxRuntimeExports.jsx(ErrorBoundary, { children: /* @__PURE__ */ jsxRuntimeExports.jsx(
         ChatPanel,
         {
           agentName: selectedAgentInfo.name,
@@ -8390,7 +8527,7 @@ function App() {
           onCreateSession: () => chat.createSession(selectedAgentInfo.name),
           sending: chat.sending
         }
-      ),
+      ) }),
       activePanel === "decisions" && /* @__PURE__ */ jsxRuntimeExports.jsx("div", { className: "w-80 border-l border-border shrink-0 animate-fade-in", children: /* @__PURE__ */ jsxRuntimeExports.jsx(DecisionsTimeline, {}) }),
       activePanel === "cost" && /* @__PURE__ */ jsxRuntimeExports.jsx("div", { className: "w-80 border-l border-border shrink-0 animate-fade-in", children: /* @__PURE__ */ jsxRuntimeExports.jsx(
         CostDashboard,
@@ -8399,7 +8536,8 @@ function App() {
           estimatedCost: chat.usage.estimatedCost,
           model: chat.usage.model
         }
-      ) })
+      ) }),
+      activePanel === "hooks" && /* @__PURE__ */ jsxRuntimeExports.jsx("div", { className: "w-80 border-l border-border shrink-0 animate-fade-in", children: /* @__PURE__ */ jsxRuntimeExports.jsx(HooksPanel, {}) })
     ] }),
     /* @__PURE__ */ jsxRuntimeExports.jsx(
       StatusBar,
@@ -8415,52 +8553,6 @@ function App() {
       }
     )
   ] });
-}
-class ErrorBoundary extends reactExports.Component {
-  constructor(props) {
-    super(props);
-    this.state = { hasError: false, error: null };
-  }
-  static getDerivedStateFromError(error) {
-    return { hasError: true, error };
-  }
-  componentDidCatch(error, errorInfo) {
-    console.error("[ErrorBoundary] Caught error:", error, errorInfo);
-  }
-  render() {
-    if (this.state.hasError) {
-      return /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { style: {
-        display: "flex",
-        flexDirection: "column",
-        alignItems: "center",
-        justifyContent: "center",
-        height: "100vh",
-        padding: "2rem",
-        textAlign: "center",
-        fontFamily: "system-ui, sans-serif"
-      }, children: [
-        /* @__PURE__ */ jsxRuntimeExports.jsx("h1", { style: { color: "#dc2626", marginBottom: "1rem" }, children: "Something went wrong" }),
-        /* @__PURE__ */ jsxRuntimeExports.jsx("p", { style: { color: "#4b5563", marginBottom: "1rem" }, children: this.state.error?.message ?? "An unexpected error occurred" }),
-        /* @__PURE__ */ jsxRuntimeExports.jsx(
-          "button",
-          {
-            onClick: () => window.location.reload(),
-            style: {
-              padding: "0.5rem 1rem",
-              backgroundColor: "#3b82f6",
-              color: "white",
-              border: "none",
-              borderRadius: "0.375rem",
-              cursor: "pointer",
-              fontSize: "1rem"
-            },
-            children: "Reload App"
-          }
-        )
-      ] });
-    }
-    return this.props.children;
-  }
 }
 window.onerror = (msg, src, line, col, err) => {
   console.error("[Renderer] WINDOW ERROR:", msg, src, line, col, err);

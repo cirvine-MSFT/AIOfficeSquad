@@ -63,6 +63,10 @@ export function registerIpcHandlers(
     Promise.resolve(runtime.getConnectionInfo())
   )
 
+  handle('squad:get-hook-activity', () =>
+    Promise.resolve(runtime.getHookActivity())
+  )
+
   handle('squad:get-session-detail', async (sessionId: string) => {
     const sessions = (await runtime.listSessions()) as any[]
     const session = sessions.find(
@@ -142,7 +146,8 @@ export function removeIpcHandlers(): void {
     'squad:get-agent-statuses',
     'squad:get-decisions',
     'squad:get-connection-info',
-    'squad:get-session-detail'
+    'squad:get-session-detail',
+    'squad:get-hook-activity'
   ]
   for (const ch of channels) {
     ipcMain.removeHandler(ch)

@@ -95,6 +95,7 @@ export interface IpcInvokeChannels {
   'squad:get-session-detail': { args: [string]; result: IpcResult<SessionDetail> }
   'squad:get-decisions': { args: []; result: IpcResult<string> }
   'squad:get-connection-info': { args: []; result: IpcResult<ConnectionInfo> }
+  'squad:get-hook-activity': { args: []; result: IpcResult<HookEvent[]> }
 }
 
 export interface IpcPushChannels {
@@ -166,6 +167,15 @@ export interface AgentInSession {
   model?: string
   activity?: string
   lastActivityAt?: number
+}
+
+/** Governance hook event from the HookPipeline */
+export interface HookEvent {
+  id: string
+  timestamp: number
+  type: 'blocked' | 'scrubbed' | 'permitted' | 'info'
+  description: string
+  agentName?: string
 }
 
 export type IpcInvokeChannel = keyof IpcInvokeChannels

@@ -11,10 +11,16 @@ import ChatPanel from './components/ChatPanel'
 import StatusBar from './components/StatusBar'
 import DecisionsTimeline from './components/DecisionsTimeline'
 import CostDashboard from './components/CostDashboard'
+import HooksPanel from './components/HooksPanel'
+import { ErrorBoundary } from './components/ErrorBoundary'
 import type { AgentInfo } from './components/AgentCard'
 
 function mergeAgentInfo(members: SquadMember[], statuses: AgentStatus[]): AgentInfo[] {
-  const statusMap = new Map(statuses.map((s) => [s.name.toLowerCase(), s]))
+  const statusMap = new Map(
+    statuses
+      .filter((s) => s && typeof s.name === 'string')
+      .map((s) => [s.name.toLowerCase(), s])
+  )
   return members.map((m) => {
     const s = statusMap.get(m.name.toLowerCase())
     return {
@@ -43,7 +49,7 @@ export default function App() {
 
   // ── Agent selection (local state for floor-level compat; nav hook handles office level) ──
   const [selectedAgent, setSelectedAgent] = useState<string | null>(null)
-  const [activePanel, setActivePanel] = useState<'none' | 'decisions' | 'cost'>('none')
+  const [activePanel, setActivePanel] = useState<'none' | 'decisions' | 'cost' | 'hooks'>('none')
   const effectiveAgent =
     navigation.state.level === 'office'
       ? navigation.state.selectedAgentName
@@ -103,7 +109,7 @@ export default function App() {
       window.squadAPI.getAgentStatuses().then((res) => {
         const result = res as { ok: boolean; data?: AgentStatus[] }
         if (result.ok && result.data) setAgentStatuses(result.data)
-      })
+      }).catch(() => { /* swallow — status refresh is best-effort */ })
     })
     return () => { unsubEvent() }
   }, [])
@@ -208,6 +214,16 @@ export default function App() {
         >
           💰 Cost
         </button>
+        <button
+          onClick={() => setActivePanel((p) => (p === 'hooks' ? 'none' : 'hooks'))}
+          className={`px-2.5 py-1 text-xs font-medium rounded transition-default ${
+            activePanel === 'hooks'
+              ? 'bg-accent/20 text-accent border border-accent/40'
+              : 'text-text-secondary hover:text-text-primary hover:bg-bg-hover border border-transparent'
+          }`}
+        >
+          🛡️ Hooks
+        </button>
       </div>
 
       {/* Error banner */}
@@ -226,7 +242,7 @@ export default function App() {
       {/* Main three-panel layout */}
       <div className="flex flex-1 overflow-hidden">
         <Sidebar
-          hubName={config?.name ?? 'Squad Office'}
+          hubName={config?.name ?? 'Squad Campus'}
           squads={squads.map((s) => ({
             id: s.id,
             name: s.name,
@@ -266,9 +282,8 @@ export default function App() {
             }}
             onSelectSession={navigation.selectSession}
             onCreateSession={() => {
-              if (effectiveAgent) {
-                chat.createSession(effectiveAgent)
-              }
+              const agent = effectiveAgent ?? ''
+              chat.createSession(agent)
             }}
             loading={loading}
           />
@@ -285,16 +300,18 @@ export default function App() {
 
         {/* Chat detail panel — shows when agent is selected */}
         {selectedAgentInfo && (
-          <ChatPanel
-            agentName={selectedAgentInfo.name}
-            agentRole={selectedAgentInfo.role}
-            sessionId={chat.sessionId}
-            messages={chat.messages}
-            streamingText={chat.streamingText}
-            onSend={chat.sendMessage}
-            onCreateSession={() => chat.createSession(selectedAgentInfo.name)}
-            sending={chat.sending}
-          />
+          <ErrorBoundary>
+            <ChatPanel
+              agentName={selectedAgentInfo.name}
+              agentRole={selectedAgentInfo.role}
+              sessionId={chat.sessionId}
+              messages={chat.messages}
+              streamingText={chat.streamingText}
+              onSend={chat.sendMessage}
+              onCreateSession={() => chat.createSession(selectedAgentInfo.name)}
+              sending={chat.sending}
+            />
+          </ErrorBoundary>
         )}
 
         {/* Toggleable side panels */}
@@ -310,6 +327,11 @@ export default function App() {
               estimatedCost={chat.usage.estimatedCost}
               model={chat.usage.model}
             />
+          </div>
+        )}
+        {activePanel === 'hooks' && (
+          <div className="w-80 border-l border-border shrink-0 animate-fade-in">
+            <HooksPanel />
           </div>
         )}
       </div>

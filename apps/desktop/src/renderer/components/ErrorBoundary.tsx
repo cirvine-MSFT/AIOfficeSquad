@@ -2,6 +2,8 @@ import React, { Component, ReactNode } from 'react'
 
 interface Props {
   children: ReactNode
+  /** When this key changes, the error state is automatically cleared */
+  resetKey?: string | number
 }
 
 interface State {
@@ -23,38 +25,25 @@ export class ErrorBoundary extends Component<Props, State> {
     console.error('[ErrorBoundary] Caught error:', error, errorInfo)
   }
 
+  componentDidUpdate(prevProps: Props): void {
+    // Auto-reset when resetKey changes (e.g. navigation, panel toggle)
+    if (this.state.hasError && prevProps.resetKey !== this.props.resetKey) {
+      this.setState({ hasError: false, error: null })
+    }
+  }
+
   render(): ReactNode {
     if (this.state.hasError) {
       return (
-        <div style={{
-          display: 'flex',
-          flexDirection: 'column',
-          alignItems: 'center',
-          justifyContent: 'center',
-          height: '100vh',
-          padding: '2rem',
-          textAlign: 'center',
-          fontFamily: 'system-ui, sans-serif'
-        }}>
-          <h1 style={{ color: '#dc2626', marginBottom: '1rem' }}>
-            Something went wrong
-          </h1>
-          <p style={{ color: '#4b5563', marginBottom: '1rem' }}>
-            {this.state.error?.message ?? 'An unexpected error occurred'}
+        <div className="flex flex-col items-center justify-center p-6 text-center min-h-[200px]">
+          <p className="text-sm text-status-error mb-3">
+            {this.state.error?.message ?? 'Something went wrong'}
           </p>
           <button
-            onClick={() => window.location.reload()}
-            style={{
-              padding: '0.5rem 1rem',
-              backgroundColor: '#3b82f6',
-              color: 'white',
-              border: 'none',
-              borderRadius: '0.375rem',
-              cursor: 'pointer',
-              fontSize: '1rem'
-            }}
+            onClick={() => this.setState({ hasError: false, error: null })}
+            className="px-3 py-1.5 text-sm font-medium rounded-md bg-accent text-white hover:bg-accent-hover transition-default"
           >
-            Reload App
+            Try Again
           </button>
         </div>
       )

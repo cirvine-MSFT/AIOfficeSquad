@@ -4,6 +4,7 @@ import { execSync } from 'child_process'
 import type {
   AgentStatus,
   CreateSessionConfig,
+  HookEvent,
   SquadConfig,
   SquadEvent,
   SquadMember,
@@ -39,6 +40,8 @@ export class SquadRuntime {
   private readyHandlers: Set<() => void> = new Set()
   private _initAttempted: boolean = false
   private _initPromise: Promise<void> | null = null
+  private hookEvents: HookEvent[] = []
+  private static readonly MAX_HOOK_EVENTS = 50
 
   constructor(squadRoot?: string) {
     // Resolve to git repo root so we find .squad/ regardless of CWD
@@ -107,6 +110,25 @@ export class SquadRuntime {
           })
         }
 
+        // Subscribe to HookPipeline governance events (if available)
+        if (this.pipeline.onHook) {
+          this.pipeline.onHook((hook: { type?: string; description?: string; agentName?: string }) => {
+            try {
+              const event: HookEvent = {
+                id: `hook-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
+                timestamp: Date.now(),
+                type: (['blocked', 'scrubbed', 'permitted', 'info'].includes(hook.type ?? '') ? hook.type : 'info') as HookEvent['type'],
+                description: hook.description ?? 'Hook event',
+                agentName: hook.agentName
+              }
+              this.hookEvents.push(event)
+              if (this.hookEvents.length > SquadRuntime.MAX_HOOK_EVENTS) {
+                this.hookEvents = this.hookEvents.slice(-SquadRuntime.MAX_HOOK_EVENTS)
+              }
+            } catch { /* swallow */ }
+          })
+        }
+
         this._isReady = true
         console.log('[SquadRuntime] initialized successfully')
 
@@ -117,6 +139,13 @@ export class SquadRuntime {
       } catch (err) {
         console.error('[SquadRuntime] initialize failed (SDK unavailable or auth issue):', err)
         console.log('[SquadRuntime] continuing without SDK — roster reading still works')
+        // Clean up partially-created SDK objects to prevent async crashes
+        // (e.g., SquadClientWithPool may have internal reconnect timers or child processes)
+        try { if (this.client?.shutdown) await this.client.shutdown() } catch { /* best-effort */ }
+        this.client = null
+        this.eventBus = null
+        this.pipeline = null
+        this.monitor = null
         // Don't throw — roster features work without SDK
       }
     })()
@@ -125,6 +154,8 @@ export class SquadRuntime {
   }
 
   async cleanup(): Promise<void> {
+    // Always mark as not ready first, even if cleanup steps fail
+    this._isReady = false
     try {
       if (this.pipeline?.stop) await this.pipeline.stop()
       if (this.monitor?.stop) await this.monitor.stop()
@@ -134,11 +165,11 @@ export class SquadRuntime {
       this.deltaHandlers.clear()
       this.usageHandlers.clear()
       this.readyHandlers.clear()
+      this.hookEvents = []
       this.client = null
       this.eventBus = null
       this.pipeline = null
       this.monitor = null
-      this._isReady = false
       console.log('[SquadRuntime] cleanup complete')
     } catch (err) {
       console.error('[SquadRuntime] cleanup error:', err)
@@ -151,17 +182,29 @@ export class SquadRuntime {
     agentName: string,
     config?: CreateSessionConfig
   ): Promise<{ sessionId: string }> {
-    if (this._initAttempted && !this._isReady) {
+    if (!agentName || typeof agentName !== 'string') {
+      throw new Error('Agent name is required to create a session')
+    }
+    // Wait for init to finish if it's in progress, to avoid racing
+    if (this._initPromise) {
+      await this._initPromise
+    }
+    if (!this._isReady) {
       throw new Error('SDK not connected — Copilot CLI is not running')
     }
     if (!this.client) throw new Error('SDK not available')
-    const session = await this.client.createSession({
-      agent: agentName,
-      ...config
-    })
-    const id = session.id ?? session.sessionId
-    this.sessions.set(id, session)
-    return { sessionId: id }
+    try {
+      const session = await this.client.createSession({
+        agent: agentName,
+        ...config
+      })
+      const id = session.id ?? session.sessionId
+      this.sessions.set(id, session)
+      return { sessionId: id }
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : String(err)
+      throw new Error(`Failed to create session for "${agentName}": ${msg}`)
+    }
   }
 
   async sendMessage(sessionId: string, prompt: string): Promise<void> {
@@ -171,8 +214,8 @@ export class SquadRuntime {
   }
 
   async listSessions(): Promise<unknown[]> {
-    if (!this._isReady || !this.client) throw new Error('SDK not available')
-    return await this.client.listSessions()
+    if (!this._isReady || !this.client) return []
+    try { return await this.client.listSessions() } catch { return [] }
   }
 
   async deleteSession(id: string): Promise<void> {
@@ -187,18 +230,18 @@ export class SquadRuntime {
   }
 
   async getStatus(): Promise<unknown> {
-    if (!this._isReady || !this.client) throw new Error('SDK not available')
-    return await this.client.getStatus()
+    if (!this._isReady || !this.client) return { status: 'disconnected' }
+    try { return await this.client.getStatus() } catch { return { status: 'error' } }
   }
 
   async getAuthStatus(): Promise<unknown> {
-    if (!this._isReady || !this.client) throw new Error('SDK not available')
-    return await this.client.getAuthStatus()
+    if (!this._isReady || !this.client) return { authenticated: false }
+    try { return await this.client.getAuthStatus() } catch { return { authenticated: false } }
   }
 
   async listModels(): Promise<unknown[]> {
-    if (!this._isReady || !this.client) throw new Error('SDK not available')
-    return await this.client.listModels()
+    if (!this._isReady || !this.client) return []
+    try { return await this.client.listModels() } catch { return [] }
   }
 
   // ── Decisions & connection info ─────────────────────────────────
@@ -220,6 +263,10 @@ export class SquadRuntime {
     }
   }
 
+  getHookActivity(): HookEvent[] {
+    return [...this.hookEvents]
+  }
+
   // ── Squad config & roster ──────────────────────────────────────
 
   async loadSquadConfig(): Promise<SquadConfig> {
@@ -227,7 +274,7 @@ export class SquadRuntime {
       const members = await this.getRoster()
       // Try to read squad name from team.md or fall back
       const teamPath = join(this.squadRoot, '.squad', 'team.md')
-      let name = 'Squad Office'
+      let name = 'Squad Campus'
       try {
         const content = await readFile(teamPath, 'utf-8')
         const nameMatch = content.match(/^#\s+(.+)/m)

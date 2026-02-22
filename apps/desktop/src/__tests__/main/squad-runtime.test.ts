@@ -271,7 +271,7 @@ describe('SquadRuntime - Configuration', () => {
     // Phase 2: createSession no longer lazy-initializes
     await expect(
       runtime.createSession('test-agent')
-    ).rejects.toThrow('SDK not available')
+    ).rejects.toThrow('SDK not connected')
   })
 })
 
@@ -334,11 +334,11 @@ describe('SquadRuntime - Init Guard & Idempotency', () => {
     ).rejects.toThrow('SDK not connected')
   })
 
-  it('createSession() throws "SDK not available" when never initialized', async () => {
+  it('createSession() throws "SDK not connected" when never initialized', async () => {
     // Never called initialize - _initAttempted is false, client is null
     await expect(
       runtime.createSession('test-agent')
-    ).rejects.toThrow('SDK not available')
+    ).rejects.toThrow('SDK not connected')
   })
 })
 

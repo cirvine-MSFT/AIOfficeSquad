@@ -1,5 +1,5 @@
 /**
- * Design tokens for the Squad Office desktop app.
+ * Design tokens for the Squad Campus desktop app.
  * These mirror the Tailwind config and CSS custom properties
  * for use in React components and runtime logic.
  */

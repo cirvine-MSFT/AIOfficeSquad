@@ -91,3 +91,12 @@ export interface AgentInSession {
   activity?: string
   lastActivityAt?: number
 }
+
+/** Governance hook event from the HookPipeline */
+export interface HookEvent {
+  id: string
+  timestamp: number
+  type: 'blocked' | 'scrubbed' | 'permitted' | 'info'
+  description: string
+  agentName?: string
+}
