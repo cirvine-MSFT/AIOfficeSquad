@@ -953,3 +953,36 @@ body {
   color: rgba(255, 255, 255, 0.3);
   flex-shrink: 0;
 }
+
+/* ============ Pod Status Dashboard (Issue #8) ============ */
+#status-dashboard {
+  position: fixed;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  background: #1a1b1eee;
+  border: 2px solid #3a3d44;
+  border-radius: 12px;
+  padding: 24px;
+  z-index: 100;
+  min-width: 450px;
+  max-width: 650px;
+  max-height: 80vh;
+  overflow-y: auto;
+  font-family: "Space Grotesk", sans-serif;
+}
+#status-dashboard.hidden { display: none; }
+.status-dashboard-title { color: #f5e7c4; font-size: 18px; font-weight: bold; margin-bottom: 16px; }
+.member-row { display: flex; align-items: center; gap: 12px; padding: 10px 12px; background: #2a2d32; border-radius: 8px; margin-bottom: 8px; cursor: pointer; border: 1px solid transparent; transition: border-color 0.2s; }
+.member-row:hover { border-color: #d9a441; }
+.member-badge { font-size: 18px; }
+.member-info { flex: 1; }
+.member-name { color: #f5e7c4; font-weight: 600; font-size: 13px; }
+.member-role { color: #888; font-size: 11px; }
+.member-status { padding: 2px 10px; border-radius: 10px; font-size: 11px; font-weight: 600; }
+.member-status.available { background: #60d39433; color: #60d394; }
+.member-status.thinking { background: #d9a44133; color: #d9a441; }
+.member-status.replied { background: #4fb0ff33; color: #4fb0ff; }
+.member-status.error { background: #e05d5d33; color: #e05d5d; }
+.member-summary { color: #888; font-size: 11px; margin-top: 2px; }
+.member-blocker { color: #e05d5d; font-size: 11px; margin-top: 2px; font-weight: 600; }

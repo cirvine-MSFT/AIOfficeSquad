@@ -160,6 +160,121 @@ const buildingDashboard = document.getElementById("building-dashboard") as HTMLD
 const dashboardSquads = document.getElementById("dashboard-squads") as HTMLDivElement;
 let buildingDashboardOpen = false;
 
+// ============ Pod Status Dashboard State (Issue #8) ============
+let statusDashboardOpen = false;
+let statusDashboardEl: HTMLDivElement | null = null;
+
+function createStatusDashboard(): HTMLDivElement {
+  if (statusDashboardEl) return statusDashboardEl;
+  const el = document.createElement("div");
+  el.id = "status-dashboard";
+  el.className = "hidden";
+  document.body.appendChild(el);
+  // Stop keys in dashboard from reaching Phaser
+  el.addEventListener("keydown", (e) => { if (e.key !== "Escape") e.stopPropagation(); });
+  el.addEventListener("keyup", (e) => e.stopPropagation());
+  statusDashboardEl = el;
+  return el;
+}
+
+function toggleStatusDashboard() {
+  statusDashboardOpen = !statusDashboardOpen;
+  const el = createStatusDashboard();
+  if (statusDashboardOpen) {
+    el.classList.remove("hidden");
+    scene.lockInput(true);
+    fetchStatusDashboard();
+  } else {
+    el.classList.add("hidden");
+    scene.lockInput(false);
+  }
+}
+
+async function fetchStatusDashboard() {
+  const el = createStatusDashboard();
+  const squadId = podScene.squadId || "default";
+  const squadName = podScene.squadName || "Squad";
+
+  // Try to fetch squad members from API, fall back to local agents array
+  let members: Array<{ agentId?: string; name?: string; role?: string; badge?: string; status?: string; summary?: string; scope?: string; blocker?: string }> = [];
+  try {
+    const res = await fetch(`${SERVER_URL}/api/building/squads/${squadId}`);
+    if (res.ok) {
+      const data = await res.json();
+      members = data.members ?? data.agents ?? [];
+    }
+  } catch { /* ignore */ }
+
+  // Merge with live agents data
+  const liveMap = new Map(agents.map(a => [a.agentId, a]));
+  if (members.length === 0) {
+    // Fall back to agents array entirely
+    members = agents.map(a => ({
+      agentId: a.agentId,
+      name: a.name,
+      status: a.status,
+      summary: a.summary,
+      badge: (a as any).squadBadge,
+      scope: (a as any).squadScope,
+    }));
+  } else {
+    // Enrich API members with live status
+    members = members.map(m => {
+      const live = m.agentId ? liveMap.get(m.agentId) : undefined;
+      return {
+        ...m,
+        status: live?.status ?? m.status,
+        summary: live?.summary ?? m.summary,
+        badge: (live as any)?.squadBadge ?? m.badge,
+        scope: (live as any)?.squadScope ?? m.scope,
+      };
+    });
+  }
+
+  renderStatusDashboard(el, squadName, members);
+}
+
+function renderStatusDashboard(
+  el: HTMLDivElement,
+  squadName: string,
+  members: Array<{ agentId?: string; name?: string; role?: string; badge?: string; status?: string; summary?: string; scope?: string; blocker?: string }>
+) {
+  const statusClass = (s?: string) => s && ["available", "thinking", "replied", "error"].includes(s) ? s : "available";
+  const rows = members.map(m => {
+    const cls = statusClass(m.status);
+    const scopeText = m.scope || m.summary || "";
+    const trimScope = scopeText.length > 50 ? scopeText.slice(0, 50) + "…" : scopeText;
+    const blockerHtml = m.blocker ? `<div class="member-blocker">⚠ ${m.blocker}</div>` : "";
+    return `<div class="member-row" data-agent-id="${m.agentId || ""}">
+      <span class="member-badge">${m.badge || "👤"}</span>
+      <div class="member-info">
+        <div class="member-name">${m.name || m.agentId || "Agent"}</div>
+        <div class="member-role">${m.role || ""}</div>
+        ${trimScope ? `<div class="member-summary">${trimScope}</div>` : ""}
+        ${blockerHtml}
+      </div>
+      <span class="member-status ${cls}">${m.status || "available"}</span>
+    </div>`;
+  }).join("");
+
+  el.innerHTML = `
+    <div class="status-dashboard-title">📋 ${squadName}</div>
+    ${rows || '<div style="color:#888;text-align:center;padding:20px;font-size:13px;">No members found</div>'}
+    <div style="text-align:center;margin-top:12px;font-size:11px;color:rgba(255,255,255,0.3);">Press S or Esc to close</div>
+  `;
+
+  // Click handler for member rows
+  el.querySelectorAll(".member-row").forEach(row => {
+    row.addEventListener("click", () => {
+      const agentId = (row as HTMLElement).dataset.agentId;
+      if (agentId) {
+        toggleStatusDashboard();
+        podScene.focusOnAgent(agentId);
+      }
+    });
+  });
+}
+
 function toggleBuildingDashboard() {
   buildingDashboardOpen = !buildingDashboardOpen;
   buildingDashboard.classList.toggle("open", buildingDashboardOpen);
@@ -624,6 +739,10 @@ window.addEventListener("keydown", (event) => {
   const isTyping = active?.tagName === "INPUT" || active?.tagName === "TEXTAREA" || active?.tagName === "SELECT";
 
   if (event.key === "Escape") {
+    if (statusDashboardOpen) {
+      toggleStatusDashboard();
+      return;
+    }
     if (decisionsPanelOpen) {
       toggleDecisionsPanel();
       return;
@@ -708,6 +827,15 @@ window.addEventListener("keydown", (event) => {
     if (activeScene?.scene.key === "BuildingScene") {
       event.preventDefault();
       toggleBuildingDashboard();
+    }
+  }
+
+  // S key: toggle Pod Status Dashboard (Issue #8) — only in PodScene, not when moving
+  if (event.key.toLowerCase() === "s" && !currentAgentId && !roomChatMode) {
+    const activeScene = game.scene.getScenes(true)[0];
+    if (activeScene?.scene.key === "PodScene") {
+      event.preventDefault();
+      toggleStatusDashboard();
     }
   }
 }, true); // Capture phase - fires before Phaser

@@ -21,3 +21,10 @@
   - Pod Previews: Mini colored circles in BuildingScene pods. Role-based colors (Lead=gold, Frontend=blue, Backend=green, Tester=red). Pulsing animation for active members. 30s periodic refresh from API.
   - D key scoped to PodScene only (avoids WASD conflict in BuildingScene). Tab scoped to BuildingScene only.
   - All features degrade gracefully when API endpoints aren't ready yet.
+- Phase 3 features implemented (Issues #6, #8):
+  - Role Badges: squadBadge emoji rendered above NPC name labels in PodScene. AgentView type extended with squadBadge/squadScope fields.
+  - Status Color-Coding: NPC status text has colored backgrounds (green/amber/blue/red). Thinking status pulses with tween animation.
+  - Task Summary: squadScope or agent summary shown as smaller text below NPC status label.
+  - Pod Status Dashboard: S key toggles overlay in PodScene. Shows all squad members with badge, name, role, status (color-coded pill), summary, and blockers. Click a member row to pan camera to their desk via focusOnAgent().
+  - focusOnAgent(agentId) method on PodScene: pans camera to agent's desk, then re-follows player.
+  - Dashboard fetches from /api/building/squads/{squadId}, falls back to local agents array.

@@ -5,6 +5,8 @@ export type AgentView = {
   name?: string;
   status?: string;
   summary?: string;
+  squadBadge?: string;
+  squadScope?: string;
   desk?: { x: number; y: number };
   position?: { x: number; y: number };
 };
@@ -22,6 +24,9 @@ export class PodScene extends Phaser.Scene {
   private npcSprites = new Map<string, Phaser.GameObjects.Image>();
   private npcLabels = new Map<string, Phaser.GameObjects.Text>();
   private npcStatus = new Map<string, Phaser.GameObjects.Text>();
+  private npcBadges = new Map<string, Phaser.GameObjects.Text>();
+  private npcSummaryTexts = new Map<string, Phaser.GameObjects.Text>();
+  private statusPulseTweens = new Map<string, Phaser.Tweens.Tween>();
   private typingIndicators = new Map<
     string,
     { container: Phaser.GameObjects.Container; dots: Phaser.GameObjects.Arc[] }
@@ -350,6 +355,18 @@ export class PodScene extends Phaser.Scene {
         status.setOrigin(0.5, 1);
         status.setDepth(5);
         this.npcStatus.set(agent.agentId, status);
+
+        // Task summary text below status
+        const summaryText = this.add.text(pos.x, pos.y - 56, "", {
+          fontSize: "8px",
+          color: "#888888"
+        });
+        summaryText.setBackgroundColor("rgba(0,0,0,0.4)");
+        summaryText.setPadding(2, 1, 2, 1);
+        summaryText.setStroke("#000000", 1);
+        summaryText.setOrigin(0.5, 1);
+        summaryText.setDepth(5);
+        this.npcSummaryTexts.set(agent.agentId, summaryText);
       }
       if (!this.typingIndicators.has(agent.agentId)) {
         const dot1 = this.add.circle(0, 0, 2, 0xffffff);
@@ -369,13 +386,67 @@ export class PodScene extends Phaser.Scene {
       }
       const status = this.npcStatus.get(agent.agentId);
       if (status) {
-        const summary = agent.summary ?? "";
-        const trimmed = summary.length > 20 ? `${summary.slice(0, 20)}…` : summary;
-        const statusText = agent.status ? `${agent.status}${trimmed ? `: ${trimmed}` : ""}` : "";
+        const statusText = agent.status || "";
         status.setText(statusText);
-        status.setColor(this.getStatusColor(agent.status));
+        const statusColor = this.getStatusColor(agent.status);
+        status.setColor(statusColor);
+        // Status background color-coding
+        const statusBg = this.getStatusBgColor(agent.status);
+        status.setBackgroundColor(statusBg);
         const offset = (sprite ? sprite.displayHeight + 20 : 38);
         status.setPosition(pos.x, pos.y - offset);
+
+        // Pulsing animation for "thinking" status
+        const existingTween = this.statusPulseTweens.get(agent.agentId);
+        if (agent.status === "thinking") {
+          if (!existingTween || !existingTween.isPlaying()) {
+            existingTween?.destroy();
+            const tween = this.tweens.add({
+              targets: status,
+              alpha: { from: 1, to: 0.4 },
+              duration: 800,
+              yoyo: true,
+              repeat: -1,
+              ease: "Sine.easeInOut"
+            });
+            this.statusPulseTweens.set(agent.agentId, tween);
+          }
+        } else {
+          if (existingTween) {
+            existingTween.destroy();
+            this.statusPulseTweens.delete(agent.agentId);
+            status.setAlpha(1);
+          }
+        }
+      }
+
+      // Role badge emoji above name label
+      const badgeEmoji = agent.squadBadge;
+      let badge = this.npcBadges.get(agent.agentId);
+      if (badgeEmoji) {
+        if (!badge) {
+          badge = this.add.text(pos.x, pos.y - 50, badgeEmoji, {
+            fontSize: "12px",
+          });
+          badge.setOrigin(0.5, 1);
+          badge.setDepth(5);
+          this.npcBadges.set(agent.agentId, badge);
+        }
+        badge.setText(badgeEmoji);
+        const badgeOffset = (sprite ? sprite.displayHeight + 32 : 50);
+        badge.setPosition(pos.x, pos.y - badgeOffset);
+      } else if (badge) {
+        badge.setText("");
+      }
+
+      // Task summary text below status
+      const summaryTextObj = this.npcSummaryTexts.get(agent.agentId);
+      if (summaryTextObj) {
+        const scope = agent.squadScope || agent.summary || "";
+        const trimmedScope = scope.length > 28 ? `${scope.slice(0, 28)}…` : scope;
+        summaryTextObj.setText(trimmedScope);
+        const summaryOffset = (sprite ? sprite.displayHeight + 10 : 28);
+        summaryTextObj.setPosition(pos.x, pos.y - summaryOffset);
       }
       const typing = this.typingIndicators.get(agent.agentId);
       if (typing) {
@@ -416,6 +487,12 @@ export class PodScene extends Phaser.Scene {
         this.npcLabels.delete(id);
         this.npcStatus.get(id)?.destroy();
         this.npcStatus.delete(id);
+        this.npcBadges.get(id)?.destroy();
+        this.npcBadges.delete(id);
+        this.npcSummaryTexts.get(id)?.destroy();
+        this.npcSummaryTexts.delete(id);
+        const pulseTween = this.statusPulseTweens.get(id);
+        if (pulseTween) { pulseTween.destroy(); this.statusPulseTweens.delete(id); }
       }
     }
   }
@@ -613,6 +690,32 @@ export class PodScene extends Phaser.Scene {
       default:
         return "#f1eee6";
     }
+  }
+
+  private getStatusBgColor(status?: string) {
+    switch (status) {
+      case "available":
+        return "rgba(96,211,148,0.25)";
+      case "thinking":
+        return "rgba(217,164,65,0.25)";
+      case "replied":
+        return "rgba(79,176,255,0.25)";
+      case "error":
+        return "rgba(224,93,93,0.25)";
+      default:
+        return "rgba(0,0,0,0.5)";
+    }
+  }
+
+  focusOnAgent(agentId: string) {
+    const sprite = this.npcSprites.get(agentId);
+    if (!sprite || !this.cameras.main) return;
+    this.cameras.main.stopFollow();
+    this.cameras.main.pan(sprite.x, sprite.y, 400, "Sine.easeInOut", false, (_cam: Phaser.Cameras.Scene2D.Camera, progress: number) => {
+      if (progress === 1 && this.player) {
+        this.cameras.main.startFollow(this.player, true, 0.08, 0.08);
+      }
+    });
   }
 }
 
