@@ -12,6 +12,9 @@ const squadAPI = {
   getRoster: () => ipcRenderer.invoke("squad:get-roster"),
   getAgentStatuses: () => ipcRenderer.invoke("squad:get-agent-statuses"),
   getReadyState: () => ipcRenderer.invoke("squad:get-ready-state"),
+  getSessionDetail: (sessionId) => ipcRenderer.invoke("squad:get-session-detail", sessionId),
+  getDecisions: () => ipcRenderer.invoke("squad:get-decisions"),
+  getConnectionInfo: () => ipcRenderer.invoke("squad:get-connection-info"),
   // ── Push channels (main → renderer) ───────────────────────────
   onEvent: (callback) => {
     const handler = (_event, data) => callback(data);

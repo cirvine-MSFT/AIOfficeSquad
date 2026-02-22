@@ -14,10 +14,13 @@ class SquadRuntime {
   monitor = null;
   squadRoot;
   _isReady = false;
+  sessions = /* @__PURE__ */ new Map();
   eventHandlers = /* @__PURE__ */ new Set();
   deltaHandlers = /* @__PURE__ */ new Set();
   usageHandlers = /* @__PURE__ */ new Set();
   readyHandlers = /* @__PURE__ */ new Set();
+  _initAttempted = false;
+  _initPromise = null;
   constructor(squadRoot) {
     if (squadRoot) {
       this.squadRoot = squadRoot;
@@ -38,61 +41,68 @@ class SquadRuntime {
    * or auth fails, logs error but doesn't crash. Roster reading always works.
    */
   async initialize() {
-    try {
-      const { SquadClientWithPool } = await import("@bradygaster/squad-sdk/client");
-      const { EventBus } = await import("@bradygaster/squad-sdk/runtime/event-bus");
-      const { StreamingPipeline } = await import("@bradygaster/squad-sdk/runtime/streaming");
-      const { RalphMonitor } = await import("@bradygaster/squad-sdk/ralph");
-      this.eventBus = new EventBus();
-      this.client = new SquadClientWithPool({});
-      this.pipeline = new StreamingPipeline();
-      this.monitor = new RalphMonitor();
-      this.eventBus.subscribeAll((event) => {
-        for (const handler of this.eventHandlers) {
+    if (this._initAttempted) return this._initPromise ?? Promise.resolve();
+    this._initAttempted = true;
+    this._initPromise = (async () => {
+      try {
+        const { SquadClientWithPool } = await import("@bradygaster/squad-sdk/client");
+        const { EventBus } = await import("@bradygaster/squad-sdk/runtime/event-bus");
+        const { StreamingPipeline } = await import("@bradygaster/squad-sdk/runtime/streaming");
+        const { RalphMonitor } = await import("@bradygaster/squad-sdk/ralph");
+        this.eventBus = new EventBus();
+        this.client = new SquadClientWithPool({});
+        await this.client.connect();
+        this.pipeline = new StreamingPipeline();
+        this.monitor = new RalphMonitor();
+        this.eventBus.subscribeAll((event) => {
+          for (const handler of this.eventHandlers) {
+            try {
+              handler(event);
+            } catch {
+            }
+          }
+        });
+        if (this.pipeline.onDelta) {
+          this.pipeline.onDelta((delta) => {
+            for (const handler of this.deltaHandlers) {
+              try {
+                handler(delta);
+              } catch {
+              }
+            }
+          });
+        }
+        if (this.pipeline.onUsage) {
+          this.pipeline.onUsage((usage) => {
+            for (const handler of this.usageHandlers) {
+              try {
+                handler(usage);
+              } catch {
+              }
+            }
+          });
+        }
+        this._isReady = true;
+        console.log("[SquadRuntime] initialized successfully");
+        for (const handler of this.readyHandlers) {
           try {
-            handler(event);
+            handler();
           } catch {
           }
         }
-      });
-      if (this.pipeline.onDelta) {
-        this.pipeline.onDelta((delta) => {
-          for (const handler of this.deltaHandlers) {
-            try {
-              handler(delta);
-            } catch {
-            }
-          }
-        });
+      } catch (err) {
+        console.error("[SquadRuntime] initialize failed (SDK unavailable or auth issue):", err);
+        console.log("[SquadRuntime] continuing without SDK — roster reading still works");
       }
-      if (this.pipeline.onUsage) {
-        this.pipeline.onUsage((usage) => {
-          for (const handler of this.usageHandlers) {
-            try {
-              handler(usage);
-            } catch {
-            }
-          }
-        });
-      }
-      this._isReady = true;
-      console.log("[SquadRuntime] initialized successfully");
-      for (const handler of this.readyHandlers) {
-        try {
-          handler();
-        } catch {
-        }
-      }
-    } catch (err) {
-      console.error("[SquadRuntime] initialize failed (SDK unavailable or auth issue):", err);
-      console.log("[SquadRuntime] continuing without SDK — roster reading still works");
-    }
+    })();
+    return this._initPromise;
   }
   async cleanup() {
     try {
       if (this.pipeline?.stop) await this.pipeline.stop();
       if (this.monitor?.stop) await this.monitor.stop();
-      if (this.client?.close) await this.client.close();
+      if (this.client?.shutdown) await this.client.shutdown();
+      this.sessions.clear();
       this.eventHandlers.clear();
       this.deltaHandlers.clear();
       this.usageHandlers.clear();
@@ -109,39 +119,64 @@ class SquadRuntime {
   }
   // ── Session management ─────────────────────────────────────────
   async createSession(agentName, config) {
-    if (!this.client) {
-      await this.initialize();
-      if (!this.client) throw new Error("SDK not available");
+    if (this._initAttempted && !this._isReady) {
+      throw new Error("SDK not connected — Copilot CLI is not running");
     }
+    if (!this.client) throw new Error("SDK not available");
     const session = await this.client.createSession({
       agent: agentName,
       ...config
     });
-    return { sessionId: session.id ?? session.sessionId };
+    const id = session.id ?? session.sessionId;
+    this.sessions.set(id, session);
+    return { sessionId: id };
   }
   async sendMessage(sessionId, prompt) {
-    if (!this.client) throw new Error("SDK not available");
-    await this.client.sendMessage(sessionId, prompt);
+    const session = this.sessions.get(sessionId);
+    if (!session) throw new Error(`Session not found: ${sessionId}`);
+    await session.sendAndWait(prompt);
   }
   async listSessions() {
-    if (!this.client) throw new Error("SDK not available");
+    if (!this._isReady || !this.client) throw new Error("SDK not available");
     return await this.client.listSessions();
   }
   async deleteSession(id) {
-    if (!this.client) throw new Error("SDK not available");
-    await this.client.deleteSession(id);
+    const session = this.sessions.get(id);
+    if (session?.destroy) {
+      await session.destroy();
+    }
+    this.sessions.delete(id);
+    if (this.client) {
+      await this.client.deleteSession(id);
+    }
   }
   async getStatus() {
-    if (!this.client) throw new Error("SDK not available");
+    if (!this._isReady || !this.client) throw new Error("SDK not available");
     return await this.client.getStatus();
   }
   async getAuthStatus() {
-    if (!this.client) throw new Error("SDK not available");
+    if (!this._isReady || !this.client) throw new Error("SDK not available");
     return await this.client.getAuthStatus();
   }
   async listModels() {
-    if (!this.client) throw new Error("SDK not available");
+    if (!this._isReady || !this.client) throw new Error("SDK not available");
     return await this.client.listModels();
+  }
+  // ── Decisions & connection info ─────────────────────────────────
+  async getDecisions() {
+    const decPath = join(this.squadRoot, ".squad", "decisions.md");
+    try {
+      return await readFile(decPath, "utf-8");
+    } catch {
+      return "";
+    }
+  }
+  getConnectionInfo() {
+    return {
+      connected: this._isReady,
+      error: this._initAttempted && !this._isReady ? "SDK not connected" : void 0,
+      squadRoot: this.squadRoot
+    };
   }
   // ── Squad config & roster ──────────────────────────────────────
   async loadSquadConfig() {
@@ -272,6 +307,43 @@ function registerIpcHandlers(runtime2, getMainWindow) {
   handle("squad:load-config", () => runtime2.loadSquadConfig());
   handle("squad:get-roster", () => runtime2.getRoster());
   handle("squad:get-agent-statuses", () => runtime2.getAgentStatuses());
+  handle("squad:get-decisions", () => runtime2.getDecisions());
+  handle(
+    "squad:get-connection-info",
+    () => Promise.resolve(runtime2.getConnectionInfo())
+  );
+  handle("squad:get-session-detail", async (sessionId) => {
+    const sessions = await runtime2.listSessions();
+    const session = sessions.find(
+      (s) => (s.id ?? s.sessionId) === sessionId
+    );
+    if (!session) throw new Error(`Session not found: ${sessionId}`);
+    const config = await runtime2.loadSquadConfig();
+    const agentStatuses = await runtime2.getAgentStatuses();
+    const agentNames = session.agents ?? (session.agent ? [session.agent] : []);
+    const agents = agentNames.map((name) => {
+      const member = config.members.find((m) => m.name === name);
+      const status = agentStatuses.find((a) => a.name === name);
+      return {
+        name,
+        role: member?.role ?? "unknown",
+        status: status?.status === "busy" ? "active" : status?.status === "error" ? "error" : "idle",
+        model: session.model,
+        activity: status?.lastActivity,
+        lastActivityAt: void 0
+      };
+    });
+    return {
+      id: session.id ?? session.sessionId,
+      name: session.name ?? `Session ${sessionId.slice(0, 8)}`,
+      status: session.status === "active" ? "active" : session.status === "error" ? "error" : "idle",
+      task: session.task ?? session.systemPrompt,
+      squadId: config.root,
+      squadName: config.name,
+      agents,
+      createdAt: session.createdAt ?? Date.now()
+    };
+  });
   const send = (channel, payload) => {
     const win = getMainWindow();
     if (win && !win.isDestroyed()) {
@@ -297,12 +369,21 @@ function removeIpcHandlers() {
     "squad:list-models",
     "squad:load-config",
     "squad:get-roster",
-    "squad:get-agent-statuses"
+    "squad:get-agent-statuses",
+    "squad:get-decisions",
+    "squad:get-connection-info",
+    "squad:get-session-detail"
   ];
   for (const ch of channels) {
     ipcMain.removeHandler(ch);
   }
 }
+process.on("uncaughtException", (err) => {
+  console.error("[Main] UNCAUGHT EXCEPTION:", err);
+});
+process.on("unhandledRejection", (reason) => {
+  console.error("[Main] UNHANDLED REJECTION:", reason);
+});
 let mainWindow = null;
 let runtime = null;
 function createWindow() {
@@ -322,6 +403,18 @@ function createWindow() {
     shell.openExternal(url);
     return { action: "deny" };
   });
+  mainWindow.webContents.on("render-process-gone", (_event, details) => {
+    console.error("[Main] RENDERER CRASHED:", details.reason, details.exitCode);
+  });
+  mainWindow.webContents.on("unresponsive", () => {
+    console.error("[Main] RENDERER UNRESPONSIVE");
+  });
+  mainWindow.webContents.on("did-fail-load", (_event, code, desc) => {
+    console.error("[Main] RENDERER FAILED TO LOAD:", code, desc);
+  });
+  if (is.dev && process.env.NODE_ENV !== "test") {
+    mainWindow.webContents.openDevTools({ mode: "bottom" });
+  }
   if (is.dev && process.env["ELECTRON_RENDERER_URL"]) {
     mainWindow.loadURL(process.env["ELECTRON_RENDERER_URL"]);
   } else {

@@ -1,17 +1,16 @@
-import { useState, useEffect, useCallback, useRef } from 'react'
-import type {
-  SquadMember,
-  AgentStatus,
-  StreamDelta,
-  UsageEvent,
-  SquadConfig,
-} from './types'
+import { useState, useEffect, useCallback } from 'react'
+import type { SquadMember, AgentStatus, SquadConfig, SessionDetail } from './types'
+import { useNavigation, type SquadLookup, type BreadcrumbItem } from './hooks/useNavigation'
+import { useChat } from './hooks/useChat'
 import Header from './components/Header'
 import Sidebar from './components/Sidebar'
 import BuildingView from './components/BuildingView'
-import PodView from './components/PodView'
-import ChatPanel, { type ChatMessage } from './components/ChatPanel'
+import { FloorView } from './components/floor'
+import { OfficeView } from './components/office'
+import ChatPanel from './components/ChatPanel'
 import StatusBar from './components/StatusBar'
+import DecisionsTimeline from './components/DecisionsTimeline'
+import CostDashboard from './components/CostDashboard'
 import type { AgentInfo } from './components/AgentCard'
 
 function mergeAgentInfo(members: SquadMember[], statuses: AgentStatus[]): AgentInfo[] {
@@ -28,55 +27,48 @@ function mergeAgentInfo(members: SquadMember[], statuses: AgentStatus[]): AgentI
   })
 }
 
-let msgIdCounter = 0
-function nextMsgId(): string {
-  return `msg-${Date.now()}-${++msgIdCounter}`
-}
-
 export default function App() {
-  // ── Squad data ──
+  // ── Squad data (future: useSquadData hook) ──
   const [config, setConfig] = useState<SquadConfig | null>(null)
   const [roster, setRoster] = useState<SquadMember[]>([])
   const [agentStatuses, setAgentStatuses] = useState<AgentStatus[]>([])
   const [loading, setLoading] = useState(true)
 
-  // ── Selection state ──
-  const [selectedSquad, setSelectedSquad] = useState<string | null>(null)
-  const [selectedAgent, setSelectedAgent] = useState<string | null>(null)
-
-  // ── Chat state ──
-  const [sessions, setSessions] = useState<Map<string, string>>(new Map()) // agentName → sessionId
-  const [messages, setMessages] = useState<Map<string, ChatMessage[]>>(new Map()) // agentName → messages
-  const [streamingText, setStreamingText] = useState<Map<string, string>>(new Map()) // sessionId → text
-  const [sending, setSending] = useState(false)
-  const [creatingSession, setCreatingSession] = useState(false)
-
-  // ── Usage tracking ──
-  const [totalTokens, setTotalTokens] = useState(0)
-  const [estimatedCost, setEstimatedCost] = useState(0)
-  const [model, setModel] = useState<string | null>(null)
-
-  // ── Error state ──
-  const [error, setError] = useState<string | null>(null)
-
-  // Ref for stable session lookup in callbacks
-  const sessionsRef = useRef(sessions)
-  sessionsRef.current = sessions
-
-  // ── Computed values ──
-  const squads = config ? [config.name] : []
+  // ── Derived data for hooks ──
+  const squads: SquadLookup[] = config ? [{ id: config.name, name: config.name }] : []
   const agents = mergeAgentInfo(roster, agentStatuses)
-  const selectedAgentInfo = agents.find((a) => a.name === selectedAgent)
-  const agentSessionId = selectedAgent ? sessions.get(selectedAgent) ?? null : null
-  const agentMessages = selectedAgent ? messages.get(selectedAgent) ?? [] : []
-  const agentStreamText = agentSessionId ? streamingText.get(agentSessionId) ?? '' : ''
 
-  // ── Auto-select single squad ──
+  // ── Navigation (3-level state machine) ──
+  const navigation = useNavigation(squads, [])
+
+  // ── Agent selection (local state for floor-level compat; nav hook handles office level) ──
+  const [selectedAgent, setSelectedAgent] = useState<string | null>(null)
+  const [activePanel, setActivePanel] = useState<'none' | 'decisions' | 'cost'>('none')
+  const effectiveAgent =
+    navigation.state.level === 'office'
+      ? navigation.state.selectedAgentName
+      : selectedAgent
+
+  // ── Chat (scoped to effective agent) ──
+  const chat = useChat(effectiveAgent)
+  const selectedAgentInfo = agents.find((a) => a.name === effectiveAgent)
+
+  // Clear local agent selection on level change
   useEffect(() => {
-    if (squads.length === 1 && !selectedSquad) {
-      setSelectedSquad(squads[0])
-    }
-  }, [squads, selectedSquad])
+    setSelectedAgent(null)
+  }, [navigation.state.level])
+
+  // ── Agent selection handler ──
+  const handleSelectAgent = useCallback(
+    (name: string) => {
+      if (navigation.state.level === 'office') {
+        navigation.selectAgent(name)
+      } else {
+        setSelectedAgent((prev) => (prev === name ? null : name))
+      }
+    },
+    [navigation]
+  )
 
   // ── Initial data load ──
   useEffect(() => {
@@ -95,8 +87,8 @@ export default function App() {
         if (configResult.ok && configResult.data) setConfig(configResult.data)
         if (rosterResult.ok && rosterResult.data) setRoster(rosterResult.data)
         if (statusResult.ok && statusResult.data) setAgentStatuses(statusResult.data)
-      } catch (err) {
-        setError(err instanceof Error ? err.message : 'Failed to load squad data')
+      } catch (_err) {
+        // Errors surface via chat.error when relevant
       } finally {
         setLoading(false)
       }
@@ -105,169 +97,125 @@ export default function App() {
     loadInitialData()
   }, [])
 
-  // ── Event subscriptions ──
+  // ── Event subscription: refresh agent statuses ──
   useEffect(() => {
-    const unsubDelta = window.squadAPI.onStreamDelta((delta) => {
-      const d = delta as StreamDelta
-      setStreamingText((prev) => {
-        const next = new Map(prev)
-        next.set(d.sessionId, (prev.get(d.sessionId) ?? '') + d.delta)
-        return next
-      })
-    })
-
-    const unsubUsage = window.squadAPI.onStreamUsage((usage) => {
-      const u = usage as UsageEvent
-      setTotalTokens((prev) => prev + u.inputTokens + u.outputTokens)
-      // Rough cost estimate: ~$3/MTok input, ~$15/MTok output
-      setEstimatedCost(
-        (prev) => prev + u.inputTokens * 0.000003 + u.outputTokens * 0.000015
-      )
-      if (u.model) setModel(u.model)
-
-      // When usage arrives, the stream is done — commit the streamed text as a message
-      const sessionEntries = Array.from(sessionsRef.current.entries())
-      const agentEntry = sessionEntries.find(([, sid]) => sid === u.sessionId)
-      if (agentEntry) {
-        const [agentName] = agentEntry
-        setStreamingText((prev) => {
-          const text = prev.get(u.sessionId)
-          if (text) {
-            setMessages((msgPrev) => {
-              const agentMsgs = [...(msgPrev.get(agentName) ?? [])]
-              agentMsgs.push({
-                id: nextMsgId(),
-                role: 'assistant',
-                text,
-                agentName,
-                timestamp: Date.now(),
-              })
-              const next = new Map(msgPrev)
-              next.set(agentName, agentMsgs)
-              return next
-            })
-          }
-          const next = new Map(prev)
-          next.delete(u.sessionId)
-          return next
-        })
-      }
-    })
-
     const unsubEvent = window.squadAPI.onEvent(() => {
-      // Refresh agent statuses on any event
       window.squadAPI.getAgentStatuses().then((res) => {
         const result = res as { ok: boolean; data?: AgentStatus[] }
         if (result.ok && result.data) setAgentStatuses(result.data)
       })
     })
-
-    return () => {
-      unsubDelta()
-      unsubUsage()
-      unsubEvent()
-    }
+    return () => { unsubEvent() }
   }, [])
 
-  // ── Actions ──
-  const handleSelectSquad = useCallback((name: string) => {
-    setSelectedSquad(name)
-    setSelectedAgent(null)
-  }, [])
-
-  const handleSelectAgent = useCallback((name: string) => {
-    setSelectedAgent((prev) => (prev === name ? null : name))
-  }, [])
-
-  const handleCreateSession = useCallback(async () => {
-    if (!selectedAgent) return
-    setCreatingSession(true)
-    setError(null)
-    const res = (await window.squadAPI.createSession(selectedAgent)) as {
-      ok: boolean
-      data?: { sessionId: string }
-      error?: string
-    }
-    if (res.ok && res.data) {
-      setSessions((prev) => {
-        const next = new Map(prev)
-        next.set(selectedAgent, res.data!.sessionId)
-        return next
-      })
-    } else {
-      setError(res.error ?? 'Failed to create session')
-    }
-    setCreatingSession(false)
-  }, [selectedAgent])
-
-  const handleSendMessage = useCallback(
-    async (text: string) => {
-      if (!selectedAgent || !agentSessionId) return
-      setSending(true)
-      setError(null)
-
-      // Add user message immediately
-      setMessages((prev) => {
-        const agentMsgs = [...(prev.get(selectedAgent) ?? [])]
-        agentMsgs.push({
-          id: nextMsgId(),
-          role: 'user',
-          text,
-          timestamp: Date.now(),
-        })
-        const next = new Map(prev)
-        next.set(selectedAgent, agentMsgs)
-        return next
-      })
-
-      const res = (await window.squadAPI.sendMessage(agentSessionId, text)) as {
-        ok: boolean
-        error?: string
+  // ── Breadcrumb navigation ──
+  const handleBreadcrumbNavigate = useCallback(
+    (item: BreadcrumbItem) => {
+      if (item.level === 'hub') {
+        if (navigation.state.level === 'office') {
+          navigation.back() // office → floor
+          navigation.back() // floor → building
+        } else {
+          navigation.back()
+        }
+      } else if (item.level === 'floor' && item.id) {
+        navigation.selectSquad(item.id)
       }
-      if (!res.ok) {
-        setError(res.error ?? 'Failed to send message')
-      }
-      setSending(false)
     },
-    [selectedAgent, agentSessionId]
+    [navigation]
   )
 
   // ── Keyboard shortcuts ──
   useEffect(() => {
     function handleKeyDown(e: KeyboardEvent) {
-      // Ignore when typing in input
       if (e.target instanceof HTMLInputElement || e.target instanceof HTMLTextAreaElement) return
 
       if (e.key === 'Escape') {
-        if (selectedAgent) {
-          setSelectedAgent(null)
-        } else if (selectedSquad) {
-          setSelectedSquad(null)
+        // Clear agent selection first, then navigate back
+        if (effectiveAgent) {
+          if (navigation.state.level === 'office') {
+            navigation.selectAgent(null)
+          } else {
+            setSelectedAgent(null)
+          }
+        } else {
+          navigation.back()
         }
         return
       }
 
-      // Number keys 1-9 to select agents
-      const num = parseInt(e.key, 10)
-      if (num >= 1 && num <= 9 && num <= agents.length) {
-        setSelectedAgent(agents[num - 1].name)
+      // Number keys 1-9 to quick-select agents on floor view
+      if (navigation.state.level === 'floor') {
+        const num = parseInt(e.key, 10)
+        if (num >= 1 && num <= 9 && num <= agents.length) {
+          handleSelectAgent(agents[num - 1].name)
+        }
       }
     }
 
     window.addEventListener('keydown', handleKeyDown)
     return () => window.removeEventListener('keydown', handleKeyDown)
-  }, [selectedAgent, selectedSquad, agents])
+  }, [effectiveAgent, navigation, agents, handleSelectAgent])
+
+  // ── Build session detail for office view ──
+  const currentSessionDetail: SessionDetail | null =
+    navigation.state.selectedSessionId
+      ? {
+          id: navigation.state.selectedSessionId,
+          name: navigation.state.selectedSessionId,
+          status: 'active',
+          squadId: navigation.state.selectedSquadId ?? '',
+          squadName: config?.name ?? '',
+          agents: agents.map((a) => ({
+            name: a.name,
+            role: a.role,
+            status:
+              a.status === 'working'
+                ? ('active' as const)
+                : (a.status as 'active' | 'idle' | 'error'),
+          })),
+          createdAt: Date.now(),
+        }
+      : null
 
   return (
     <div className="flex flex-col h-screen bg-bg text-text-primary overflow-hidden">
-      <Header />
+      <Header
+        breadcrumbs={navigation.breadcrumbs}
+        onNavigate={handleBreadcrumbNavigate}
+        connected={!loading}
+      />
+
+      {/* Toolbar with panel toggles */}
+      <div className="flex items-center gap-1 px-4 py-1 bg-bg-raised border-b border-border shrink-0">
+        <button
+          onClick={() => setActivePanel((p) => (p === 'decisions' ? 'none' : 'decisions'))}
+          className={`px-2.5 py-1 text-xs font-medium rounded transition-default ${
+            activePanel === 'decisions'
+              ? 'bg-accent/20 text-accent border border-accent/40'
+              : 'text-text-secondary hover:text-text-primary hover:bg-bg-hover border border-transparent'
+          }`}
+        >
+          📋 Decisions
+        </button>
+        <button
+          onClick={() => setActivePanel((p) => (p === 'cost' ? 'none' : 'cost'))}
+          className={`px-2.5 py-1 text-xs font-medium rounded transition-default ${
+            activePanel === 'cost'
+              ? 'bg-accent/20 text-accent border border-accent/40'
+              : 'text-text-secondary hover:text-text-primary hover:bg-bg-hover border border-transparent'
+          }`}
+        >
+          💰 Cost
+        </button>
+      </div>
 
       {/* Error banner */}
-      {error && (
+      {chat.error && (
         <div className="flex items-center justify-between px-4 py-2 bg-status-error/10 border-b border-status-error/20 text-sm text-status-error animate-fade-in">
-          <span>{error}</span>
+          <span>{chat.error}</span>
           <button
-            onClick={() => setError(null)}
+            onClick={chat.clearError}
             className="text-status-error hover:text-text-primary transition-default ml-4"
           >
             ✕
@@ -278,57 +226,103 @@ export default function App() {
       {/* Main three-panel layout */}
       <div className="flex flex-1 overflow-hidden">
         <Sidebar
-          squads={squads}
-          selectedSquad={selectedSquad}
-          onSelectSquad={handleSelectSquad}
+          hubName={config?.name ?? 'Squad Office'}
+          squads={squads.map((s) => ({
+            id: s.id,
+            name: s.name,
+            floor: 1,
+            memberCount: roster.length,
+            activeSessionCount: 0,
+            status: 'connected' as const,
+          }))}
+          selectedSquadId={navigation.state.selectedSquadId}
+          onSelectSquad={navigation.selectSquad}
           agents={agents}
-          selectedAgent={selectedAgent}
+          selectedAgent={effectiveAgent}
           onSelectAgent={handleSelectAgent}
           loading={loading}
         />
 
-        {/* Main content */}
-        {!selectedSquad ? (
+        {/* Main content — 3-level conditional rendering */}
+        {navigation.state.level === 'building' && (
           <BuildingView
-            squads={squads.map((name) => ({
-              name,
+            squads={squads.map((s) => ({
+              name: s.name,
               memberCount: roster.length,
             }))}
-            onSelectSquad={handleSelectSquad}
-            loading={loading}
-          />
-        ) : (
-          <PodView
-            squadName={selectedSquad}
-            agents={agents}
-            selectedAgent={selectedAgent}
-            onSelectAgent={handleSelectAgent}
+            onSelectSquad={(name) => navigation.selectSquad(name)}
             loading={loading}
           />
         )}
 
-        {/* Detail panel */}
-        {selectedAgent && selectedAgentInfo && (
+        {navigation.state.level === 'floor' && (
+          <FloorView
+            squad={{
+              id: navigation.state.selectedSquadId ?? '',
+              name: config?.name ?? '',
+              floor: 1,
+              members: roster,
+              sessions: [],
+            }}
+            onSelectSession={navigation.selectSession}
+            onCreateSession={() => {
+              if (effectiveAgent) {
+                chat.createSession(effectiveAgent)
+              }
+            }}
+            loading={loading}
+          />
+        )}
+
+        {navigation.state.level === 'office' && currentSessionDetail && (
+          <OfficeView
+            session={currentSessionDetail}
+            streamingText={chat.streamingText}
+            onBack={navigation.back}
+            loading={loading}
+          />
+        )}
+
+        {/* Chat detail panel — shows when agent is selected */}
+        {selectedAgentInfo && (
           <ChatPanel
             agentName={selectedAgentInfo.name}
             agentRole={selectedAgentInfo.role}
-            sessionId={agentSessionId}
-            messages={agentMessages}
-            streamingText={agentStreamText}
-            onSend={handleSendMessage}
-            onCreateSession={handleCreateSession}
-            sending={sending || creatingSession}
+            sessionId={chat.sessionId}
+            messages={chat.messages}
+            streamingText={chat.streamingText}
+            onSend={chat.sendMessage}
+            onCreateSession={() => chat.createSession(selectedAgentInfo.name)}
+            sending={chat.sending}
           />
+        )}
+
+        {/* Toggleable side panels */}
+        {activePanel === 'decisions' && (
+          <div className="w-80 border-l border-border shrink-0 animate-fade-in">
+            <DecisionsTimeline />
+          </div>
+        )}
+        {activePanel === 'cost' && (
+          <div className="w-80 border-l border-border shrink-0 animate-fade-in">
+            <CostDashboard
+              totalTokens={chat.usage.totalTokens}
+              estimatedCost={chat.usage.estimatedCost}
+              model={chat.usage.model}
+            />
+          </div>
         )}
       </div>
 
       <StatusBar
         squadRoot={config?.root ?? null}
         squadName={config?.name ?? null}
-        sessionCount={sessions.size}
-        totalTokens={totalTokens}
-        estimatedCost={estimatedCost}
-        model={model}
+        sessionCount={chat.sessionId ? 1 : 0}
+        totalTokens={chat.usage.totalTokens}
+        estimatedCost={chat.usage.estimatedCost}
+        model={chat.usage.model}
+        totalMembers={roster.length}
+        connected={!loading}
       />
     </div>
   )

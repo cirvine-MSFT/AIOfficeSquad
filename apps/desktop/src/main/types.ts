@@ -60,6 +60,12 @@ export interface UsageEvent {
   model: string
 }
 
+export interface ConnectionInfo {
+  connected: boolean
+  error?: string
+  squadRoot: string
+}
+
 /** Connection state pushed from main to renderer */
 export interface ConnectionState {
   connected: boolean
@@ -86,6 +92,9 @@ export interface IpcInvokeChannels {
   'squad:load-config': { args: []; result: IpcResult<SquadConfig> }
   'squad:get-roster': { args: []; result: IpcResult<SquadMember[]> }
   'squad:get-agent-statuses': { args: []; result: IpcResult<AgentStatus[]> }
+  'squad:get-session-detail': { args: [string]; result: IpcResult<SessionDetail> }
+  'squad:get-decisions': { args: []; result: IpcResult<string> }
+  'squad:get-connection-info': { args: []; result: IpcResult<ConnectionInfo> }
 }
 
 export interface IpcPushChannels {
@@ -94,6 +103,69 @@ export interface IpcPushChannels {
   'squad:stream-usage': UsageEvent
   'squad:connection-state': ConnectionState
   'squad:config-loaded': SquadConfig
+  'hub:stats-updated': HubStats
+  'hub:squad-status': SquadStatus
+}
+
+// ── Phase 1a: New interfaces (Dutch arch doc §H) ───────────────────
+
+/** Hub-level aggregate statistics */
+export interface HubStats {
+  floorCount: number
+  totalMembers: number
+  activeSessions: number
+  totalSessions: number
+}
+
+/** Summary of a single squad for hub/sidebar display */
+export interface SquadInfo {
+  id: string
+  name: string
+  floor: number
+  root: string
+  memberCount: number
+  activeSessionCount: number
+  status: 'connected' | 'disconnected' | 'error'
+}
+
+/** Per-squad status update pushed from main */
+export interface SquadStatus {
+  squadId: string
+  connected: boolean
+  activeSessionCount: number
+  error?: string
+}
+
+/** Metadata for a session in the floor view */
+export interface SessionMetadata {
+  id: string
+  name: string
+  status: 'active' | 'idle' | 'error' | 'creating' | 'destroyed'
+  task?: string
+  agentNames: string[]
+  createdAt: number
+}
+
+/** Full session detail for the office view */
+export interface SessionDetail {
+  id: string
+  name: string
+  status: 'active' | 'idle' | 'error'
+  task?: string
+  squadId: string
+  squadName: string
+  agents: AgentInSession[]
+  createdAt: number
+}
+
+/** Agent within a session context */
+export interface AgentInSession {
+  name: string
+  role: string
+  status: 'active' | 'idle' | 'error' | 'spawning'
+  model?: string
+  activity?: string
+  lastActivityAt?: number
 }
 
 export type IpcInvokeChannel = keyof IpcInvokeChannels

@@ -4,6 +4,14 @@ import { is } from '@electron-toolkit/utils'
 import { SquadRuntime } from './squad-runtime.js'
 import { registerIpcHandlers, removeIpcHandlers } from './ipc-handlers.js'
 
+// ── Crash protection — keep the process alive ────────────────────
+process.on('uncaughtException', (err) => {
+  console.error('[Main] UNCAUGHT EXCEPTION:', err)
+})
+process.on('unhandledRejection', (reason) => {
+  console.error('[Main] UNHANDLED REJECTION:', reason)
+})
+
 let mainWindow: BrowserWindow | null = null
 let runtime: SquadRuntime | null = null
 
@@ -26,6 +34,22 @@ function createWindow(): void {
     shell.openExternal(url)
     return { action: 'deny' }
   })
+
+  // Detect renderer crashes
+  mainWindow.webContents.on('render-process-gone', (_event, details) => {
+    console.error('[Main] RENDERER CRASHED:', details.reason, details.exitCode)
+  })
+  mainWindow.webContents.on('unresponsive', () => {
+    console.error('[Main] RENDERER UNRESPONSIVE')
+  })
+  mainWindow.webContents.on('did-fail-load', (_event, code, desc) => {
+    console.error('[Main] RENDERER FAILED TO LOAD:', code, desc)
+  })
+
+  // Open devtools in dev mode so we can see errors (but not during tests)
+  if (is.dev && process.env.NODE_ENV !== 'test') {
+    mainWindow.webContents.openDevTools({ mode: 'bottom' })
+  }
 
   // Load the renderer — dev server or built files
   if (is.dev && process.env['ELECTRON_RENDERER_URL']) {

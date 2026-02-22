@@ -22,3 +22,21 @@
   - Mock pattern: Use class-based mocks for SDK constructors (SquadClientWithPool, EventBus, StreamingPipeline, RalphMonitor)
   - Mac fixed bugs IN PARALLEL — tests now verify correct behavior (connect/shutdown/session storage all work)
 - **Test infrastructure learning:** Vitest class-based mocks work better than jest.mock for SDK constructors; beforeEach/afterEach cleanup pattern prevents mock pollution; IpcResult<T> wrapper proves essential for error handling in cross-process boundaries. Tests document expected SDK integration — can reuse pattern for future SDK features.
+- 2026-02-22: Updated tests for Phase 2 runtime changes (idempotent init, no lazy init, getDecisions, getConnectionInfo):
+  - `squad-runtime.test.ts` — now 27 tests (was 16). Added: init idempotency (2nd call no-op), no-retry after failure, concurrent init shares promise, createSession throws "SDK not connected" after failed init, createSession throws "SDK not available" when never initialized, getDecisions reads .squad/decisions.md (+ missing file + error cases + correct path), getConnectionInfo returns proper state (initial/connected/error). Updated lazy-init test to verify new throw behavior.
+  - `ipc-handlers.test.ts` — now 24 tests (was 18). Added: squad:get-decisions handler (content, empty, error), squad:get-connection-info handler (connected, error state), squad:create-session "SDK not connected" after failed init. Updated channel registration list to include new channels.
+  - All 58 desktop tests passing (7 types + 27 squad-runtime + 24 ipc-handlers).
+  - **Key pattern:** Mock `fs/promises` with `vi.mock('fs/promises')` and `vi.mocked(readFile)` for testing runtime methods that read from disk (getDecisions). Doesn't interfere with SDK mocks.
+  - **Key pattern:** Test init idempotency by calling initialize() twice and asserting connect() was called only once. Test concurrent init by firing two promises without awaiting first.
+- 2026-02-22: Set up Playwright E2E tests for Electron desktop app:
+  - Created `apps/desktop/playwright.config.ts` — separate config from root web tests
+  - Created `apps/desktop/e2e/fixtures.ts` — custom fixture to launch Electron via `_electron.launch()`, handles cleanup
+  - Created `apps/desktop/e2e/app.spec.ts` — 13 E2E tests covering: app launch, window rendering, navigation (building→floor→office), New Session button (crash regression test), keyboard shortcuts (Escape), agent selection, status bar, window size
+  - All 13 tests passing — verifies app doesn't crash on New Session click (the bug Mac fixed)
+  - Added npm script `test:e2e` to apps/desktop/package.json: builds app then runs Playwright E2E tests
+  - **E2E pattern:** Use `import.meta.url` + `fileURLToPath` to get `__dirname` in ES modules (TypeScript ESM mode)
+  - **E2E pattern:** Playwright's `_electron.launch()` takes entry point path (`out/main/index.js`), returns `ElectronApplication` with `firstWindow()` method
+  - **E2E pattern:** Use generous timeouts (2s initial wait) for Electron startup; use `.waitForTimeout()` after navigation to let React render
+  - **E2E pattern:** Graceful selectors with fallbacks (try data-testid, then class, then text filter) — UI may not have test IDs yet
+  - **E2E coverage:** Core user flows (launch, navigate, select agent, create session, keyboard shortcuts) plus regression test for session crash
+

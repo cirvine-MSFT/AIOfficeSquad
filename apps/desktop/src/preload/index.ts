@@ -12,6 +12,9 @@ export interface SquadAPI {
   getRoster(): Promise<unknown>
   getAgentStatuses(): Promise<unknown>
   getReadyState(): Promise<unknown>
+  getSessionDetail(sessionId: string): Promise<unknown>
+  getDecisions(): Promise<unknown>
+  getConnectionInfo(): Promise<unknown>
   onEvent(callback: (event: unknown) => void): () => void
   onStreamDelta(callback: (delta: unknown) => void): () => void
   onStreamUsage(callback: (usage: unknown) => void): () => void
@@ -32,6 +35,10 @@ const squadAPI: SquadAPI = {
   getRoster: () => ipcRenderer.invoke('squad:get-roster'),
   getAgentStatuses: () => ipcRenderer.invoke('squad:get-agent-statuses'),
   getReadyState: () => ipcRenderer.invoke('squad:get-ready-state'),
+  getSessionDetail: (sessionId: string) =>
+    ipcRenderer.invoke('squad:get-session-detail', sessionId),
+  getDecisions: () => ipcRenderer.invoke('squad:get-decisions'),
+  getConnectionInfo: () => ipcRenderer.invoke('squad:get-connection-info'),
 
   // ── Push channels (main → renderer) ───────────────────────────
   onEvent: (callback) => {

@@ -74,3 +74,9 @@
 - Added custom keyframe animations to globals.css: typing (desk bounce), drip (water cooler), chat (idle avatar wobble). These match the mockup animations.
 - Design pattern: OfficeView does NOT render ChatPanel directly — it only renders the workspace half. ChatPanel integration happens at App.tsx level in Phase 1d, consistent with the separation of concerns.
 - Pattern: Status indicator styling uses inline Tailwind for each status variant rather than CSS class maps, keeping the logic self-contained in each component.
+- Phase 2 views — DecisionsTimeline + CostDashboard:
+  - `components/DecisionsTimeline.tsx`: Fetches markdown from `window.squadAPI.getDecisions()`, parses `### timestamp: title` + `**By:**`/`**What:**`/`**Why:**` patterns. Vertical timeline UI with dot markers, decision cards, refresh button, empty state. Gracefully handles missing IPC (Mac adding in parallel).
+  - `components/CostDashboard.tsx`: Skeleton panel showing totalTokens, estimatedCost ($X.XX), model name from useChat usage stats. Color-coded cost (green under $1, red over). Placeholder for future detailed breakdowns.
+  - Preload: Added `getDecisions()` to SquadAPI interface + ipcRenderer invoke in preload/index.ts. Channel: `squad:get-decisions`.
+  - App.tsx: Toolbar row added below Header with toggle buttons for Decisions/Cost panels. Panels render as 320px-wide side panels on the right edge, using `animate-fade-in`. `activePanel` state: 'none' | 'decisions' | 'cost'.
+  - Pattern: Side panels are siblings of ChatPanel in the flex layout, not overlays. This keeps them composable with the existing 3-panel structure.

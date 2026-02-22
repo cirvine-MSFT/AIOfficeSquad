@@ -51,4 +51,8 @@
 - electron-vite build passes with all Phase 1d changes (54 modules, no errors).
 - **SDK API fixes (2026-02-22):** SquadClientWithPool requires `connect()` call after instantiation; sessions are objects with `send`/`sendAndWait` methods (not `client.sendMessage`); shutdown via `client.shutdown()` not `close()`. Session objects stored in Map<string, session> for message routing. ErrorBoundary added to renderer to prevent white-screen crashes.
 - **Session object patterns learned:** Squad SDK session objects are the primary messaging interface; they have `send`, `sendAndWait`, `on`, `getMessages`, `destroy`, and `abort` methods. The SquadClientWithPool doesn't have direct message methods — all I/O is session-mediated. Lifecycle: instantiate → connect → createSession → operations via session → session.destroy → shutdown on cleanup.
+- **Init guard pattern:** `_initAttempted` + `_initPromise` prevents concurrent init calls and stops createSession() from re-spawning CLI subprocesses on every call. Once init is attempted (success or fail), subsequent calls return immediately.
+- **SDK readiness checks:** All SDK-dependent methods (listSessions, getStatus, getAuthStatus, listModels) now check `_isReady` before touching `this.client` — prevents cryptic null-ref errors when SDK isn't connected.
+- **File-based IPC for non-SDK data:** `squad:get-decisions` reads `.squad/decisions.md` directly from disk, no SDK needed. Good pattern for any `.squad/` file the renderer needs.
+- **ConnectionInfo IPC:** `squad:get-connection-info` returns `{ connected, error?, squadRoot }` so renderer can display SDK state without guessing.
 

@@ -36,3 +36,58 @@ export interface SquadConfig {
   root: string
   members: SquadMember[]
 }
+
+// ── Phase 1a: New interfaces (Dutch arch doc §H) ───────────────────
+
+export interface HubStats {
+  floorCount: number
+  totalMembers: number
+  activeSessions: number
+  totalSessions: number
+}
+
+export interface SquadInfo {
+  id: string
+  name: string
+  floor: number
+  root: string
+  memberCount: number
+  activeSessionCount: number
+  status: 'connected' | 'disconnected' | 'error'
+}
+
+export interface SquadStatus {
+  squadId: string
+  connected: boolean
+  activeSessionCount: number
+  error?: string
+}
+
+export interface SessionMetadata {
+  id: string
+  name: string
+  status: 'active' | 'idle' | 'error' | 'creating' | 'destroyed'
+  task?: string
+  agentNames: string[]
+  createdAt: number
+}
+
+export interface SessionDetail {
+  id: string
+  name: string
+  status: 'active' | 'idle' | 'error'
+  task?: string
+  squadId: string
+  squadName: string
+  agents: AgentInSession[]
+  createdAt: number
+}
+
+export interface AgentInSession {
+  name: string
+  role: string
+  status: 'active' | 'idle' | 'error' | 'spawning'
+  model?: string
+  activity?: string
+  lastActivityAt?: number
+}

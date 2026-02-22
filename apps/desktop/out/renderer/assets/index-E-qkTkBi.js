@@ -6966,15 +6966,253 @@ var m = reactDomExports;
   client.createRoot = m.createRoot;
   client.hydrateRoot = m.hydrateRoot;
 }
-function Header() {
+function useNavigation(squads = [], sessions = []) {
+  const [state, setState] = reactExports.useState({
+    level: "building",
+    selectedSquadId: null,
+    selectedSessionId: null,
+    selectedAgentName: null
+  });
+  reactExports.useEffect(() => {
+    if (squads.length === 1 && state.level === "building" && !state.selectedSquadId) {
+      setState({
+        level: "floor",
+        selectedSquadId: squads[0].id,
+        selectedSessionId: null,
+        selectedAgentName: null
+      });
+    }
+  }, [squads, state.level, state.selectedSquadId]);
+  const selectSquad = reactExports.useCallback((id2) => {
+    setState({
+      level: "floor",
+      selectedSquadId: id2,
+      selectedSessionId: null,
+      selectedAgentName: null
+    });
+  }, []);
+  const selectSession = reactExports.useCallback((id2) => {
+    setState((prev) => ({
+      ...prev,
+      level: "office",
+      selectedSessionId: id2,
+      selectedAgentName: null
+    }));
+  }, []);
+  const selectAgent = reactExports.useCallback((name) => {
+    setState((prev) => {
+      if (prev.level !== "office") return prev;
+      return {
+        ...prev,
+        selectedAgentName: prev.selectedAgentName === name ? null : name
+      };
+    });
+  }, []);
+  const back = reactExports.useCallback(() => {
+    setState((prev) => {
+      switch (prev.level) {
+        case "office":
+          return {
+            ...prev,
+            level: "floor",
+            selectedSessionId: null,
+            selectedAgentName: null
+          };
+        case "floor":
+          return {
+            level: "building",
+            selectedSquadId: null,
+            selectedSessionId: null,
+            selectedAgentName: null
+          };
+        case "building":
+        default:
+          return prev;
+      }
+    });
+  }, []);
+  const breadcrumbs = reactExports.useMemo(() => {
+    const items = [{ label: "Hub", level: "hub" }];
+    if (state.selectedSquadId) {
+      const squad = squads.find((s) => s.id === state.selectedSquadId);
+      items.push({
+        label: squad?.name ?? state.selectedSquadId,
+        level: "floor",
+        id: state.selectedSquadId
+      });
+    }
+    if (state.selectedSessionId) {
+      const session = sessions.find((s) => s.id === state.selectedSessionId);
+      items.push({
+        label: session?.name ?? state.selectedSessionId,
+        level: "office",
+        id: state.selectedSessionId
+      });
+    }
+    return items;
+  }, [state.selectedSquadId, state.selectedSessionId, squads, sessions]);
+  return { state, selectSquad, selectSession, selectAgent, back, breadcrumbs };
+}
+let msgIdCounter = 0;
+function nextMsgId() {
+  return `msg-${Date.now()}-${++msgIdCounter}`;
+}
+function useChat(selectedAgent) {
+  const [sessions, setSessions] = reactExports.useState(/* @__PURE__ */ new Map());
+  const [messagesMap, setMessagesMap] = reactExports.useState(/* @__PURE__ */ new Map());
+  const [streamingMap, setStreamingMap] = reactExports.useState(/* @__PURE__ */ new Map());
+  const [sending, setSending] = reactExports.useState(false);
+  const [creatingSession, setCreatingSession] = reactExports.useState(false);
+  const [totalTokens, setTotalTokens] = reactExports.useState(0);
+  const [estimatedCost, setEstimatedCost] = reactExports.useState(0);
+  const [model, setModel] = reactExports.useState(null);
+  const [error, setError] = reactExports.useState(null);
+  const sessionsRef = reactExports.useRef(sessions);
+  sessionsRef.current = sessions;
+  const sessionId = selectedAgent ? sessions.get(selectedAgent) ?? null : null;
+  const messages = selectedAgent ? messagesMap.get(selectedAgent) ?? [] : [];
+  const streamingText = sessionId ? streamingMap.get(sessionId) ?? "" : "";
+  reactExports.useEffect(() => {
+    const unsubDelta = window.squadAPI.onStreamDelta((delta) => {
+      const d = delta;
+      setStreamingMap((prev) => {
+        const next = new Map(prev);
+        next.set(d.sessionId, (prev.get(d.sessionId) ?? "") + d.delta);
+        return next;
+      });
+    });
+    const unsubUsage = window.squadAPI.onStreamUsage((usage) => {
+      const u2 = usage;
+      setTotalTokens((prev) => prev + u2.inputTokens + u2.outputTokens);
+      setEstimatedCost(
+        (prev) => prev + u2.inputTokens * 3e-6 + u2.outputTokens * 15e-6
+      );
+      if (u2.model) setModel(u2.model);
+      const sessionEntries = Array.from(sessionsRef.current.entries());
+      const agentEntry = sessionEntries.find(([, sid]) => sid === u2.sessionId);
+      if (agentEntry) {
+        const [agentName] = agentEntry;
+        setStreamingMap((prev) => {
+          const text = prev.get(u2.sessionId);
+          if (text) {
+            setMessagesMap((msgPrev) => {
+              const agentMsgs = [...msgPrev.get(agentName) ?? []];
+              agentMsgs.push({
+                id: nextMsgId(),
+                role: "assistant",
+                text,
+                agentName,
+                timestamp: Date.now()
+              });
+              const next2 = new Map(msgPrev);
+              next2.set(agentName, agentMsgs);
+              return next2;
+            });
+          }
+          const next = new Map(prev);
+          next.delete(u2.sessionId);
+          return next;
+        });
+      }
+    });
+    return () => {
+      unsubDelta();
+      unsubUsage();
+    };
+  }, []);
+  const createSession = reactExports.useCallback(async (agentName) => {
+    setCreatingSession(true);
+    setError(null);
+    try {
+      const res = await window.squadAPI.createSession(agentName);
+      if (res.ok && res.data) {
+        setSessions((prev) => {
+          const next = new Map(prev);
+          next.set(agentName, res.data.sessionId);
+          return next;
+        });
+      } else {
+        setError(res.error ?? "Failed to create session");
+      }
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Failed to create session");
+    }
+    setCreatingSession(false);
+  }, []);
+  const sendMessage = reactExports.useCallback(
+    async (text) => {
+      if (!selectedAgent || !sessionId) return;
+      setSending(true);
+      setError(null);
+      setMessagesMap((prev) => {
+        const agentMsgs = [...prev.get(selectedAgent) ?? []];
+        agentMsgs.push({
+          id: nextMsgId(),
+          role: "user",
+          text,
+          timestamp: Date.now()
+        });
+        const next = new Map(prev);
+        next.set(selectedAgent, agentMsgs);
+        return next;
+      });
+      const res = await window.squadAPI.sendMessage(sessionId, text);
+      if (!res.ok) {
+        setError(res.error ?? "Failed to send message");
+      }
+      setSending(false);
+    },
+    [selectedAgent, sessionId]
+  );
+  const clearError = reactExports.useCallback(() => setError(null), []);
+  return {
+    messages,
+    streamingText,
+    sendMessage,
+    createSession,
+    sessionId,
+    sending: sending || creatingSession,
+    usage: { totalTokens, estimatedCost, model },
+    error,
+    clearError
+  };
+}
+function Breadcrumb({ items, onNavigate }) {
+  if (items.length === 0) return null;
+  return /* @__PURE__ */ jsxRuntimeExports.jsx("nav", { "aria-label": "Breadcrumb", className: "flex items-center gap-1.5 text-sm select-none", children: items.map((item, i) => {
+    const isLast = i === items.length - 1;
+    return /* @__PURE__ */ jsxRuntimeExports.jsxs("span", { className: "flex items-center gap-1.5", children: [
+      i > 0 && /* @__PURE__ */ jsxRuntimeExports.jsx("span", { className: "text-text-tertiary", "aria-hidden": true, children: "›" }),
+      isLast ? (
+        /* Current location — non-clickable */
+        /* @__PURE__ */ jsxRuntimeExports.jsx("span", { className: "text-text-secondary font-medium", children: item.label })
+      ) : (
+        /* Ancestor — clickable */
+        /* @__PURE__ */ jsxRuntimeExports.jsx(
+          "button",
+          {
+            onClick: () => onNavigate(item),
+            className: "text-text-tertiary hover:text-text-primary transition-default",
+            children: item.label
+          }
+        )
+      )
+    ] }, `${item.level}-${item.id ?? "root"}`);
+  }) });
+}
+function Header({ breadcrumbs, onNavigate, connected }) {
   return /* @__PURE__ */ jsxRuntimeExports.jsxs("header", { className: "flex items-center justify-between h-header px-4 bg-bg-raised border-b border-border app-drag select-none shrink-0", children: [
-    /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "flex items-center gap-2", children: [
+    /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "flex items-center gap-3", children: [
       /* @__PURE__ */ jsxRuntimeExports.jsx("span", { className: "text-lg", children: "🏢" }),
-      /* @__PURE__ */ jsxRuntimeExports.jsx("h1", { className: "text-md font-semibold text-text-primary", children: "Squad Office" })
+      /* @__PURE__ */ jsxRuntimeExports.jsx("h1", { className: "text-md font-semibold text-text-primary", children: "Squad Office" }),
+      breadcrumbs.length > 0 && /* @__PURE__ */ jsxRuntimeExports.jsxs(jsxRuntimeExports.Fragment, { children: [
+        /* @__PURE__ */ jsxRuntimeExports.jsx("span", { className: "text-text-tertiary", children: "·" }),
+        /* @__PURE__ */ jsxRuntimeExports.jsx("div", { className: "app-no-drag", children: /* @__PURE__ */ jsxRuntimeExports.jsx(Breadcrumb, { items: breadcrumbs, onNavigate }) })
+      ] })
     ] }),
     /* @__PURE__ */ jsxRuntimeExports.jsx("div", { className: "flex items-center gap-3 app-no-drag", children: /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "flex items-center gap-2 text-sm", children: [
-      /* @__PURE__ */ jsxRuntimeExports.jsx("span", { className: "status-dot status-dot-active" }),
-      /* @__PURE__ */ jsxRuntimeExports.jsx("span", { className: "text-text-secondary", children: "Ready" })
+      /* @__PURE__ */ jsxRuntimeExports.jsx("span", { className: `status-dot ${connected ? "status-dot-active" : "status-dot-idle"}` }),
+      /* @__PURE__ */ jsxRuntimeExports.jsx("span", { className: "text-text-secondary", children: connected ? "Ready" : "Loading…" })
     ] }) })
   ] });
 }
@@ -7072,8 +7310,9 @@ function getRoleKey$2(role) {
   return null;
 }
 function Sidebar({
+  hubName,
   squads,
-  selectedSquad,
+  selectedSquadId,
   onSelectSquad,
   agents,
   selectedAgent,
@@ -7081,20 +7320,35 @@ function Sidebar({
   loading
 }) {
   return /* @__PURE__ */ jsxRuntimeExports.jsxs("aside", { className: "flex flex-col w-sidebar bg-bg-raised border-r border-border overflow-y-auto scrollbar-thin shrink-0 select-none", children: [
-    /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "p-3", children: [
-      /* @__PURE__ */ jsxRuntimeExports.jsx("h2", { className: "text-xs font-semibold text-text-tertiary uppercase tracking-wider mb-2 px-2", children: "Squads" }),
-      loading ? /* @__PURE__ */ jsxRuntimeExports.jsx("p", { className: "text-sm text-text-tertiary px-2 animate-pulse", children: "Loading..." }) : squads.length === 0 ? /* @__PURE__ */ jsxRuntimeExports.jsx("p", { className: "text-sm text-text-tertiary px-2", children: "No squads found" }) : /* @__PURE__ */ jsxRuntimeExports.jsx("ul", { className: "space-y-0.5", children: squads.map((name) => /* @__PURE__ */ jsxRuntimeExports.jsx("li", { children: /* @__PURE__ */ jsxRuntimeExports.jsx(
+    /* @__PURE__ */ jsxRuntimeExports.jsx("div", { className: "px-3 pt-3 pb-1", children: /* @__PURE__ */ jsxRuntimeExports.jsx("h2", { className: "text-xs font-semibold text-text-tertiary uppercase tracking-wider px-2", children: hubName }) }),
+    /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "px-3 pb-3", children: [
+      /* @__PURE__ */ jsxRuntimeExports.jsx("h3", { className: "text-xs font-semibold text-text-tertiary uppercase tracking-wider mb-2 px-2", children: "Squads" }),
+      loading ? /* @__PURE__ */ jsxRuntimeExports.jsx("p", { className: "text-sm text-text-tertiary px-2 animate-pulse", children: "Loading..." }) : squads.length === 0 ? /* @__PURE__ */ jsxRuntimeExports.jsx("p", { className: "text-sm text-text-tertiary px-2", children: "No squads found" }) : /* @__PURE__ */ jsxRuntimeExports.jsx("ul", { className: "space-y-0.5", children: squads.map((squad) => /* @__PURE__ */ jsxRuntimeExports.jsx("li", { children: /* @__PURE__ */ jsxRuntimeExports.jsxs(
         "button",
         {
-          onClick: () => onSelectSquad(name),
-          className: `w-full text-left px-2 py-1.5 rounded-md text-sm font-medium transition-default ${selectedSquad === name ? "bg-bg-active text-text-primary" : "text-text-secondary hover:bg-bg-hover hover:text-text-primary"}`,
-          children: name
+          onClick: () => onSelectSquad(squad.id),
+          className: `w-full text-left px-2 py-1.5 rounded-md text-sm transition-default ${selectedSquadId === squad.id ? "bg-bg-active text-text-primary font-medium" : "text-text-secondary hover:bg-bg-hover hover:text-text-primary"}`,
+          children: [
+            /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "flex items-center justify-between", children: [
+              /* @__PURE__ */ jsxRuntimeExports.jsx("span", { children: squad.name }),
+              /* @__PURE__ */ jsxRuntimeExports.jsxs("span", { className: "text-2xs text-text-tertiary", children: [
+                "F",
+                squad.floor
+              ] })
+            ] }),
+            /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "text-2xs text-text-tertiary", children: [
+              squad.memberCount,
+              " member",
+              squad.memberCount !== 1 ? "s" : "",
+              squad.activeSessionCount > 0 && ` · ${squad.activeSessionCount} active`
+            ] })
+          ]
         }
-      ) }, name)) })
+      ) }, squad.id)) })
     ] }),
-    selectedSquad && /* @__PURE__ */ jsxRuntimeExports.jsx("div", { className: "mx-3 border-t border-border" }),
-    selectedSquad && /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "p-3 flex-1 overflow-y-auto", children: [
-      /* @__PURE__ */ jsxRuntimeExports.jsx("h2", { className: "text-xs font-semibold text-text-tertiary uppercase tracking-wider mb-2 px-2", children: "Agents" }),
+    selectedSquadId && /* @__PURE__ */ jsxRuntimeExports.jsx("div", { className: "mx-3 border-t border-border" }),
+    selectedSquadId && /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "p-3 flex-1 overflow-y-auto", children: [
+      /* @__PURE__ */ jsxRuntimeExports.jsx("h3", { className: "text-xs font-semibold text-text-tertiary uppercase tracking-wider mb-2 px-2", children: "Agents" }),
       loading ? /* @__PURE__ */ jsxRuntimeExports.jsx("p", { className: "text-sm text-text-tertiary px-2 animate-pulse", children: "Loading agents..." }) : agents.length === 0 ? /* @__PURE__ */ jsxRuntimeExports.jsx("p", { className: "text-sm text-text-tertiary px-2", children: "No agents in squad" }) : /* @__PURE__ */ jsxRuntimeExports.jsx("ul", { className: "space-y-0.5", children: agents.map((agent, i) => {
         const roleKey = getRoleKey$2(agent.role);
         const avatarBg = roleKey ? ROLE_COLORS[roleKey].accent : getAvatarColor(agent.name);
@@ -7171,6 +7425,168 @@ function BuildingView({ squads, onSelectSquad, loading }) {
     )) })
   ] });
 }
+function FloorHeader({
+  squadName,
+  floor,
+  members,
+  activeSessionCount
+}) {
+  return /* @__PURE__ */ jsxRuntimeExports.jsx("div", { className: "px-6 py-5 border-b border-border bg-bg-raised shrink-0", children: /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "flex items-center justify-between", children: [
+    /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { children: [
+      /* @__PURE__ */ jsxRuntimeExports.jsxs("h2", { className: "text-lg font-semibold text-text-primary flex items-center gap-2", children: [
+        squadName,
+        /* @__PURE__ */ jsxRuntimeExports.jsxs("span", { className: "text-xs font-medium text-text-tertiary bg-bg px-2 py-0.5 rounded", children: [
+          "Floor ",
+          floor
+        ] })
+      ] }),
+      /* @__PURE__ */ jsxRuntimeExports.jsxs("p", { className: "text-sm text-text-secondary mt-0.5", children: [
+        members.length,
+        " member",
+        members.length !== 1 ? "s" : ""
+      ] })
+    ] }),
+    activeSessionCount > 0 && /* @__PURE__ */ jsxRuntimeExports.jsxs("span", { className: "inline-flex items-center gap-1.5 text-xs font-medium px-2.5 py-1 rounded-full bg-status-active/15 text-status-active", children: [
+      /* @__PURE__ */ jsxRuntimeExports.jsx("span", { className: "w-1.5 h-1.5 rounded-full bg-status-active animate-pulse" }),
+      activeSessionCount,
+      " active session",
+      activeSessionCount !== 1 ? "s" : ""
+    ] })
+  ] }) });
+}
+const STATUS_INDICATOR = {
+  active: {
+    label: "Active",
+    dotClass: "bg-status-active shadow-[0_0_8px_rgba(74,222,128,0.3)] animate-pulse",
+    wrapperClass: "bg-[rgba(74,222,128,0.15)] border-status-active text-status-active"
+  },
+  idle: {
+    label: "Idle",
+    dotClass: "bg-text-tertiary",
+    wrapperClass: "bg-bg-raised border-border text-text-tertiary"
+  },
+  error: {
+    label: "Error",
+    dotClass: "bg-status-error",
+    wrapperClass: "bg-status-error/15 border-status-error text-status-error"
+  }
+};
+function SessionCard({ session, onClick }) {
+  const indicator = STATUS_INDICATOR[session.status];
+  const totalMembers = session.workingCount + session.idleCount;
+  return /* @__PURE__ */ jsxRuntimeExports.jsxs(
+    "button",
+    {
+      onClick,
+      className: `
+        w-full text-left rounded-xl overflow-hidden cursor-pointer
+        transition-all duration-200 relative min-h-[200px]
+        border-[3px] border-[#1e2230]
+        bg-gradient-to-b from-bg-surface to-bg-raised
+        hover:border-accent hover:shadow-[0_8px_30px_rgba(0,0,0,0.4)] hover:-translate-y-0.5
+        focus-visible:ring-2 focus-visible:ring-border-focus
+        ${session.status === "active" ? "border-status-active shadow-[0_0_30px_rgba(74,222,128,0.2),_inset_0_0_10px_rgba(74,222,128,0.1)]" : ""}
+      `,
+      children: [
+        /* @__PURE__ */ jsxRuntimeExports.jsx("div", { className: "absolute inset-0 bg-gradient-to-br from-white/[0.02] via-transparent to-white/[0.01] pointer-events-none" }),
+        /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: `px-4 py-3 border-b border-border bg-bg flex justify-between items-center ${session.status === "active" ? "bg-gradient-to-r from-[rgba(74,222,128,0.1)] to-transparent" : ""}`, children: [
+          /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "min-w-0 flex-1", children: [
+            /* @__PURE__ */ jsxRuntimeExports.jsx("div", { className: "text-sm font-semibold text-text-primary truncate", children: session.name }),
+            session.task && /* @__PURE__ */ jsxRuntimeExports.jsx("div", { className: "text-2xs text-text-secondary truncate mt-0.5", children: session.task })
+          ] }),
+          /* @__PURE__ */ jsxRuntimeExports.jsxs("span", { className: `inline-flex items-center gap-1.5 text-[10px] px-2.5 py-1 rounded-full border shrink-0 ml-2 ${indicator.wrapperClass}`, children: [
+            /* @__PURE__ */ jsxRuntimeExports.jsx("span", { className: `w-1.5 h-1.5 rounded-full ${indicator.dotClass}` }),
+            indicator.label
+          ] })
+        ] }),
+        /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "px-4 py-5 flex flex-col justify-center min-h-[140px]", children: [
+          session.memberIds.length > 0 ? /* @__PURE__ */ jsxRuntimeExports.jsx("div", { className: "flex gap-3 flex-wrap mb-3", children: session.memberIds.map((memberId, i) => {
+            const isWorking = i < session.workingCount;
+            return /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "flex flex-col items-center gap-1", children: [
+              /* @__PURE__ */ jsxRuntimeExports.jsx("div", { className: `w-10 h-[22px] rounded bg-[#2a2f3d] border border-[#3d4555] flex items-center justify-center text-[10px] ${isWorking ? 'after:content-["💻"] after:text-[11px]' : ""}`, children: isWorking && /* @__PURE__ */ jsxRuntimeExports.jsx("span", { className: "text-[11px]", children: "💻" }) }),
+              /* @__PURE__ */ jsxRuntimeExports.jsx("div", { className: `w-[18px] h-3 rounded-t-[5px] rounded-b-sm flex items-center justify-center ${isWorking ? "bg-bg-active" : "bg-bg-surface"}`, children: isWorking && /* @__PURE__ */ jsxRuntimeExports.jsx("span", { className: "text-xs animate-bounce", style: { animationDuration: "1.5s" }, children: "🧑‍💻" }) })
+            ] }, memberId);
+          }) }) : /* @__PURE__ */ jsxRuntimeExports.jsx("div", { className: "text-sm text-text-tertiary italic mb-3", children: "Empty room" }),
+          totalMembers > 0 && /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "flex gap-4 text-2xs text-text-secondary pt-3 border-t border-border", children: [
+            session.workingCount > 0 && /* @__PURE__ */ jsxRuntimeExports.jsxs("span", { className: "flex items-center gap-1", children: [
+              /* @__PURE__ */ jsxRuntimeExports.jsx("span", { className: "w-1.5 h-1.5 rounded-full bg-status-working" }),
+              session.workingCount,
+              " working"
+            ] }),
+            session.idleCount > 0 && /* @__PURE__ */ jsxRuntimeExports.jsxs("span", { className: "flex items-center gap-1", children: [
+              /* @__PURE__ */ jsxRuntimeExports.jsx("span", { className: "w-1.5 h-1.5 rounded-full bg-status-idle" }),
+              session.idleCount,
+              " at cooler"
+            ] })
+          ] })
+        ] })
+      ]
+    }
+  );
+}
+function NewSessionCard({ onClick }) {
+  return /* @__PURE__ */ jsxRuntimeExports.jsxs(
+    "button",
+    {
+      onClick,
+      className: "\r\n        w-full rounded-lg border-2 border-dashed border-border\r\n        bg-transparent min-h-[120px]\r\n        flex flex-col items-center justify-center gap-2\r\n        cursor-pointer transition-all duration-200\r\n        hover:border-accent hover:bg-accent/5\r\n        focus-visible:ring-2 focus-visible:ring-border-focus\r\n      ",
+      children: [
+        /* @__PURE__ */ jsxRuntimeExports.jsx("span", { className: "text-2xl text-text-tertiary", children: "＋" }),
+        /* @__PURE__ */ jsxRuntimeExports.jsx("span", { className: "text-sm text-text-secondary", children: "New session" })
+      ]
+    }
+  );
+}
+function FloorView({
+  squad,
+  onSelectSession,
+  onCreateSession,
+  loading
+}) {
+  const activeSessionCount = squad.sessions.filter((s) => s.status === "active").length;
+  return /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "flex-1 flex flex-col overflow-hidden animate-fade-in", children: [
+    /* @__PURE__ */ jsxRuntimeExports.jsx(
+      FloorHeader,
+      {
+        squadName: squad.name,
+        floor: squad.floor,
+        members: squad.members,
+        activeSessionCount
+      }
+    ),
+    /* @__PURE__ */ jsxRuntimeExports.jsx("div", { className: "flex-1 overflow-auto p-6", style: { background: "#12151c" }, children: loading ? /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "text-center py-12", children: [
+      /* @__PURE__ */ jsxRuntimeExports.jsx("div", { className: "inline-block w-8 h-8 border-4 border-text-tertiary border-t-accent rounded-full animate-spin mb-3" }),
+      /* @__PURE__ */ jsxRuntimeExports.jsx("p", { className: "text-sm text-text-tertiary", children: "Loading floor plan…" })
+    ] }) : squad.sessions.length === 0 ? /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "max-w-[1200px] mx-auto", children: [
+      /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "flex items-center gap-2 text-2xs text-text-tertiary uppercase tracking-wider mb-5", children: [
+        /* @__PURE__ */ jsxRuntimeExports.jsx("span", { className: "flex-1 h-px bg-border" }),
+        "Hallway",
+        /* @__PURE__ */ jsxRuntimeExports.jsx("span", { className: "flex-1 h-px bg-border" })
+      ] }),
+      /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "text-center py-12", children: [
+        /* @__PURE__ */ jsxRuntimeExports.jsx("p", { className: "text-sm text-text-tertiary mb-4", children: "No sessions yet. Start one to open a room." }),
+        /* @__PURE__ */ jsxRuntimeExports.jsx(NewSessionCard, { onClick: onCreateSession })
+      ] })
+    ] }) : /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "max-w-[1200px] mx-auto", children: [
+      /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "flex items-center gap-2 text-2xs text-text-tertiary uppercase tracking-wider mb-5", children: [
+        /* @__PURE__ */ jsxRuntimeExports.jsx("span", { className: "flex-1 h-px bg-border" }),
+        "Hallway",
+        /* @__PURE__ */ jsxRuntimeExports.jsx("span", { className: "flex-1 h-px bg-border" })
+      ] }),
+      /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-6", children: [
+        squad.sessions.map((session) => /* @__PURE__ */ jsxRuntimeExports.jsx(
+          SessionCard,
+          {
+            session,
+            onClick: () => onSelectSession(session.id)
+          },
+          session.id
+        )),
+        /* @__PURE__ */ jsxRuntimeExports.jsx(NewSessionCard, { onClick: onCreateSession })
+      ] })
+    ] }) })
+  ] });
+}
 function getInitials$1(name) {
   return name.split(/[\s-]+/).map((w2) => w2[0]).join("").toUpperCase().slice(0, 2);
 }
@@ -7180,89 +7596,251 @@ function getRoleKey$1(role) {
   if (normalized === "squadexpert") return "expert";
   return null;
 }
-const STATUS_LABEL = {
-  active: "Active",
-  idle: "Idle",
-  error: "Error",
-  working: "Working"
+function getAvatarBg(name, role) {
+  const roleKey = getRoleKey$1(role);
+  return roleKey ? ROLE_COLORS[roleKey].accent : getAvatarColor(name);
+}
+function getRoleLabel(role) {
+  const roleKey = getRoleKey$1(role);
+  return roleKey ? ROLE_COLORS[roleKey].label : role;
+}
+function getRoleTextColor(role) {
+  const roleKey = getRoleKey$1(role);
+  return roleKey ? ROLE_COLORS[roleKey].text : void 0;
+}
+const SIZE_CLASSES = {
+  sm: "w-6 h-6 text-2xs",
+  md: "w-8 h-8 text-base",
+  lg: "w-10 h-10 text-lg"
 };
-const STATUS_BADGE = {
-  active: "bg-status-active/15 text-status-active",
-  idle: "bg-status-idle/15 text-status-idle",
-  error: "bg-status-error/15 text-status-error",
-  working: "bg-status-working/15 text-status-working"
-};
-function AgentCard({ agent, selected, onClick }) {
-  const roleKey = getRoleKey$1(agent.role);
-  const avatarBg = roleKey ? ROLE_COLORS[roleKey].accent : getAvatarColor(agent.name);
+function RoleAvatar({ name, role, size }) {
+  const bg2 = getAvatarBg(name, role);
   return /* @__PURE__ */ jsxRuntimeExports.jsx(
-    "button",
+    "div",
     {
-      onClick,
-      className: `w-full text-left rounded-lg bg-bg-surface border shadow-elevation-1 p-4 transition-default hover:bg-bg-hover hover:shadow-elevation-2 focus-visible:ring-2 focus-visible:ring-border-focus animate-fade-in-up ${selected ? "border-accent bg-bg-active" : "border-border"}`,
-      children: /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "flex flex-col items-center gap-3", children: [
-        /* @__PURE__ */ jsxRuntimeExports.jsx(
-          "div",
-          {
-            className: "flex items-center justify-center rounded-full w-10 h-10 text-lg font-semibold text-white shrink-0",
-            style: { backgroundColor: avatarBg },
-            children: getInitials$1(agent.name)
-          }
-        ),
-        /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "text-center min-w-0", children: [
-          /* @__PURE__ */ jsxRuntimeExports.jsx("div", { className: "text-md font-semibold text-text-primary truncate", children: agent.name }),
-          /* @__PURE__ */ jsxRuntimeExports.jsx(
-            "div",
-            {
-              className: "text-sm font-medium mt-0.5",
-              style: { color: roleKey ? ROLE_COLORS[roleKey].text : void 0 },
-              children: roleKey ? ROLE_COLORS[roleKey].label : agent.role
-            }
-          )
-        ] }),
-        /* @__PURE__ */ jsxRuntimeExports.jsxs(
-          "span",
-          {
-            className: `inline-flex items-center gap-1.5 text-xs font-medium px-2 py-0.5 rounded-sm ${STATUS_BADGE[agent.status] ?? ""}`,
-            children: [
-              /* @__PURE__ */ jsxRuntimeExports.jsx("span", { className: `status-dot status-dot-${agent.status}` }),
-              STATUS_LABEL[agent.status] ?? agent.status
-            ]
-          }
-        ),
-        agent.lastActivity && /* @__PURE__ */ jsxRuntimeExports.jsx("p", { className: "text-2xs text-text-tertiary truncate w-full text-center", children: agent.lastActivity })
-      ] })
+      className: `flex items-center justify-center rounded-full font-semibold text-white shrink-0 ${SIZE_CLASSES[size]}`,
+      style: { backgroundColor: bg2 },
+      children: getInitials$1(name)
     }
   );
 }
-function PodView({
-  squadName,
-  agents,
-  selectedAgent,
-  onSelectAgent,
+function DeskWorkstation({
+  name,
+  role,
+  status,
+  activity
+}) {
+  const isWorking = status === "active";
+  const isError = status === "error";
+  const isSpawning = status === "spawning";
+  const roleColor = getRoleTextColor(role);
+  return /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "flex flex-col items-center gap-2", children: [
+    /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: `
+        w-full aspect-[1.4] rounded-lg flex flex-col items-center justify-center p-3 relative
+        border-2 shadow-[0_2px_8px_rgba(0,0,0,0.3)]
+        ${isWorking ? "bg-[#2a2f3d] border-status-working shadow-[0_0_15px_rgba(96,165,250,0.2)]" : isError ? "bg-[#2a2f3d] border-status-error shadow-[0_0_15px_rgba(248,113,113,0.2)]" : "bg-[#2a2f3d] border-[#3d4555]"}
+      `, children: [
+      /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: `
+          w-[60%] aspect-video rounded-t flex items-center justify-center text-base relative mb-1
+          border-2 rounded-t-md
+          ${isWorking ? "bg-gradient-to-br from-[rgba(96,165,250,0.2)] to-[rgba(96,165,250,0.05)] border-status-working shadow-[inset_0_0_10px_rgba(96,165,250,0.3)]" : isError ? "bg-gradient-to-br from-[rgba(248,113,113,0.2)] to-[rgba(248,113,113,0.05)] border-status-error" : "bg-gradient-to-br from-[#1a2535] to-[#0f1420] border-[#3d4555]"}
+        `, children: [
+        isWorking && /* @__PURE__ */ jsxRuntimeExports.jsx("span", { className: "text-lg animate-pulse", style: { animationDuration: "2s" }, children: "💻" }),
+        isError && /* @__PURE__ */ jsxRuntimeExports.jsx("span", { className: "text-lg", children: "⚠️" }),
+        isSpawning && /* @__PURE__ */ jsxRuntimeExports.jsx("span", { className: "text-lg animate-spin", style: { animationDuration: "2s" }, children: "⏳" })
+      ] }),
+      /* @__PURE__ */ jsxRuntimeExports.jsx("div", { className: "w-[70%] h-[3px] bg-[#3d4555] rounded-sm" }),
+      /* @__PURE__ */ jsxRuntimeExports.jsx("div", { className: `
+          w-8 h-6 rounded-t-lg rounded-b-sm flex items-center justify-center mt-2
+          border border-[#3d4555]
+          ${isWorking ? "bg-bg-raised" : "bg-bg-active"}
+        `, children: isWorking && /* @__PURE__ */ jsxRuntimeExports.jsx("span", { className: "text-base", style: { animation: "typing 1.5s ease-in-out infinite" }, children: "🧑‍💻" }) })
+    ] }),
+    /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: `
+        text-2xs font-semibold px-2.5 py-1 rounded-md border text-center
+        ${isWorking ? "text-status-working border-status-working bg-bg" : isError ? "text-status-error border-status-error bg-bg" : "text-text-primary border-border bg-bg"}
+      `, children: [
+      /* @__PURE__ */ jsxRuntimeExports.jsx("div", { className: "truncate max-w-[100px]", children: name }),
+      /* @__PURE__ */ jsxRuntimeExports.jsx("div", { className: "text-[9px] font-medium mt-0.5 opacity-70 uppercase tracking-wide", style: { color: roleColor }, children: getRoleLabel(role) })
+    ] }),
+    isWorking && activity && /* @__PURE__ */ jsxRuntimeExports.jsx("p", { className: "text-[10px] text-text-tertiary text-center truncate max-w-[140px]", children: activity })
+  ] });
+}
+const COOLER_BUBBLES = [
+  "☕ Coffee break",
+  "💭 Thinking…",
+  "🫖 Tea time",
+  "📖 Reading docs",
+  "🎵 Vibing",
+  "🧘 Zen mode"
+];
+function getBubble(name) {
+  let hash = 0;
+  for (let i = 0; i < name.length; i++) {
+    hash = (hash << 5) - hash + name.charCodeAt(i);
+    hash |= 0;
+  }
+  return COOLER_BUBBLES[Math.abs(hash) % COOLER_BUBBLES.length];
+}
+function WaterCooler({ idleAgents }) {
+  return /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "\r\n      bg-gradient-to-br from-[#1a2535] to-[#151d2a]\r\n      border-[3px] border-dashed border-[#2a3545]\r\n      rounded-xl p-5 relative min-h-[300px]\r\n      shadow-[0_4px_20px_rgba(0,0,0,0.2)]\r\n    ", children: [
+    /* @__PURE__ */ jsxRuntimeExports.jsx("div", { className: "absolute inset-0 rounded-xl pointer-events-none bg-[radial-gradient(circle_at_30%_40%,rgba(251,191,36,0.05)_0%,transparent_60%)]" }),
+    /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "flex items-center gap-2 text-sm font-semibold text-status-idle uppercase tracking-wider mb-5 relative", children: [
+      /* @__PURE__ */ jsxRuntimeExports.jsx("span", { className: "w-[3px] h-3.5 bg-status-idle rounded-sm" }),
+      "☕ Water Cooler"
+    ] }),
+    idleAgents.length === 0 ? /* @__PURE__ */ jsxRuntimeExports.jsx("p", { className: "text-sm text-text-tertiary text-center italic py-5 relative", children: "Everyone's at their desk — the cooler is lonely 🥲" }) : /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "flex flex-col items-center pt-5 relative", children: [
+      /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "text-5xl mb-4 relative", style: { filter: "drop-shadow(0 2px 8px rgba(251,191,36,0.2))" }, children: [
+        "🚰",
+        /* @__PURE__ */ jsxRuntimeExports.jsx("span", { className: "absolute -bottom-1.5 -right-2.5 text-sm", style: { animation: "drip 2s ease-in-out infinite" }, children: "💧" })
+      ] }),
+      /* @__PURE__ */ jsxRuntimeExports.jsx("div", { className: "flex gap-3 flex-wrap justify-center mt-4", children: idleAgents.map((agent) => /* @__PURE__ */ jsxRuntimeExports.jsxs(
+        "div",
+        {
+          className: "\r\n                  flex flex-col items-center gap-1.5 p-3\r\n                  bg-bg-surface rounded-lg border-2 border-border\r\n                  min-w-[80px] transition-all duration-200\r\n                  hover:border-status-idle hover:-translate-y-0.5\r\n                ",
+          children: [
+            /* @__PURE__ */ jsxRuntimeExports.jsx("div", { style: { animation: "chat 3s ease-in-out infinite" }, children: /* @__PURE__ */ jsxRuntimeExports.jsx(RoleAvatar, { name: agent.name, role: agent.role, size: "md" }) }),
+            /* @__PURE__ */ jsxRuntimeExports.jsx("span", { className: "text-2xs font-semibold text-text-primary", children: agent.name }),
+            /* @__PURE__ */ jsxRuntimeExports.jsx(
+              "span",
+              {
+                className: "text-[9px] uppercase tracking-wider",
+                style: { color: getRoleTextColor(agent.role) ?? void 0 },
+                children: getRoleLabel(agent.role)
+              }
+            ),
+            /* @__PURE__ */ jsxRuntimeExports.jsx("span", { className: "text-[10px] bg-bg px-2 py-0.5 rounded-full text-status-idle mt-1", children: getBubble(agent.name) })
+          ]
+        },
+        agent.name
+      )) })
+    ] })
+  ] });
+}
+function parseLines(raw) {
+  if (!raw) return [];
+  return raw.split("\n").filter(Boolean).map((line) => {
+    const trimmed = line.trim();
+    if (trimmed.startsWith("✓") || trimmed.startsWith("✅") || /^(PASS|OK|Done)/i.test(trimmed)) {
+      return { prefix: "✓", text: trimmed.replace(/^[✓✅]\s*/, ""), isSuccess: true };
+    }
+    if (trimmed.startsWith("✗") || trimmed.startsWith("❌") || /^(FAIL|ERROR)/i.test(trimmed)) {
+      return { prefix: "✗", text: trimmed.replace(/^[✗❌]\s*/, ""), isSuccess: false };
+    }
+    return { prefix: "▶", text: trimmed, isSuccess: false };
+  });
+}
+function TerminalPanel({ text, active = false }) {
+  const outputRef = reactExports.useRef(null);
+  reactExports.useEffect(() => {
+    if (outputRef.current) {
+      outputRef.current.scrollTop = outputRef.current.scrollHeight;
+    }
+  }, [text]);
+  const lines = parseLines(text);
+  return /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "border-t-2 border-border bg-bg flex flex-col max-h-60", children: [
+    /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "px-4 py-2.5 bg-bg-raised border-b border-border flex items-center gap-2 text-2xs font-semibold text-text-secondary uppercase tracking-wider shrink-0", children: [
+      active && /* @__PURE__ */ jsxRuntimeExports.jsx("span", { className: "w-1.5 h-1.5 rounded-full bg-status-working animate-pulse" }),
+      "Live Output"
+    ] }),
+    /* @__PURE__ */ jsxRuntimeExports.jsxs(
+      "div",
+      {
+        ref: outputRef,
+        className: "flex-1 overflow-y-auto p-3 font-mono text-2xs leading-relaxed text-text-secondary scrollbar-thin",
+        children: [
+          lines.length === 0 ? /* @__PURE__ */ jsxRuntimeExports.jsx("span", { className: "text-text-tertiary italic", children: "Waiting for output…" }) : lines.map((line, i) => /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "mb-1", children: [
+            /* @__PURE__ */ jsxRuntimeExports.jsx("span", { className: `mr-1.5 ${line.isSuccess ? "text-status-active" : "text-accent"}`, children: line.prefix }),
+            /* @__PURE__ */ jsxRuntimeExports.jsx("span", { className: line.isSuccess ? "text-status-active" : void 0, children: line.text })
+          ] }, i)),
+          active && /* @__PURE__ */ jsxRuntimeExports.jsx("span", { className: "inline-block w-1.5 h-3.5 bg-accent animate-pulse align-middle ml-0.5" })
+        ]
+      }
+    )
+  ] });
+}
+function OfficeView({
+  session,
+  streamingText,
+  onBack,
   loading
 }) {
-  return /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "flex-1 overflow-y-auto p-6 animate-fade-in", children: [
-    /* @__PURE__ */ jsxRuntimeExports.jsx("div", { className: "flex items-center justify-between mb-6", children: /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { children: [
-      /* @__PURE__ */ jsxRuntimeExports.jsx("h2", { className: "text-xl font-semibold text-text-primary", children: squadName }),
-      /* @__PURE__ */ jsxRuntimeExports.jsxs("p", { className: "text-sm text-text-secondary mt-0.5", children: [
-        agents.length,
-        " member",
-        agents.length !== 1 ? "s" : ""
-      ] })
-    ] }) }),
-    loading ? /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "text-center py-12", children: [
+  const workingAgents = session.agents.filter((a) => a.status === "active" || a.status === "spawning");
+  const idleAgents = session.agents.filter((a) => a.status === "idle");
+  const errorAgents = session.agents.filter((a) => a.status === "error");
+  const isActive = session.status === "active";
+  if (loading) {
+    return /* @__PURE__ */ jsxRuntimeExports.jsx("div", { className: "flex-1 flex items-center justify-center animate-fade-in", children: /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "text-center", children: [
       /* @__PURE__ */ jsxRuntimeExports.jsx("div", { className: "inline-block w-8 h-8 border-4 border-text-tertiary border-t-accent rounded-full animate-spin mb-3" }),
-      /* @__PURE__ */ jsxRuntimeExports.jsx("p", { className: "text-sm text-text-tertiary", children: "Loading squad..." })
-    ] }) : agents.length === 0 ? /* @__PURE__ */ jsxRuntimeExports.jsx("div", { className: "text-center py-12", children: /* @__PURE__ */ jsxRuntimeExports.jsx("p", { className: "text-sm text-text-tertiary", children: "No agents in this squad." }) }) : /* @__PURE__ */ jsxRuntimeExports.jsx("div", { className: "grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4", children: agents.map((agent) => /* @__PURE__ */ jsxRuntimeExports.jsx(
-      AgentCard,
+      /* @__PURE__ */ jsxRuntimeExports.jsx("p", { className: "text-sm text-text-tertiary", children: "Opening office…" })
+    ] }) });
+  }
+  return /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "flex-1 flex flex-col overflow-hidden animate-fade-in", children: [
+    /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "px-6 py-5 border-b border-border bg-gradient-to-b from-bg-raised to-bg-surface relative shrink-0", children: [
+      /* @__PURE__ */ jsxRuntimeExports.jsx("div", { className: "absolute bottom-0 left-0 right-0 h-px bg-gradient-to-r from-transparent via-border to-transparent" }),
+      /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "flex items-center gap-3", children: [
+        /* @__PURE__ */ jsxRuntimeExports.jsx(
+          "button",
+          {
+            onClick: onBack,
+            className: "text-text-tertiary hover:text-text-primary transition-default text-sm",
+            "aria-label": "Go back to floor",
+            children: "← Back"
+          }
+        ),
+        /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { children: [
+          /* @__PURE__ */ jsxRuntimeExports.jsxs("h2", { className: "text-lg font-semibold text-text-primary flex items-center gap-2", children: [
+            /* @__PURE__ */ jsxRuntimeExports.jsx("span", { children: "🚪" }),
+            session.name
+          ] }),
+          /* @__PURE__ */ jsxRuntimeExports.jsxs("p", { className: "text-sm text-text-secondary mt-0.5", children: [
+            session.squadName,
+            " · ",
+            session.agents.length,
+            " member",
+            session.agents.length !== 1 ? "s" : "",
+            session.task && /* @__PURE__ */ jsxRuntimeExports.jsxs("span", { children: [
+              " · ",
+              session.task
+            ] })
+          ] })
+        ] })
+      ] })
+    ] }),
+    /* @__PURE__ */ jsxRuntimeExports.jsx(
+      "div",
       {
-        agent,
-        selected: selectedAgent === agent.name,
-        onClick: () => onSelectAgent(agent.name)
-      },
-      agent.name
-    )) })
+        className: "flex-1 overflow-y-auto p-6",
+        style: { background: "linear-gradient(180deg, #12151c 0%, #0f1117 100%)" },
+        children: /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "max-w-[1000px] mx-auto flex gap-6 flex-col lg:flex-row", children: [
+          /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "\r\n            flex-[2] bg-gradient-to-br from-bg-surface to-bg-raised\r\n            border-[3px] border-[#1e2230] rounded-xl p-6 relative\r\n            shadow-[0_4px_20px_rgba(0,0,0,0.3)]\r\n          ", children: [
+            /* @__PURE__ */ jsxRuntimeExports.jsx("div", { className: "absolute inset-0 bg-gradient-to-br from-white/[0.02] to-transparent pointer-events-none rounded-xl" }),
+            /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "flex items-center gap-2 text-sm font-semibold text-text-secondary uppercase tracking-wider mb-5 relative", children: [
+              /* @__PURE__ */ jsxRuntimeExports.jsx("span", { className: "w-[3px] h-3.5 bg-accent rounded-sm" }),
+              "💼 Workstations"
+            ] }),
+            workingAgents.length === 0 && errorAgents.length === 0 ? /* @__PURE__ */ jsxRuntimeExports.jsx("p", { className: "text-sm text-text-tertiary italic py-8 text-center relative", children: "All members are at the water cooler" }) : /* @__PURE__ */ jsxRuntimeExports.jsx("div", { className: "grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-5 relative", children: [...workingAgents, ...errorAgents].map((agent) => /* @__PURE__ */ jsxRuntimeExports.jsx(
+              DeskWorkstation,
+              {
+                name: agent.name,
+                role: agent.role,
+                status: agent.status,
+                activity: agent.activity
+              },
+              agent.name
+            )) })
+          ] }),
+          /* @__PURE__ */ jsxRuntimeExports.jsx("div", { className: "flex-1 min-w-[250px]", children: /* @__PURE__ */ jsxRuntimeExports.jsx(WaterCooler, { idleAgents }) })
+        ] })
+      }
+    ),
+    /* @__PURE__ */ jsxRuntimeExports.jsx(
+      TerminalPanel,
+      {
+        text: streamingText,
+        active: isActive
+      }
+    )
   ] });
 }
 function StreamingOutput({ text }) {
@@ -7416,10 +7994,17 @@ function StatusBar({
   sessionCount,
   totalTokens,
   estimatedCost,
-  model
+  model,
+  totalMembers,
+  connected
 }) {
   return /* @__PURE__ */ jsxRuntimeExports.jsxs("footer", { className: "flex items-center justify-between h-status-bar px-4 bg-bg-raised border-t border-border text-xs text-text-secondary font-mono shrink-0 select-none", children: [
     /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "flex items-center gap-4", children: [
+      /* @__PURE__ */ jsxRuntimeExports.jsxs("span", { className: "flex items-center gap-1.5", children: [
+        /* @__PURE__ */ jsxRuntimeExports.jsx("span", { className: `status-dot ${connected ? "status-dot-active" : "status-dot-idle"}` }),
+        connected ? "Connected" : "Offline"
+      ] }),
+      /* @__PURE__ */ jsxRuntimeExports.jsx("span", { className: "text-text-tertiary", children: "·" }),
       squadName && /* @__PURE__ */ jsxRuntimeExports.jsxs(jsxRuntimeExports.Fragment, { children: [
         /* @__PURE__ */ jsxRuntimeExports.jsx("span", { className: "text-text-primary", children: squadName }),
         /* @__PURE__ */ jsxRuntimeExports.jsx("span", { className: "text-text-tertiary", children: "·" })
@@ -7428,6 +8013,12 @@ function StatusBar({
         /* @__PURE__ */ jsxRuntimeExports.jsx("span", { className: "truncate max-w-xs", title: squadRoot, children: squadRoot }),
         /* @__PURE__ */ jsxRuntimeExports.jsx("span", { className: "text-text-tertiary", children: "·" })
       ] }),
+      /* @__PURE__ */ jsxRuntimeExports.jsxs("span", { children: [
+        totalMembers,
+        " member",
+        totalMembers !== 1 ? "s" : ""
+      ] }),
+      /* @__PURE__ */ jsxRuntimeExports.jsx("span", { className: "text-text-tertiary", children: "·" }),
       /* @__PURE__ */ jsxRuntimeExports.jsxs("span", { children: [
         sessionCount,
         " session",
@@ -7451,6 +8042,120 @@ function StatusBar({
     ] })
   ] });
 }
+function parseDecisionsMarkdown(md2) {
+  const entries = [];
+  const blocks = md2.split(/(?=^### )/m).filter((b) => b.trim());
+  for (const block of blocks) {
+    const headerMatch = block.match(/^### (.+?):\s*(.+)$/m);
+    if (!headerMatch) continue;
+    const timestamp = headerMatch[1].trim();
+    const title = headerMatch[2].trim();
+    const authorMatch = block.match(/\*\*By:\*\*\s*(.+)/i);
+    const whatMatch = block.match(/\*\*What:\*\*\s*(.+)/i);
+    const whyMatch = block.match(/\*\*Why:\*\*\s*(.+)/i);
+    entries.push({
+      timestamp,
+      title,
+      author: authorMatch?.[1]?.trim() ?? "Unknown",
+      what: whatMatch?.[1]?.trim() ?? "",
+      why: whyMatch?.[1]?.trim() ?? ""
+    });
+  }
+  return entries;
+}
+function DecisionsTimeline() {
+  const [entries, setEntries] = reactExports.useState([]);
+  const [loading, setLoading] = reactExports.useState(false);
+  const [error, setError] = reactExports.useState(null);
+  const fetchDecisions = reactExports.useCallback(async () => {
+    setLoading(true);
+    setError(null);
+    try {
+      const res = await window.squadAPI.getDecisions();
+      const result = res;
+      if (result.ok && typeof result.data === "string") {
+        setEntries(parseDecisionsMarkdown(result.data));
+      } else {
+        setError(result.error ?? "No decisions data");
+      }
+    } catch (_err) {
+      setError("Decisions IPC not available yet");
+    } finally {
+      setLoading(false);
+    }
+  }, []);
+  reactExports.useEffect(() => {
+    fetchDecisions();
+  }, [fetchDecisions]);
+  return /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "flex flex-col h-full bg-bg-sunken p-4 overflow-y-auto", children: [
+    /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "flex items-center justify-between mb-4", children: [
+      /* @__PURE__ */ jsxRuntimeExports.jsx("h2", { className: "text-lg font-semibold text-text-primary flex items-center gap-2", children: "📋 Decisions Timeline" }),
+      /* @__PURE__ */ jsxRuntimeExports.jsx(
+        "button",
+        {
+          onClick: fetchDecisions,
+          disabled: loading,
+          className: "px-3 py-1 text-xs font-medium rounded bg-bg-raised border border-border text-text-secondary hover:text-text-primary hover:border-accent transition-default disabled:opacity-50",
+          children: loading ? "⟳ Loading…" : "↻ Refresh"
+        }
+      )
+    ] }),
+    error && /* @__PURE__ */ jsxRuntimeExports.jsx("div", { className: "px-3 py-2 mb-3 text-sm text-status-error bg-status-error/10 rounded border border-status-error/20", children: error }),
+    !loading && !error && entries.length === 0 && /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "flex flex-col items-center justify-center flex-1 text-text-tertiary", children: [
+      /* @__PURE__ */ jsxRuntimeExports.jsx("span", { className: "text-3xl mb-2", children: "📭" }),
+      /* @__PURE__ */ jsxRuntimeExports.jsx("p", { className: "text-sm", children: "No decisions yet" }),
+      /* @__PURE__ */ jsxRuntimeExports.jsx("p", { className: "text-xs mt-1", children: "Decisions will appear here as the squad works" })
+    ] }),
+    entries.length > 0 && /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "relative pl-6", children: [
+      /* @__PURE__ */ jsxRuntimeExports.jsx("div", { className: "absolute left-2 top-0 bottom-0 w-px bg-border" }),
+      entries.map((entry, i) => /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "relative mb-4 last:mb-0", children: [
+        /* @__PURE__ */ jsxRuntimeExports.jsx("div", { className: "absolute -left-4 top-2 w-2.5 h-2.5 rounded-full bg-accent border-2 border-bg-sunken" }),
+        /* @__PURE__ */ jsxRuntimeExports.jsx("div", { className: "text-xs text-text-tertiary font-mono mb-1", children: entry.timestamp }),
+        /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "bg-bg-raised border border-border rounded-lg p-3 hover:border-accent/40 transition-default", children: [
+          /* @__PURE__ */ jsxRuntimeExports.jsx("h3", { className: "text-sm font-semibold text-text-primary mb-1", children: entry.title }),
+          /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "text-xs text-accent mb-2", children: [
+            "By: ",
+            entry.author
+          ] }),
+          entry.what && /* @__PURE__ */ jsxRuntimeExports.jsxs("p", { className: "text-xs text-text-secondary mb-1", children: [
+            /* @__PURE__ */ jsxRuntimeExports.jsx("span", { className: "text-text-tertiary", children: "What: " }),
+            entry.what
+          ] }),
+          entry.why && /* @__PURE__ */ jsxRuntimeExports.jsxs("p", { className: "text-xs text-text-secondary", children: [
+            /* @__PURE__ */ jsxRuntimeExports.jsx("span", { className: "text-text-tertiary", children: "Why: " }),
+            entry.why
+          ] })
+        ] })
+      ] }, i))
+    ] })
+  ] });
+}
+function CostDashboard({ totalTokens, estimatedCost, model }) {
+  return /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "flex flex-col h-full bg-bg-sunken p-4 overflow-y-auto", children: [
+    /* @__PURE__ */ jsxRuntimeExports.jsx("h2", { className: "text-lg font-semibold text-text-primary flex items-center gap-2 mb-4", children: "💰 Cost Dashboard" }),
+    /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "grid grid-cols-1 gap-3", children: [
+      /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "bg-bg-raised border border-border rounded-lg p-4", children: [
+        /* @__PURE__ */ jsxRuntimeExports.jsx("div", { className: "text-xs text-text-tertiary uppercase tracking-wide mb-1", children: "Total Tokens" }),
+        /* @__PURE__ */ jsxRuntimeExports.jsx("div", { className: "text-2xl font-bold text-text-primary font-mono", children: totalTokens.toLocaleString() }),
+        /* @__PURE__ */ jsxRuntimeExports.jsx("div", { className: "text-xs text-text-secondary mt-1", children: "Cumulative input + output tokens" })
+      ] }),
+      /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "bg-bg-raised border border-border rounded-lg p-4", children: [
+        /* @__PURE__ */ jsxRuntimeExports.jsx("div", { className: "text-xs text-text-tertiary uppercase tracking-wide mb-1", children: "Estimated Cost" }),
+        /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "text-2xl font-bold font-mono", style: { color: estimatedCost > 1 ? "#f87171" : "#4ade80" }, children: [
+          "$",
+          estimatedCost.toFixed(2)
+        ] }),
+        /* @__PURE__ */ jsxRuntimeExports.jsx("div", { className: "text-xs text-text-secondary mt-1", children: "Based on ~$3/MTok input, ~$15/MTok output" })
+      ] }),
+      /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "bg-bg-raised border border-border rounded-lg p-4", children: [
+        /* @__PURE__ */ jsxRuntimeExports.jsx("div", { className: "text-xs text-text-tertiary uppercase tracking-wide mb-1", children: "Current Model" }),
+        /* @__PURE__ */ jsxRuntimeExports.jsx("div", { className: "text-lg font-semibold text-accent font-mono", children: model ?? "—" }),
+        /* @__PURE__ */ jsxRuntimeExports.jsx("div", { className: "text-xs text-text-secondary mt-1", children: model ? "Active model for SDK sessions" : "No model selected yet" })
+      ] })
+    ] }),
+    /* @__PURE__ */ jsxRuntimeExports.jsx("div", { className: "mt-4 p-3 bg-bg-raised border border-border/50 rounded-lg border-dashed", children: /* @__PURE__ */ jsxRuntimeExports.jsx("p", { className: "text-xs text-text-tertiary text-center", children: "📊 Detailed breakdowns coming when SDK connects" }) })
+  ] });
+}
 function mergeAgentInfo(members, statuses) {
   const statusMap = new Map(statuses.map((s) => [s.name.toLowerCase(), s]));
   return members.map((m2) => {
@@ -7464,39 +8169,32 @@ function mergeAgentInfo(members, statuses) {
     };
   });
 }
-let msgIdCounter = 0;
-function nextMsgId() {
-  return `msg-${Date.now()}-${++msgIdCounter}`;
-}
 function App() {
   const [config, setConfig] = reactExports.useState(null);
   const [roster, setRoster] = reactExports.useState([]);
   const [agentStatuses, setAgentStatuses] = reactExports.useState([]);
   const [loading, setLoading] = reactExports.useState(true);
-  const [selectedSquad, setSelectedSquad] = reactExports.useState(null);
-  const [selectedAgent, setSelectedAgent] = reactExports.useState(null);
-  const [sessions, setSessions] = reactExports.useState(/* @__PURE__ */ new Map());
-  const [messages, setMessages] = reactExports.useState(/* @__PURE__ */ new Map());
-  const [streamingText, setStreamingText] = reactExports.useState(/* @__PURE__ */ new Map());
-  const [sending, setSending] = reactExports.useState(false);
-  const [creatingSession, setCreatingSession] = reactExports.useState(false);
-  const [totalTokens, setTotalTokens] = reactExports.useState(0);
-  const [estimatedCost, setEstimatedCost] = reactExports.useState(0);
-  const [model, setModel] = reactExports.useState(null);
-  const [error, setError] = reactExports.useState(null);
-  const sessionsRef = reactExports.useRef(sessions);
-  sessionsRef.current = sessions;
-  const squads = config ? [config.name] : [];
+  const squads = config ? [{ id: config.name, name: config.name }] : [];
   const agents = mergeAgentInfo(roster, agentStatuses);
-  const selectedAgentInfo = agents.find((a) => a.name === selectedAgent);
-  const agentSessionId = selectedAgent ? sessions.get(selectedAgent) ?? null : null;
-  const agentMessages = selectedAgent ? messages.get(selectedAgent) ?? [] : [];
-  const agentStreamText = agentSessionId ? streamingText.get(agentSessionId) ?? "" : "";
+  const navigation = useNavigation(squads, []);
+  const [selectedAgent, setSelectedAgent] = reactExports.useState(null);
+  const [activePanel, setActivePanel] = reactExports.useState("none");
+  const effectiveAgent = navigation.state.level === "office" ? navigation.state.selectedAgentName : selectedAgent;
+  const chat = useChat(effectiveAgent);
+  const selectedAgentInfo = agents.find((a) => a.name === effectiveAgent);
   reactExports.useEffect(() => {
-    if (squads.length === 1 && !selectedSquad) {
-      setSelectedSquad(squads[0]);
-    }
-  }, [squads, selectedSquad]);
+    setSelectedAgent(null);
+  }, [navigation.state.level]);
+  const handleSelectAgent = reactExports.useCallback(
+    (name) => {
+      if (navigation.state.level === "office") {
+        navigation.selectAgent(name);
+      } else {
+        setSelectedAgent((prev) => prev === name ? null : name);
+      }
+    },
+    [navigation]
+  );
   reactExports.useEffect(() => {
     async function loadInitialData() {
       try {
@@ -7511,8 +8209,7 @@ function App() {
         if (configResult.ok && configResult.data) setConfig(configResult.data);
         if (rosterResult.ok && rosterResult.data) setRoster(rosterResult.data);
         if (statusResult.ok && statusResult.data) setAgentStatuses(statusResult.data);
-      } catch (err) {
-        setError(err instanceof Error ? err.message : "Failed to load squad data");
+      } catch (_err) {
       } finally {
         setLoading(false);
       }
@@ -7520,48 +8217,6 @@ function App() {
     loadInitialData();
   }, []);
   reactExports.useEffect(() => {
-    const unsubDelta = window.squadAPI.onStreamDelta((delta) => {
-      const d = delta;
-      setStreamingText((prev) => {
-        const next = new Map(prev);
-        next.set(d.sessionId, (prev.get(d.sessionId) ?? "") + d.delta);
-        return next;
-      });
-    });
-    const unsubUsage = window.squadAPI.onStreamUsage((usage) => {
-      const u2 = usage;
-      setTotalTokens((prev) => prev + u2.inputTokens + u2.outputTokens);
-      setEstimatedCost(
-        (prev) => prev + u2.inputTokens * 3e-6 + u2.outputTokens * 15e-6
-      );
-      if (u2.model) setModel(u2.model);
-      const sessionEntries = Array.from(sessionsRef.current.entries());
-      const agentEntry = sessionEntries.find(([, sid]) => sid === u2.sessionId);
-      if (agentEntry) {
-        const [agentName] = agentEntry;
-        setStreamingText((prev) => {
-          const text = prev.get(u2.sessionId);
-          if (text) {
-            setMessages((msgPrev) => {
-              const agentMsgs = [...msgPrev.get(agentName) ?? []];
-              agentMsgs.push({
-                id: nextMsgId(),
-                role: "assistant",
-                text,
-                agentName,
-                timestamp: Date.now()
-              });
-              const next2 = new Map(msgPrev);
-              next2.set(agentName, agentMsgs);
-              return next2;
-            });
-          }
-          const next = new Map(prev);
-          next.delete(u2.sessionId);
-          return next;
-        });
-      }
-    });
     const unsubEvent = window.squadAPI.onEvent(() => {
       window.squadAPI.getAgentStatuses().then((res) => {
         const result = res;
@@ -7569,86 +8224,95 @@ function App() {
       });
     });
     return () => {
-      unsubDelta();
-      unsubUsage();
       unsubEvent();
     };
   }, []);
-  const handleSelectSquad = reactExports.useCallback((name) => {
-    setSelectedSquad(name);
-    setSelectedAgent(null);
-  }, []);
-  const handleSelectAgent = reactExports.useCallback((name) => {
-    setSelectedAgent((prev) => prev === name ? null : name);
-  }, []);
-  const handleCreateSession = reactExports.useCallback(async () => {
-    if (!selectedAgent) return;
-    setCreatingSession(true);
-    setError(null);
-    const res = await window.squadAPI.createSession(selectedAgent);
-    if (res.ok && res.data) {
-      setSessions((prev) => {
-        const next = new Map(prev);
-        next.set(selectedAgent, res.data.sessionId);
-        return next;
-      });
-    } else {
-      setError(res.error ?? "Failed to create session");
-    }
-    setCreatingSession(false);
-  }, [selectedAgent]);
-  const handleSendMessage = reactExports.useCallback(
-    async (text) => {
-      if (!selectedAgent || !agentSessionId) return;
-      setSending(true);
-      setError(null);
-      setMessages((prev) => {
-        const agentMsgs = [...prev.get(selectedAgent) ?? []];
-        agentMsgs.push({
-          id: nextMsgId(),
-          role: "user",
-          text,
-          timestamp: Date.now()
-        });
-        const next = new Map(prev);
-        next.set(selectedAgent, agentMsgs);
-        return next;
-      });
-      const res = await window.squadAPI.sendMessage(agentSessionId, text);
-      if (!res.ok) {
-        setError(res.error ?? "Failed to send message");
+  const handleBreadcrumbNavigate = reactExports.useCallback(
+    (item) => {
+      if (item.level === "hub") {
+        if (navigation.state.level === "office") {
+          navigation.back();
+          navigation.back();
+        } else {
+          navigation.back();
+        }
+      } else if (item.level === "floor" && item.id) {
+        navigation.selectSquad(item.id);
       }
-      setSending(false);
     },
-    [selectedAgent, agentSessionId]
+    [navigation]
   );
   reactExports.useEffect(() => {
     function handleKeyDown(e) {
       if (e.target instanceof HTMLInputElement || e.target instanceof HTMLTextAreaElement) return;
       if (e.key === "Escape") {
-        if (selectedAgent) {
-          setSelectedAgent(null);
-        } else if (selectedSquad) {
-          setSelectedSquad(null);
+        if (effectiveAgent) {
+          if (navigation.state.level === "office") {
+            navigation.selectAgent(null);
+          } else {
+            setSelectedAgent(null);
+          }
+        } else {
+          navigation.back();
         }
         return;
       }
-      const num = parseInt(e.key, 10);
-      if (num >= 1 && num <= 9 && num <= agents.length) {
-        setSelectedAgent(agents[num - 1].name);
+      if (navigation.state.level === "floor") {
+        const num = parseInt(e.key, 10);
+        if (num >= 1 && num <= 9 && num <= agents.length) {
+          handleSelectAgent(agents[num - 1].name);
+        }
       }
     }
     window.addEventListener("keydown", handleKeyDown);
     return () => window.removeEventListener("keydown", handleKeyDown);
-  }, [selectedAgent, selectedSquad, agents]);
+  }, [effectiveAgent, navigation, agents, handleSelectAgent]);
+  const currentSessionDetail = navigation.state.selectedSessionId ? {
+    id: navigation.state.selectedSessionId,
+    name: navigation.state.selectedSessionId,
+    status: "active",
+    squadId: navigation.state.selectedSquadId ?? "",
+    squadName: config?.name ?? "",
+    agents: agents.map((a) => ({
+      name: a.name,
+      role: a.role,
+      status: a.status === "working" ? "active" : a.status
+    })),
+    createdAt: Date.now()
+  } : null;
   return /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "flex flex-col h-screen bg-bg text-text-primary overflow-hidden", children: [
-    /* @__PURE__ */ jsxRuntimeExports.jsx(Header, {}),
-    error && /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "flex items-center justify-between px-4 py-2 bg-status-error/10 border-b border-status-error/20 text-sm text-status-error animate-fade-in", children: [
-      /* @__PURE__ */ jsxRuntimeExports.jsx("span", { children: error }),
+    /* @__PURE__ */ jsxRuntimeExports.jsx(
+      Header,
+      {
+        breadcrumbs: navigation.breadcrumbs,
+        onNavigate: handleBreadcrumbNavigate,
+        connected: !loading
+      }
+    ),
+    /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "flex items-center gap-1 px-4 py-1 bg-bg-raised border-b border-border shrink-0", children: [
       /* @__PURE__ */ jsxRuntimeExports.jsx(
         "button",
         {
-          onClick: () => setError(null),
+          onClick: () => setActivePanel((p2) => p2 === "decisions" ? "none" : "decisions"),
+          className: `px-2.5 py-1 text-xs font-medium rounded transition-default ${activePanel === "decisions" ? "bg-accent/20 text-accent border border-accent/40" : "text-text-secondary hover:text-text-primary hover:bg-bg-hover border border-transparent"}`,
+          children: "📋 Decisions"
+        }
+      ),
+      /* @__PURE__ */ jsxRuntimeExports.jsx(
+        "button",
+        {
+          onClick: () => setActivePanel((p2) => p2 === "cost" ? "none" : "cost"),
+          className: `px-2.5 py-1 text-xs font-medium rounded transition-default ${activePanel === "cost" ? "bg-accent/20 text-accent border border-accent/40" : "text-text-secondary hover:text-text-primary hover:bg-bg-hover border border-transparent"}`,
+          children: "💰 Cost"
+        }
+      )
+    ] }),
+    chat.error && /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "flex items-center justify-between px-4 py-2 bg-status-error/10 border-b border-status-error/20 text-sm text-status-error animate-fade-in", children: [
+      /* @__PURE__ */ jsxRuntimeExports.jsx("span", { children: chat.error }),
+      /* @__PURE__ */ jsxRuntimeExports.jsx(
+        "button",
+        {
+          onClick: chat.clearError,
           className: "text-status-error hover:text-text-primary transition-default ml-4",
           children: "✕"
         }
@@ -7658,62 +8322,152 @@ function App() {
       /* @__PURE__ */ jsxRuntimeExports.jsx(
         Sidebar,
         {
-          squads,
-          selectedSquad,
-          onSelectSquad: handleSelectSquad,
+          hubName: config?.name ?? "Squad Office",
+          squads: squads.map((s) => ({
+            id: s.id,
+            name: s.name,
+            floor: 1,
+            memberCount: roster.length,
+            activeSessionCount: 0,
+            status: "connected"
+          })),
+          selectedSquadId: navigation.state.selectedSquadId,
+          onSelectSquad: navigation.selectSquad,
           agents,
-          selectedAgent,
+          selectedAgent: effectiveAgent,
           onSelectAgent: handleSelectAgent,
           loading
         }
       ),
-      !selectedSquad ? /* @__PURE__ */ jsxRuntimeExports.jsx(
+      navigation.state.level === "building" && /* @__PURE__ */ jsxRuntimeExports.jsx(
         BuildingView,
         {
-          squads: squads.map((name) => ({
-            name,
+          squads: squads.map((s) => ({
+            name: s.name,
             memberCount: roster.length
           })),
-          onSelectSquad: handleSelectSquad,
-          loading
-        }
-      ) : /* @__PURE__ */ jsxRuntimeExports.jsx(
-        PodView,
-        {
-          squadName: selectedSquad,
-          agents,
-          selectedAgent,
-          onSelectAgent: handleSelectAgent,
+          onSelectSquad: (name) => navigation.selectSquad(name),
           loading
         }
       ),
-      selectedAgent && selectedAgentInfo && /* @__PURE__ */ jsxRuntimeExports.jsx(
+      navigation.state.level === "floor" && /* @__PURE__ */ jsxRuntimeExports.jsx(
+        FloorView,
+        {
+          squad: {
+            id: navigation.state.selectedSquadId ?? "",
+            name: config?.name ?? "",
+            floor: 1,
+            members: roster,
+            sessions: []
+          },
+          onSelectSession: navigation.selectSession,
+          onCreateSession: () => {
+            if (effectiveAgent) {
+              chat.createSession(effectiveAgent);
+            }
+          },
+          loading
+        }
+      ),
+      navigation.state.level === "office" && currentSessionDetail && /* @__PURE__ */ jsxRuntimeExports.jsx(
+        OfficeView,
+        {
+          session: currentSessionDetail,
+          streamingText: chat.streamingText,
+          onBack: navigation.back,
+          loading
+        }
+      ),
+      selectedAgentInfo && /* @__PURE__ */ jsxRuntimeExports.jsx(
         ChatPanel,
         {
           agentName: selectedAgentInfo.name,
           agentRole: selectedAgentInfo.role,
-          sessionId: agentSessionId,
-          messages: agentMessages,
-          streamingText: agentStreamText,
-          onSend: handleSendMessage,
-          onCreateSession: handleCreateSession,
-          sending: sending || creatingSession
+          sessionId: chat.sessionId,
+          messages: chat.messages,
+          streamingText: chat.streamingText,
+          onSend: chat.sendMessage,
+          onCreateSession: () => chat.createSession(selectedAgentInfo.name),
+          sending: chat.sending
         }
-      )
+      ),
+      activePanel === "decisions" && /* @__PURE__ */ jsxRuntimeExports.jsx("div", { className: "w-80 border-l border-border shrink-0 animate-fade-in", children: /* @__PURE__ */ jsxRuntimeExports.jsx(DecisionsTimeline, {}) }),
+      activePanel === "cost" && /* @__PURE__ */ jsxRuntimeExports.jsx("div", { className: "w-80 border-l border-border shrink-0 animate-fade-in", children: /* @__PURE__ */ jsxRuntimeExports.jsx(
+        CostDashboard,
+        {
+          totalTokens: chat.usage.totalTokens,
+          estimatedCost: chat.usage.estimatedCost,
+          model: chat.usage.model
+        }
+      ) })
     ] }),
     /* @__PURE__ */ jsxRuntimeExports.jsx(
       StatusBar,
       {
         squadRoot: config?.root ?? null,
         squadName: config?.name ?? null,
-        sessionCount: sessions.size,
-        totalTokens,
-        estimatedCost,
-        model
+        sessionCount: chat.sessionId ? 1 : 0,
+        totalTokens: chat.usage.totalTokens,
+        estimatedCost: chat.usage.estimatedCost,
+        model: chat.usage.model,
+        totalMembers: roster.length,
+        connected: !loading
       }
     )
   ] });
 }
+class ErrorBoundary extends reactExports.Component {
+  constructor(props) {
+    super(props);
+    this.state = { hasError: false, error: null };
+  }
+  static getDerivedStateFromError(error) {
+    return { hasError: true, error };
+  }
+  componentDidCatch(error, errorInfo) {
+    console.error("[ErrorBoundary] Caught error:", error, errorInfo);
+  }
+  render() {
+    if (this.state.hasError) {
+      return /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { style: {
+        display: "flex",
+        flexDirection: "column",
+        alignItems: "center",
+        justifyContent: "center",
+        height: "100vh",
+        padding: "2rem",
+        textAlign: "center",
+        fontFamily: "system-ui, sans-serif"
+      }, children: [
+        /* @__PURE__ */ jsxRuntimeExports.jsx("h1", { style: { color: "#dc2626", marginBottom: "1rem" }, children: "Something went wrong" }),
+        /* @__PURE__ */ jsxRuntimeExports.jsx("p", { style: { color: "#4b5563", marginBottom: "1rem" }, children: this.state.error?.message ?? "An unexpected error occurred" }),
+        /* @__PURE__ */ jsxRuntimeExports.jsx(
+          "button",
+          {
+            onClick: () => window.location.reload(),
+            style: {
+              padding: "0.5rem 1rem",
+              backgroundColor: "#3b82f6",
+              color: "white",
+              border: "none",
+              borderRadius: "0.375rem",
+              cursor: "pointer",
+              fontSize: "1rem"
+            },
+            children: "Reload App"
+          }
+        )
+      ] });
+    }
+    return this.props.children;
+  }
+}
+window.onerror = (msg, src, line, col, err) => {
+  console.error("[Renderer] WINDOW ERROR:", msg, src, line, col, err);
+};
+window.onunhandledrejection = (event) => {
+  console.error("[Renderer] UNHANDLED REJECTION:", event.reason);
+};
 client.createRoot(document.getElementById("root")).render(
-  /* @__PURE__ */ jsxRuntimeExports.jsx(React.StrictMode, { children: /* @__PURE__ */ jsxRuntimeExports.jsx(App, {}) })
+  /* @__PURE__ */ jsxRuntimeExports.jsx(React.StrictMode, { children: /* @__PURE__ */ jsxRuntimeExports.jsx(ErrorBoundary, { children: /* @__PURE__ */ jsxRuntimeExports.jsx(App, {}) }) })
 );

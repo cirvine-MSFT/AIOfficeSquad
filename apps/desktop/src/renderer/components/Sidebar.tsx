@@ -1,10 +1,22 @@
 import { ROLE_COLORS, getAvatarColor, type AgentRole } from '../styles/design-tokens'
 import type { AgentInfo } from './AgentCard'
 
+// ── Types (matches Dutch arch doc §C.3) ──
+
+export interface SquadSummary {
+  id: string
+  name: string
+  floor: number
+  memberCount: number
+  activeSessionCount: number
+  status: 'connected' | 'disconnected' | 'error'
+}
+
 interface SidebarProps {
-  squads: string[]
-  selectedSquad: string | null
-  onSelectSquad: (name: string) => void
+  hubName: string
+  squads: SquadSummary[]
+  selectedSquadId: string | null
+  onSelectSquad: (id: string) => void
   agents: AgentInfo[]
   selectedAgent: string | null
   onSelectAgent: (name: string) => void
@@ -28,8 +40,9 @@ function getRoleKey(role: string): AgentRole | null {
 }
 
 export default function Sidebar({
+  hubName,
   squads,
-  selectedSquad,
+  selectedSquadId,
   onSelectSquad,
   agents,
   selectedAgent,
@@ -38,28 +51,42 @@ export default function Sidebar({
 }: SidebarProps) {
   return (
     <aside className="flex flex-col w-sidebar bg-bg-raised border-r border-border overflow-y-auto scrollbar-thin shrink-0 select-none">
-      {/* Squads section */}
-      <div className="p-3">
-        <h2 className="text-xs font-semibold text-text-tertiary uppercase tracking-wider mb-2 px-2">
-          Squads
+      {/* Hub info */}
+      <div className="px-3 pt-3 pb-1">
+        <h2 className="text-xs font-semibold text-text-tertiary uppercase tracking-wider px-2">
+          {hubName}
         </h2>
+      </div>
+
+      {/* Squads section */}
+      <div className="px-3 pb-3">
+        <h3 className="text-xs font-semibold text-text-tertiary uppercase tracking-wider mb-2 px-2">
+          Squads
+        </h3>
         {loading ? (
           <p className="text-sm text-text-tertiary px-2 animate-pulse">Loading...</p>
         ) : squads.length === 0 ? (
           <p className="text-sm text-text-tertiary px-2">No squads found</p>
         ) : (
           <ul className="space-y-0.5">
-            {squads.map((name) => (
-              <li key={name}>
+            {squads.map((squad) => (
+              <li key={squad.id}>
                 <button
-                  onClick={() => onSelectSquad(name)}
-                  className={`w-full text-left px-2 py-1.5 rounded-md text-sm font-medium transition-default ${
-                    selectedSquad === name
-                      ? 'bg-bg-active text-text-primary'
+                  onClick={() => onSelectSquad(squad.id)}
+                  className={`w-full text-left px-2 py-1.5 rounded-md text-sm transition-default ${
+                    selectedSquadId === squad.id
+                      ? 'bg-bg-active text-text-primary font-medium'
                       : 'text-text-secondary hover:bg-bg-hover hover:text-text-primary'
                   }`}
                 >
-                  {name}
+                  <div className="flex items-center justify-between">
+                    <span>{squad.name}</span>
+                    <span className="text-2xs text-text-tertiary">F{squad.floor}</span>
+                  </div>
+                  <div className="text-2xs text-text-tertiary">
+                    {squad.memberCount} member{squad.memberCount !== 1 ? 's' : ''}
+                    {squad.activeSessionCount > 0 && ` · ${squad.activeSessionCount} active`}
+                  </div>
                 </button>
               </li>
             ))}
@@ -68,14 +95,14 @@ export default function Sidebar({
       </div>
 
       {/* Divider */}
-      {selectedSquad && <div className="mx-3 border-t border-border" />}
+      {selectedSquadId && <div className="mx-3 border-t border-border" />}
 
-      {/* Agents section */}
-      {selectedSquad && (
+      {/* Agents section (when squad is selected) */}
+      {selectedSquadId && (
         <div className="p-3 flex-1 overflow-y-auto">
-          <h2 className="text-xs font-semibold text-text-tertiary uppercase tracking-wider mb-2 px-2">
+          <h3 className="text-xs font-semibold text-text-tertiary uppercase tracking-wider mb-2 px-2">
             Agents
-          </h2>
+          </h3>
           {loading ? (
             <p className="text-sm text-text-tertiary px-2 animate-pulse">Loading agents...</p>
           ) : agents.length === 0 ? (
