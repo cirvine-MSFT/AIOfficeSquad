@@ -37,6 +37,16 @@ export const SquadInfoSchema = z.object({
 });
 export type SquadInfo = z.infer<typeof SquadInfoSchema>;
 
+// Decision entry parsed from .squad/decisions.md
+export const DecisionEntrySchema = z.object({
+  timestamp: z.string(),
+  title: z.string(),
+  author: z.string(),
+  content: z.string(),
+  raw: z.string(),
+});
+export type DecisionEntry = z.infer<typeof DecisionEntrySchema>;
+
 // Building overview (all squads)
 export const BuildingOverviewSchema = z.object({
   squads: z.array(z.object({

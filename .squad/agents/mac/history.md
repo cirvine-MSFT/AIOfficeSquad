@@ -12,5 +12,11 @@
 - Agents auto-seeded from .squad/team.md on server startup — no manual spawn needed.
 - Scribe and Ralph are hidden (system agents, not NPCs).
 - Charter + history files injected as personality context when spawning squad agent PTYs.
+- bridgeChatToPty() now loads charter + history from agent's squad member record on first message (Issue #2).
+- Squad agents get a tailored prompt with their charter/role context; non-squad agents keep generic office personality.
+- Chat message events from squad endpoints now include squadId in payload.
+- Decisions API added: GET /api/squads/:squadId/decisions parses decisions.md into structured entries.
+- Decisions file watcher broadcasts decisions.update WS events on change.
+- DecisionEntry type added to shared/src/squad-types.ts.
 - tsc --noEmit has pre-existing TS6059 rootDir errors from cross-workspace imports (not new).
 - Existing /agents/* endpoints still work for backward compat; new endpoints under /api/building/ and /api/squads/.

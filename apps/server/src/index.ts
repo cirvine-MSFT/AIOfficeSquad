@@ -36,6 +36,7 @@ import {
   squadMembersToAgentRecords,
   readAgentCharter,
   readAgentHistory,
+  watchDecisionsFile,
 } from "./building-routes";
 
 const app = express();
@@ -737,25 +738,55 @@ function bridgeChatToPty(agentId: string, text: string) {
 
   let prompt = text;
   if (session.isFirstMessage) {
+    // Check if this is a squad agent with charter/history context
+    let charterContext = "";
+    const squadMatch = agentId.match(/^squad-(.+)-(.+)$/);
+    if (squadMatch) {
+      const [, squadId, memberId] = squadMatch;
+      const squad = buildingState.squads.get(squadId);
+      const member = squad?.members.find((m) => m.id === memberId);
+      if (member) {
+        const charter = readAgentCharter(member.charterPath);
+        const history = readAgentHistory(member.historyPath);
+        if (charter) {
+          charterContext = `\n\nYour charter:\n${charter}`;
+        }
+        if (history) {
+          charterContext += `\n\nYour project history and learnings:\n${history}`;
+        }
+      }
+    }
+
     const personalityLine = session.personality
       ? ` Your personality: ${session.personality}.`
       : "";
-    const context = [
-      `You're joining a virtual office simulation where AI agents work alongside humans.`,
-      `Think of it like a cozy pixel-art coworking space where each agent has their own desk, personality, and expertise.`,
-      `Your identity in this office: "${agentName}".`,
-      `Your workspace: ${session.workingDirectory}.`,
-      personalityLine,
-      `Embrace being ${agentName} — it's your persona here.`,
-      `When asked who you are, you're ${agentName}, a sharp and helpful coworker who's genuinely invested in the project.`,
-      `You're not an assistant floating in the void; you're a colleague sitting at the desk next to mine.`,
-      `Keep it natural: be warm, be direct, have opinions.`,
-      `Say "boss" casually like a friend would, not formally.`,
-      `Think brilliant coworker energy — someone who's excited to dig into problems, pushes back when something seems off, and celebrates wins together.`,
-      `Let's get to work.`,
-    ]
-      .filter(Boolean)
-      .join(" ");
+    const context = charterContext
+      ? [
+          `You are "${agentName}", a squad member in a virtual pixel-art office.`,
+          `Your workspace: ${session.workingDirectory}.`,
+          personalityLine,
+          charterContext,
+          `\nYou're a colleague, not an assistant. Be warm, direct, have opinions. Say "boss" casually. Brilliant coworker energy.`,
+          `Let's get to work.`,
+        ]
+          .filter(Boolean)
+          .join(" ")
+      : [
+          `You're joining a virtual office simulation where AI agents work alongside humans.`,
+          `Think of it like a cozy pixel-art coworking space where each agent has their own desk, personality, and expertise.`,
+          `Your identity in this office: "${agentName}".`,
+          `Your workspace: ${session.workingDirectory}.`,
+          personalityLine,
+          `Embrace being ${agentName} — it's your persona here.`,
+          `When asked who you are, you're ${agentName}, a sharp and helpful coworker who's genuinely invested in the project.`,
+          `You're not an assistant floating in the void; you're a colleague sitting at the desk next to mine.`,
+          `Keep it natural: be warm, be direct, have opinions.`,
+          `Say "boss" casually like a friend would, not formally.`,
+          `Think brilliant coworker energy — someone who's excited to dig into problems, pushes back when something seems off, and celebrates wins together.`,
+          `Let's get to work.`,
+        ]
+          .filter(Boolean)
+          .join(" ");
     prompt = context + " " + text;
     session.isFirstMessage = false;
   }
@@ -1224,7 +1255,7 @@ app.post("/api/squads/:squadId/agents/:agentId/chat", (req, res) => {
     type: "agent.message",
     agentId,
     timestamp: new Date().toISOString(),
-    payload: { text, channel: "task" },
+    payload: { text, channel: "task", squadId },
   };
   applyEvent(msgEvent);
   appendEvent(msgEvent);
@@ -1290,6 +1321,21 @@ wss.on("connection", (socket) => {
   socket.on("close", () => {
     clients.delete(socket);
   });
+});
+
+// ============ Decisions File Watcher ============
+
+watchDecisionsFile(buildingState, (squadId, decisions) => {
+  const event = JSON.stringify({
+    type: "decisions.update",
+    squadId,
+    decisions,
+  });
+  for (const client of clients) {
+    if (client.readyState === WebSocket.OPEN) {
+      client.send(event);
+    }
+  }
 });
 
 // ============ Terminal WSS — connects to agent's existing PTY ============

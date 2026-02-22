@@ -8,9 +8,9 @@
  *   POST /api/squads/:squadId/agents/:agentId/chat — chat with squad agent
  */
 import { Router, type Request, type Response } from "express";
-import { readFileSync, existsSync } from "fs";
+import { readFileSync, existsSync, watchFile, unwatchFile } from "fs";
 import path from "path";
-import type { SquadInfo, SquadMember, SquadOfficeConfig } from "../../../shared/src/squad-types";
+import type { SquadInfo, SquadMember, SquadOfficeConfig, DecisionEntry } from "../../../shared/src/squad-types";
 import { readSquadRoster, watchSquadRoster } from "./squad-reader";
 
 // System agents to skip when auto-populating
@@ -164,6 +164,94 @@ export function readAgentHistory(historyPath: string | undefined): string {
 }
 
 /**
+ * Parse decisions.md into structured decision entries.
+ * Each `### <timestamp>: <title>` section is a decision entry.
+ */
+export function parseDecisionsMd(content: string): DecisionEntry[] {
+  const entries: DecisionEntry[] = [];
+  const headerRe = /^### (\d{4}-\d{2}-\d{2}T[\d:.]+Z?):\s*(.+)$/;
+  const lines = content.split("\n");
+
+  let current: { timestamp: string; title: string; startLine: number } | null = null;
+  let blockLines: string[] = [];
+
+  function flushEntry() {
+    if (!current) return;
+    const raw = blockLines.join("\n").trim();
+    // Extract **By:** field
+    const byMatch = raw.match(/\*\*By:\*\*\s*(.+)/);
+    const author = byMatch ? byMatch[1].trim() : "Unknown";
+    // Content is everything after the **By:** line
+    const contentLines = blockLines
+      .filter((l) => !headerRe.test(l.trim()))
+      .join("\n")
+      .trim();
+    entries.push({
+      timestamp: current.timestamp,
+      title: current.title,
+      author,
+      content: contentLines,
+      raw,
+    });
+  }
+
+  for (const line of lines) {
+    const match = line.trim().match(headerRe);
+    if (match) {
+      flushEntry();
+      current = { timestamp: match[1], title: match[2], startLine: entries.length };
+      blockLines = [line];
+    } else if (current) {
+      // Stop accumulating at `---` separator (marks end of entry)
+      if (/^---\s*$/.test(line.trim())) {
+        flushEntry();
+        current = null;
+        blockLines = [];
+      } else {
+        blockLines.push(line);
+      }
+    }
+  }
+  // Flush last entry if file doesn't end with ---
+  flushEntry();
+
+  return entries;
+}
+
+/**
+ * Watch decisions.md for changes per squad. Calls onUpdate with new entries.
+ */
+export function watchDecisionsFile(
+  state: BuildingState,
+  onUpdate: (squadId: string, decisions: DecisionEntry[]) => void
+): void {
+  for (const [squadId, squad] of state.squads) {
+    const decisionsPath = path.join(squad.path, ".squad", "decisions.md");
+    if (!existsSync(decisionsPath)) continue;
+
+    let lastContent = readFileSync(decisionsPath, "utf-8");
+
+    watchFile(decisionsPath, { interval: 2000 }, () => {
+      try {
+        const newContent = readFileSync(decisionsPath, "utf-8");
+        if (newContent !== lastContent) {
+          lastContent = newContent;
+          const decisions = parseDecisionsMd(newContent);
+          console.log(
+            `[building] decisions.md changed for squad "${squadId}" — ${decisions.length} entries`
+          );
+          onUpdate(squadId, decisions);
+        }
+      } catch (err) {
+        console.error(`[building] Error re-reading decisions.md for ${squadId}:`, err);
+      }
+    });
+
+    console.log(`[building] Watching decisions.md for squad "${squadId}"`);
+  }
+}
+
+/**
  * Create Express router for building/squad endpoints.
  */
 export function createBuildingRouter(state: BuildingState): Router {
@@ -217,6 +305,43 @@ export function createBuildingRouter(state: BuildingState): Router {
       state.rootDir
     );
     res.json(agentRecords);
+  });
+
+  // GET /api/squads/:squadId/decisions — parsed decisions for a squad
+  router.get("/squads/:squadId/decisions", (req: Request, res: Response) => {
+    const squad = state.squads.get(req.params.squadId);
+    if (!squad) {
+      res.status(404).json({ error: "Squad not found" });
+      return;
+    }
+
+    const decisionsPath = path.join(squad.path, ".squad", "decisions.md");
+    if (!existsSync(decisionsPath)) {
+      res.json({ squadId: squad.id, decisions: [] });
+      return;
+    }
+
+    try {
+      const content = readFileSync(decisionsPath, "utf-8");
+      let decisions = parseDecisionsMd(content);
+
+      // Filter by member if requested
+      const memberFilter = req.query.member as string | undefined;
+      if (memberFilter) {
+        decisions = decisions.filter(
+          (d) => d.author.toLowerCase().includes(memberFilter.toLowerCase())
+        );
+      }
+
+      // Apply limit (default 10)
+      const limit = Math.max(1, parseInt(req.query.limit as string, 10) || 10);
+      decisions = decisions.slice(0, limit);
+
+      res.json({ squadId: squad.id, decisions });
+    } catch (err) {
+      console.error(`[building] Error reading decisions.md for ${squad.id}:`, err);
+      res.status(500).json({ error: "Failed to read decisions" });
+    }
   });
 
   return router;
