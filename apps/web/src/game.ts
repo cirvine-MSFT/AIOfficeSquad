@@ -70,6 +70,15 @@ export class PodScene extends Phaser.Scene {
   private inputLocked = false;
   private clockText!: Phaser.GameObjects.Text;
 
+  // Ceremony state
+  private ceremonyActive = false;
+  private ceremonyParticipants: string[] = [];
+  private ceremonyLabel?: Phaser.GameObjects.Text;
+  private conferenceSeats = [
+    { x: 370, y: 200 }, { x: 420, y: 200 }, { x: 470, y: 200 },
+    { x: 370, y: 260 }, { x: 420, y: 260 }, { x: 470, y: 260 },
+  ];
+
   // Pod/squad context
   squadId: string = "";
   squadName: string = "";
@@ -144,6 +153,17 @@ export class PodScene extends Phaser.Scene {
     });
     this.clockText.setOrigin(0.5, 0.5);
     this.clockText.setDepth(-3);
+
+    // Conference area (upper portion of office)
+    const confBg = this.add.rectangle(425, 230, 160, 110, 0x3a3d44);
+    confBg.setStrokeStyle(1, 0x4a4d55);
+    confBg.setDepth(0);
+    const confLabel = this.add.text(425, 168, "Conference", {
+      fontSize: "9px",
+      color: "#6a6d75",
+    });
+    confLabel.setOrigin(0.5, 0.5);
+    confLabel.setDepth(0);
 
     const npcLayer = map.getObjectLayer("NPCs");
     if (npcLayer) {
@@ -705,6 +725,128 @@ export class PodScene extends Phaser.Scene {
       default:
         return "rgba(0,0,0,0.5)";
     }
+  }
+
+  startCeremony(participants: string[], ceremonyType?: string) {
+    this.ceremonyActive = true;
+    this.ceremonyParticipants = participants;
+
+    // Show ceremony label above conference area
+    if (this.ceremonyLabel) this.ceremonyLabel.destroy();
+    const labelText = ceremonyType ? `📋 ${ceremonyType}` : "📋 Ceremony";
+    this.ceremonyLabel = this.add.text(425, 155, labelText, {
+      fontSize: "10px",
+      color: "#d9a441",
+      backgroundColor: "rgba(0,0,0,0.6)",
+      padding: { x: 4, y: 2 },
+    });
+    this.ceremonyLabel.setOrigin(0.5, 0.5);
+    this.ceremonyLabel.setDepth(10);
+
+    // Move each participant to a conference seat
+    participants.forEach((agentId, idx) => {
+      const sprite = this.npcSprites.get(agentId);
+      if (!sprite) return;
+      const seat = this.conferenceSeats[idx % this.conferenceSeats.length];
+      this.tweens.add({
+        targets: sprite,
+        x: seat.x,
+        y: seat.y,
+        duration: 800,
+        ease: "Power2",
+        onComplete: () => {
+          // Face inward (flip sprites on right side)
+          if (seat.x > 420) sprite.setFlipX(true);
+          else sprite.setFlipX(false);
+        },
+      });
+      // Move labels with sprite
+      const label = this.npcLabels.get(agentId);
+      if (label) {
+        const offset = sprite.displayHeight + 6;
+        this.tweens.add({ targets: label, x: seat.x, y: seat.y - offset, duration: 800, ease: "Power2" });
+      }
+      const status = this.npcStatus.get(agentId);
+      if (status) {
+        const offset = sprite.displayHeight + 20;
+        this.tweens.add({ targets: status, x: seat.x, y: seat.y - offset, duration: 800, ease: "Power2" });
+      }
+      const badge = this.npcBadges.get(agentId);
+      if (badge) {
+        const offset = sprite.displayHeight + 32;
+        this.tweens.add({ targets: badge, x: seat.x, y: seat.y - offset, duration: 800, ease: "Power2" });
+      }
+      const summaryText = this.npcSummaryTexts.get(agentId);
+      if (summaryText) {
+        const offset = sprite.displayHeight + 10;
+        this.tweens.add({ targets: summaryText, x: seat.x, y: seat.y - offset, duration: 800, ease: "Power2" });
+      }
+      const typing = this.typingIndicators.get(agentId);
+      if (typing) {
+        const offset = sprite.displayHeight - 6;
+        this.tweens.add({ targets: typing.container, x: seat.x - 6, y: seat.y - offset, duration: 800, ease: "Power2" });
+      }
+    });
+  }
+
+  endCeremony() {
+    this.ceremonyActive = false;
+
+    // Remove ceremony label
+    if (this.ceremonyLabel) {
+      this.ceremonyLabel.destroy();
+      this.ceremonyLabel = undefined;
+    }
+
+    // Tween participants back to their desks
+    this.ceremonyParticipants.forEach((agentId) => {
+      const sprite = this.npcSprites.get(agentId);
+      const desk = this.assignedDesks.get(agentId);
+      if (!sprite || !desk) return;
+
+      this.tweens.add({
+        targets: sprite,
+        x: desk.x,
+        y: desk.y,
+        duration: 600,
+        ease: "Power2",
+        onComplete: () => {
+          if (desk.flip) sprite.setFlipX(true);
+          else sprite.setFlipX(false);
+        },
+      });
+      const label = this.npcLabels.get(agentId);
+      if (label) {
+        const offset = sprite.displayHeight + 6;
+        this.tweens.add({ targets: label, x: desk.x, y: desk.y - offset, duration: 600, ease: "Power2" });
+      }
+      const status = this.npcStatus.get(agentId);
+      if (status) {
+        const offset = sprite.displayHeight + 20;
+        this.tweens.add({ targets: status, x: desk.x, y: desk.y - offset, duration: 600, ease: "Power2" });
+      }
+      const badge = this.npcBadges.get(agentId);
+      if (badge) {
+        const offset = sprite.displayHeight + 32;
+        this.tweens.add({ targets: badge, x: desk.x, y: desk.y - offset, duration: 600, ease: "Power2" });
+      }
+      const summaryText = this.npcSummaryTexts.get(agentId);
+      if (summaryText) {
+        const offset = sprite.displayHeight + 10;
+        this.tweens.add({ targets: summaryText, x: desk.x, y: desk.y - offset, duration: 600, ease: "Power2" });
+      }
+      const typing = this.typingIndicators.get(agentId);
+      if (typing) {
+        const offset = sprite.displayHeight - 6;
+        this.tweens.add({ targets: typing.container, x: desk.x - 6, y: desk.y - offset, duration: 600, ease: "Power2" });
+      }
+    });
+
+    this.ceremonyParticipants = [];
+  }
+
+  isCeremonyActive() {
+    return this.ceremonyActive;
   }
 
   focusOnAgent(agentId: string) {

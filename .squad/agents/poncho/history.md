@@ -28,3 +28,15 @@
   - Pod Status Dashboard: S key toggles overlay in PodScene. Shows all squad members with badge, name, role, status (color-coded pill), summary, and blockers. Click a member row to pan camera to their desk via focusOnAgent().
   - focusOnAgent(agentId) method on PodScene: pans camera to agent's desk, then re-follows player.
   - Dashboard fetches from /api/building/squads/{squadId}, falls back to local agents array.
+- Ceremony Visualization implemented (Issue #7):
+  - Conference area drawn in PodScene upper region (x:350-500, y:180-280) with dark table, border, label.
+  - 6 conference seat positions around the table.
+  - startCeremony(participants, type): tweens NPC sprites+labels from desks to seats (800ms Power2), shows ceremony label.
+  - endCeremony(): tweens NPCs back to desks (600ms), removes label.
+  - isCeremonyActive() getter for external state checks.
+  - C key opens ceremony selection modal in PodScene (Design Review / Retrospective).
+  - Number keys 1/2 select ceremony type, Esc cancels.
+  - POST to /api/squads/{squadId}/ceremonies/{type}, falls back to local all-agents ceremony.
+  - WebSocket ceremony.start/ceremony.end events trigger start/end ceremony.
+  - "End Ceremony" button appears during active ceremony.
+  - CSS styles for ceremony modal and end button in style.css.

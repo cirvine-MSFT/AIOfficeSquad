@@ -986,3 +986,40 @@ body {
 .member-status.error { background: #e05d5d33; color: #e05d5d; }
 .member-summary { color: #888; font-size: 11px; margin-top: 2px; }
 .member-blocker { color: #e05d5d; font-size: 11px; margin-top: 2px; font-weight: 600; }
+
+/* ============ Ceremony Modal (Issue #7) ============ */
+#ceremony-modal {
+  position: fixed;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  background: #1a1b1eee;
+  border: 2px solid #d9a441;
+  border-radius: 12px;
+  padding: 24px;
+  z-index: 100;
+  min-width: 280px;
+  font-family: "Space Grotesk", sans-serif;
+  text-align: center;
+}
+#ceremony-modal.hidden { display: none; }
+.ceremony-title { color: #f5e7c4; font-size: 16px; font-weight: bold; margin-bottom: 16px; }
+.ceremony-option { display: block; width: 100%; padding: 10px; margin: 6px 0; background: #2a2d32; border: 1px solid #3a3d44; border-radius: 8px; color: #f5e7c4; cursor: pointer; font-size: 13px; text-align: left; }
+.ceremony-option:hover { border-color: #d9a441; background: #333640; }
+.ceremony-cancel { color: #888; font-size: 11px; margin-top: 12px; }
+#ceremony-end-btn {
+  position: fixed;
+  bottom: 20px;
+  left: 50%;
+  transform: translateX(-50%);
+  background: #e05d5d;
+  color: white;
+  border: none;
+  padding: 8px 20px;
+  border-radius: 20px;
+  font-size: 13px;
+  cursor: pointer;
+  z-index: 100;
+  font-family: "Space Grotesk", sans-serif;
+}
+#ceremony-end-btn.hidden { display: none; }

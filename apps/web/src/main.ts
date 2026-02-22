@@ -164,6 +164,99 @@ let buildingDashboardOpen = false;
 let statusDashboardOpen = false;
 let statusDashboardEl: HTMLDivElement | null = null;
 
+// ============ Ceremony State (Issue #7) ============
+let ceremonyModalOpen = false;
+let ceremonyActive = false;
+
+function createCeremonyModal(): HTMLDivElement {
+  let el = document.getElementById("ceremony-modal") as HTMLDivElement | null;
+  if (el) return el;
+  el = document.createElement("div");
+  el.id = "ceremony-modal";
+  el.className = "hidden";
+  el.innerHTML = `
+    <div class="ceremony-title">📋 Start Ceremony</div>
+    <button class="ceremony-option" data-type="design-review">[1] Design Review</button>
+    <button class="ceremony-option" data-type="retrospective">[2] Retrospective</button>
+    <div class="ceremony-cancel">Cancel: Esc</div>
+  `;
+  document.body.appendChild(el);
+  el.addEventListener("keydown", (e) => { if (e.key !== "Escape") e.stopPropagation(); });
+  el.addEventListener("keyup", (e) => e.stopPropagation());
+  el.querySelectorAll(".ceremony-option").forEach(btn => {
+    btn.addEventListener("click", () => {
+      const type = (btn as HTMLElement).dataset.type!;
+      closeCeremonyModal();
+      triggerCeremony(type);
+    });
+  });
+  return el;
+}
+
+function createCeremonyEndBtn(): HTMLButtonElement {
+  let el = document.getElementById("ceremony-end-btn") as HTMLButtonElement | null;
+  if (el) return el;
+  el = document.createElement("button");
+  el.id = "ceremony-end-btn";
+  el.className = "hidden";
+  el.textContent = "End Ceremony";
+  document.body.appendChild(el);
+  el.addEventListener("click", () => endCeremonyUI());
+  return el;
+}
+
+function openCeremonyModal() {
+  ceremonyModalOpen = true;
+  const el = createCeremonyModal();
+  el.classList.remove("hidden");
+  scene.lockInput(true);
+}
+
+function closeCeremonyModal() {
+  ceremonyModalOpen = false;
+  const el = document.getElementById("ceremony-modal");
+  if (el) el.classList.add("hidden");
+  scene.lockInput(false);
+}
+
+async function triggerCeremony(type: string) {
+  const squadId = podScene.squadId || "default";
+  try {
+    const res = await fetch(`${SERVER_URL}/api/squads/${squadId}/ceremonies/${type}`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+    });
+    if (res.ok) {
+      const data = await res.json();
+      const participants: string[] = data.participants ?? agents.map(a => a.agentId);
+      const label = type.replace(/-/g, " ").replace(/\b\w/g, c => c.toUpperCase());
+      podScene.startCeremony(participants, label);
+      ceremonyActive = true;
+      createCeremonyEndBtn().classList.remove("hidden");
+    } else {
+      // API may not exist yet — start ceremony locally with all agents
+      const participants = agents.map(a => a.agentId);
+      const label = type.replace(/-/g, " ").replace(/\b\w/g, c => c.toUpperCase());
+      podScene.startCeremony(participants, label);
+      ceremonyActive = true;
+      createCeremonyEndBtn().classList.remove("hidden");
+    }
+  } catch {
+    // Fallback: start ceremony locally
+    const participants = agents.map(a => a.agentId);
+    const label = type.replace(/-/g, " ").replace(/\b\w/g, c => c.toUpperCase());
+    podScene.startCeremony(participants, label);
+    ceremonyActive = true;
+    createCeremonyEndBtn().classList.remove("hidden");
+  }
+}
+
+function endCeremonyUI() {
+  ceremonyActive = false;
+  podScene.endCeremony();
+  createCeremonyEndBtn().classList.add("hidden");
+}
+
 function createStatusDashboard(): HTMLDivElement {
   if (statusDashboardEl) return statusDashboardEl;
   const el = document.createElement("div");
@@ -739,6 +832,10 @@ window.addEventListener("keydown", (event) => {
   const isTyping = active?.tagName === "INPUT" || active?.tagName === "TEXTAREA" || active?.tagName === "SELECT";
 
   if (event.key === "Escape") {
+    if (ceremonyModalOpen) {
+      closeCeremonyModal();
+      return;
+    }
     if (statusDashboardOpen) {
       toggleStatusDashboard();
       return;
@@ -767,6 +864,23 @@ window.addEventListener("keydown", (event) => {
 
   // When typing in any input, let keys pass through
   if (isTyping) {
+    return;
+  }
+
+  // Number keys 1-2 for ceremony selection when modal is open
+  if (ceremonyModalOpen) {
+    if (event.key === "1") {
+      event.preventDefault();
+      closeCeremonyModal();
+      triggerCeremony("design-review");
+      return;
+    }
+    if (event.key === "2") {
+      event.preventDefault();
+      closeCeremonyModal();
+      triggerCeremony("retrospective");
+      return;
+    }
     return;
   }
 
@@ -836,6 +950,15 @@ window.addEventListener("keydown", (event) => {
     if (activeScene?.scene.key === "PodScene") {
       event.preventDefault();
       toggleStatusDashboard();
+    }
+  }
+
+  // C key: open Ceremony modal (Issue #7) — only in PodScene
+  if (event.key.toLowerCase() === "c" && !currentAgentId && !roomChatMode) {
+    const activeScene = game.scene.getScenes(true)[0];
+    if (activeScene?.scene.key === "PodScene") {
+      event.preventDefault();
+      openCeremonyModal();
     }
   }
 }, true); // Capture phase - fires before Phaser
@@ -960,6 +1083,19 @@ function applyEvent(event: EventEnvelope) {
   // Auto-refresh decisions panel on decisions.update event (Issue #3)
   if (event.type === "decisions.update" && decisionsPanelOpen) {
     fetchDecisions();
+  }
+
+  // Ceremony events (Issue #7)
+  if (event.type === "ceremony.start") {
+    const payload = event.payload as any;
+    const participants: string[] = payload.participants ?? agents.map(a => a.agentId);
+    const label = payload.ceremonyType || payload.type || "Ceremony";
+    podScene.startCeremony(participants, label);
+    ceremonyActive = true;
+    createCeremonyEndBtn().classList.remove("hidden");
+  }
+  if (event.type === "ceremony.end") {
+    endCeremonyUI();
   }
 }
 
