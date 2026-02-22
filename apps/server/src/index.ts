@@ -30,6 +30,13 @@ import {
   realpathSync
 } from "fs";
 import { randomUUID } from "crypto";
+import {
+  initBuildingState,
+  createBuildingRouter,
+  squadMembersToAgentRecords,
+  readAgentCharter,
+  readAgentHistory,
+} from "./building-routes";
 
 const app = express();
 app.use(cors());
@@ -1107,6 +1114,123 @@ app.post("/agents/spawn", (req, res) => {
   }
 
   res.json({ ok: true, agentId, message: `Agent "${name}" spawned in ${workingDirectory}` });
+});
+
+// ============ Building / Squad System ============
+
+const buildingState = initBuildingState(rootDir);
+
+// Mount building API routes under /api
+app.use("/api", createBuildingRouter(buildingState));
+
+// Auto-populate agents from squad roster on startup
+function seedAgentsFromSquads() {
+  for (const [squadId, squad] of buildingState.squads) {
+    const records = squadMembersToAgentRecords(squadId, squad.members, rootDir);
+    for (const record of records) {
+      const existing = agents.find((a) => a.agentId === record.agentId);
+      if (!existing) {
+        agents.push({
+          agentId: record.agentId,
+          name: record.name,
+          desk: record.desk,
+          status: record.status,
+          summary: record.summary,
+          position: record.position,
+          cliType: record.cliType,
+          workingDirectory: record.workingDirectory,
+          messages: [],
+          lastSeen: record.lastSeen,
+        });
+      }
+    }
+  }
+  persistAgents();
+  console.log(`[building] Seeded ${agents.length} agents from squad rosters`);
+}
+
+seedAgentsFromSquads();
+
+// Squad-scoped agent endpoints (aliases to default squad for now)
+app.get("/api/squads/:squadId/agents/:agentId", (req, res) => {
+  const agent = agents.find((a) => a.agentId === req.params.agentId);
+  if (!agent) {
+    res.status(404).json({ error: "Agent not found" });
+    return;
+  }
+  res.json(agent);
+});
+
+// Squad-aware chat: spawns agent with charter context if not already running
+app.post("/api/squads/:squadId/agents/:agentId/chat", (req, res) => {
+  const { squadId, agentId } = req.params;
+  const { text } = req.body;
+
+  if (!text || typeof text !== "string") {
+    res.status(400).json({ error: "Missing text field" });
+    return;
+  }
+
+  const agent = agents.find((a) => a.agentId === agentId);
+  if (!agent) {
+    res.status(404).json({ error: "Agent not found" });
+    return;
+  }
+
+  const squad = buildingState.squads.get(squadId);
+  const member = squad?.members.find((m) => `squad-${squadId}-${m.id}` === agentId);
+
+  // If no PTY exists yet, spawn one with charter as context
+  if (!agentPtys.has(agentId) && agent.workingDirectory) {
+    const charter = member ? readAgentCharter(member.charterPath) : "";
+    const history = member ? readAgentHistory(member.historyPath) : "";
+    const personality = charter
+      ? `Charter:\n${charter}${history ? `\n\nHistory:\n${history}` : ""}`
+      : "";
+
+    // Detect available CLI (same logic as existing spawn)
+    const cliType = agent.cliType || "copilot-cli";
+    console.log(`[squad-chat:${agentId}] Spawning PTY with charter context`);
+    const session = createAgentPty(agentId, agent.workingDirectory, cliType, personality, false);
+    if (!session) {
+      res.status(500).json({ error: "Failed to spawn agent PTY" });
+      return;
+    }
+
+    // Wait for CLI to be ready, then send the message
+    let sent = false;
+    const readyCheck = setInterval(() => {
+      if (sent) { clearInterval(readyCheck); return; }
+      if (session.scrollback.length > 0) {
+        sent = true;
+        clearInterval(readyCheck);
+        setTimeout(() => bridgeChatToPty(agentId, text), 1000);
+      }
+    }, 500);
+    setTimeout(() => {
+      if (!sent) {
+        sent = true;
+        clearInterval(readyCheck);
+        bridgeChatToPty(agentId, text);
+      }
+    }, 8000);
+  } else {
+    // PTY already exists, just send the message
+    bridgeChatToPty(agentId, text);
+  }
+
+  // Post the user message event
+  const msgEvent: EventEnvelope = {
+    type: "agent.message",
+    agentId,
+    timestamp: new Date().toISOString(),
+    payload: { text, channel: "task" },
+  };
+  applyEvent(msgEvent);
+  appendEvent(msgEvent);
+  broadcast(msgEvent);
+
+  res.json({ ok: true, agentId });
 });
 
 // ============ HTTP Server + WebSocket ============

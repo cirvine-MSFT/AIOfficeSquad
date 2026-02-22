@@ -1,0 +1,5 @@
+{
+  "squads": [
+    { "id": "default", "name": "Alpha Squad", "path": "." }
+  ]
+}
