@@ -40,3 +40,12 @@
   - WebSocket ceremony.start/ceremony.end events trigger start/end ceremony.
   - "End Ceremony" button appears during active ceremony.
   - CSS styles for ceremony modal and end button in style.css.
+- Desktop Electron app — renderer UI built (apps/desktop/src/renderer/):
+  - Full 3-panel layout: Header (48px) | Sidebar(280px) + MainContent(flex) + ChatPanel(320px) | StatusBar(32px).
+  - 8 React components: Header, Sidebar, BuildingView, PodView, AgentCard, ChatPanel, StreamingOutput, StatusBar.
+  - All components use Tailwind classes from Hawkins' design system (design-tokens, role colors, status dots, animations).
+  - App.tsx manages all state: connection, squads, roster, agent selection, chat sessions, streaming text, usage tracking.
+  - Communicates via window.squadAPI (preload contextBridge) — connect, createSession, sendMessage, onStreamDelta, onStreamUsage.
+  - Keyboard shortcuts: Escape to deselect, 1-9 to select agents.
+  - Error banner for failed operations, loading states for connect/send.
+  - Renderer types mirrored in src/renderer/types.ts (can't import from main/ due to rootDir boundary in tsconfig).

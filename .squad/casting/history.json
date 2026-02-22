@@ -9,7 +9,8 @@
         { "name": "Poncho", "role": "Frontend Dev" },
         { "name": "Mac", "role": "Backend Dev" },
         { "name": "Blain", "role": "Tester" },
-        { "name": "Billy", "role": "Squad Expert" }
+        { "name": "Billy", "role": "Squad Expert" },
+        { "name": "Hawkins", "role": "UI/Design" }
       ]
     }
   ]

@@ -10,6 +10,7 @@
     "apps/web",
     "apps/server",
     "apps/officeagent",
+    "apps/desktop",
     "shared"
   ],
   "scripts": {
@@ -28,5 +29,8 @@
   "devDependencies": {
     "@playwright/test": "^1.58.2",
     "playwright": "^1.58.2"
+  },
+  "dependencies": {
+    "@bradygaster/squad-sdk": "^0.8.2"
   }
 }

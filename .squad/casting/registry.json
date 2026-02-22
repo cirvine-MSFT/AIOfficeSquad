@@ -39,6 +39,14 @@
       "created_at": "2026-02-22T03:46:00Z",
       "legacy_named": false,
       "status": "active"
+    },
+    {
+      "persistent_name": "Hawkins",
+      "universe": "predator",
+      "role": "UI/Design",
+      "created_at": "2026-02-22T17:45:00Z",
+      "legacy_named": false,
+      "status": "active"
     }
   ]
 }

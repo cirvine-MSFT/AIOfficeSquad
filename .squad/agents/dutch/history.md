@@ -80,3 +80,22 @@
 **Server architecture:** New modules: BuildingManager (loads config, manages squads), SquadManager (per-squad state, roster, file watching). Existing agent management becomes squad-scoped.
 
 **Written to:** `.squad/decisions/inbox/dutch-building-architecture.md`
+
+### 2026-02-22: Phase 5 Planning — Productivity UX Overhaul
+**What changed:** Casey directed a fundamental product shift: remove video game walking, add instant click/hotkey navigation, make chat and terminal actually work end-to-end. This is a product-direction shift from "walk-around novelty" to "command-center productivity tool."
+
+**Issues created:** #18–#25 (8 issues across two sub-phases)
+- **Phase 5a (Navigation & Core UX):** #18 instant pod nav, #19 instant agent selection, #20 unified chat panel, #21 label overlap fix, #22 roster sidebar + shortcut overhaul
+- **Phase 5b (Working Features):** #23 agent PTY spawning, #24 terminal end-to-end, #25 chat round-trip
+
+**Architecture decisions:**
+- Decouple interaction from spatial proximity (click/hotkey replaces walk-up)
+- Unified chat panel with target selector replaces separate R-key/E-key modes
+- Player sprite becomes optional decoration, not required for navigation
+- Roster sidebar is pure HTML/CSS reading existing API data
+- PTY/terminal/chat pipeline exists — Phase 5b connects the dots and verifies it works
+- All Phase 0-4 work preserved; changes are additive or refactoring existing triggers
+
+**Dependency chain:** #21 (bug fix) first → #18/#19 parallel → #20 → #22. Backend: #23 first → #24/#25 parallel.
+
+**Written to:** `.squad/decisions/inbox/dutch-phase5-planning.md`

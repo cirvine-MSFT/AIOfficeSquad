@@ -3,8 +3,8 @@
 ## Project Context
 
 **Project:** AI Office Squad — Adapt the AIOffice pixel-art walkable office for Squad teams
-**Stack:** TypeScript, Node.js, Phaser 3, Express, WebSocket, Vite
-**What it does:** A pixel-art office where you can walk around, chat with your squad members, see what they're working on, run team ceremonies, and manage work — all visualized as an interactive office environment.
+**Stack:** TypeScript, Electron, React, Tailwind CSS, @bradygaster/squad-sdk, xterm.js
+**What it does:** A native desktop app for managing AI agent squads — view teams as office pods, chat with agents, see real-time streaming output, track decisions and costs. Built on the Squad SDK for programmatic multi-agent orchestration via GitHub Copilot.
 **User:** Casey Irvine
 **Source repos:**
 - Fork: https://github.com/cirvine-MSFT/AIOfficeSquad (forked from ChristianFJung/AIOffice)
@@ -19,7 +19,8 @@
 | Poncho | Frontend Dev | Phaser UI, pixel-art office, web app | ⚛️ Frontend |
 | Mac | Backend Dev | Express server, PTY management, squad integration | 🔧 Backend |
 | Blain | Tester | Playwright tests, quality, edge cases | 🧪 Tester |
-| Billy | Squad Expert | Squad CLI, .squad/ structure, agent protocol | 🔍 Domain |
+| Billy | Squad Expert | Squad SDK, .squad/ structure, agent protocol | 🔍 Domain |
+| Hawkins | UI/Design | Design system, color palette, component styling, UX | 🎨 Design |
 | Scribe | Session Logger | Memory, decisions, session logs | 📋 Scribe |
 | Ralph | Work Monitor | Work queue, backlog, keep-alive | 🔄 Monitor |
 

@@ -21,3 +21,12 @@
 - Enhanced squad status endpoint: GET /api/squads/:squadId/status returns members with live agent cross-reference, blockers, active ceremony, decision count.
 - createBuildingRouter now accepts opts param for getAgents() and broadcast() wiring from index.ts.
 - In-memory activeCeremonies map tracks running ceremonies; ceremony.start/end broadcast over WebSocket.
+- Electron desktop app scaffold created at apps/desktop/ using electron-vite + React.
+- Main process (src/main/) owns all Squad SDK state; renderer communicates via typed IPC.
+- SquadRuntime class wraps SquadClientWithPool, EventBus, StreamingPipeline, RalphMonitor lifecycle.
+- IPC channels: 12 invoke (renderer→main) + 4 push (main→renderer) with IpcResult<T> error wrapping.
+- squad-sdk is ESM-only; main process uses dynamic import() for subpath exports.
+- types.ts defines shared IpcInvokeChannels/IpcPushChannels maps — single source of truth for channel contracts.
+- @electron-toolkit/utils used for `is.dev` check and ELECTRON_RENDERER_URL loading.
+- Preload exposes `window.squadAPI` via contextBridge with unsubscribe-returning event listeners.
+- Poncho's pre-existing tailwind.config.ts and postcss.config.js in apps/desktop/ — no conflicts with backend scaffold.
