@@ -22,3 +22,11 @@
 | Billy | Squad Expert | Squad CLI, .squad/ structure, agent protocol | 🔍 Domain |
 | Scribe | Session Logger | Memory, decisions, session logs | 📋 Scribe |
 | Ralph | Work Monitor | Work queue, backlog, keep-alive | 🔄 Monitor |
+
+## Issue Source
+
+| Field | Value |
+|-------|-------|
+| **Repository** | cirvine-MSFT/AIOfficeSquad |
+| **Connected** | 2026-02-22 |
+| **Filters** | state:open |
