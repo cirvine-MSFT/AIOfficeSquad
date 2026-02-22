@@ -1151,8 +1151,15 @@ app.post("/agents/spawn", (req, res) => {
 
 const buildingState = initBuildingState(rootDir);
 
-// Mount building API routes under /api
-app.use("/api", createBuildingRouter(buildingState));
+// Mount building API routes under /api (broadcast and agents wired up after declaration)
+let buildingRouter: ReturnType<typeof createBuildingRouter> | null = null;
+function mountBuildingRoutes() {
+  buildingRouter = createBuildingRouter(buildingState, {
+    getAgents: () => agents,
+    broadcast: (event) => broadcast(event),
+  });
+  app.use("/api", buildingRouter);
+}
 
 // Auto-populate agents from squad roster on startup
 function seedAgentsFromSquads() {
@@ -1282,6 +1289,9 @@ function broadcast(event: EventEnvelope) {
     }
   }
 }
+
+// Now that broadcast is defined, mount building routes with full wiring
+mountBuildingRoutes();
 
 wss.on("connection", (socket) => {
   clients.add(socket);

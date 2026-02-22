@@ -14,9 +14,10 @@
 - Charter + history files injected as personality context when spawning squad agent PTYs.
 - bridgeChatToPty() now loads charter + history from agent's squad member record on first message (Issue #2).
 - Squad agents get a tailored prompt with their charter/role context; non-squad agents keep generic office personality.
-- Chat message events from squad endpoints now include squadId in payload.
-- Decisions API added: GET /api/squads/:squadId/decisions parses decisions.md into structured entries.
-- Decisions file watcher broadcasts decisions.update WS events on change.
-- DecisionEntry type added to shared/src/squad-types.ts.
-- tsc --noEmit has pre-existing TS6059 rootDir errors from cross-workspace imports (not new).
-- Existing /agents/* endpoints still work for backward compat; new endpoints under /api/building/ and /api/squads/.
+- Ceremony API added: POST /api/squads/:squadId/ceremonies/:type (start) and POST .../ceremonies/:ceremonyId/end (end).
+- parseCeremoniesMd() parses .squad/ceremonies.md into structured CeremonyConfig objects.
+- CeremonyType, CeremonyState, CeremonyConfig types added to shared/src/squad-types.ts.
+- EventTypeSchema extended with "ceremony.start", "ceremony.end", "decisions.update" in shared/src/schema.ts.
+- Enhanced squad status endpoint: GET /api/squads/:squadId/status returns members with live agent cross-reference, blockers, active ceremony, decision count.
+- createBuildingRouter now accepts opts param for getAgents() and broadcast() wiring from index.ts.
+- In-memory activeCeremonies map tracks running ceremonies; ceremony.start/end broadcast over WebSocket.

@@ -47,6 +47,33 @@ export const DecisionEntrySchema = z.object({
 });
 export type DecisionEntry = z.infer<typeof DecisionEntrySchema>;
 
+// Ceremony types
+export type CeremonyType = "design-review" | "retro";
+
+export const CeremonyStateSchema = z.object({
+  ceremonyId: z.string(),
+  type: z.enum(["design-review", "retro"]),
+  squadId: z.string(),
+  participants: z.array(z.string()),
+  startedAt: z.string(),
+  active: z.boolean(),
+});
+export type CeremonyState = z.infer<typeof CeremonyStateSchema>;
+
+// Ceremony config parsed from .squad/ceremonies.md
+export interface CeremonyConfig {
+  type: CeremonyType;
+  name: string;
+  trigger: string;
+  when: string;
+  condition: string;
+  facilitator: string;
+  participants: string;
+  timeBudget: string;
+  enabled: boolean;
+  agenda: string[];
+}
+
 // Building overview (all squads)
 export const BuildingOverviewSchema = z.object({
   squads: z.array(z.object({

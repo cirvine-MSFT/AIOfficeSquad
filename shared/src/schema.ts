@@ -34,7 +34,10 @@ export const EventTypeSchema = z.enum([
   "agent.message",
   "agent.position",
   "task.assign",
-  "snapshot"
+  "snapshot",
+  "ceremony.start",
+  "ceremony.end",
+  "decisions.update"
 ]);
 export type EventType = z.infer<typeof EventTypeSchema>;
 

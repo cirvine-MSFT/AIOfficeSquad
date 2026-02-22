@@ -2,15 +2,21 @@
  * building-routes.ts — REST endpoints for multi-squad building model.
  *
  * Endpoints:
- *   GET  /api/building/squads           — list all squads
- *   GET  /api/building/squads/:squadId  — squad details (roster, status)
- *   GET  /api/squads/:squadId/agents    — agents for a squad
- *   POST /api/squads/:squadId/agents/:agentId/chat — chat with squad agent
+ *   GET  /api/building/squads                              — list all squads
+ *   GET  /api/building/squads/:squadId                     — squad details (roster, status)
+ *   GET  /api/squads/:squadId/agents                       — agents for a squad
+ *   GET  /api/squads/:squadId/decisions                    — parsed decisions
+ *   GET  /api/squads/:squadId/status                       — detailed squad status
+ *   POST /api/squads/:squadId/ceremonies/:type             — start a ceremony
+ *   POST /api/squads/:squadId/ceremonies/:ceremonyId/end   — end a ceremony
+ *   POST /api/squads/:squadId/agents/:agentId/chat         — chat with squad agent
  */
 import { Router, type Request, type Response } from "express";
 import { readFileSync, existsSync, watchFile, unwatchFile } from "fs";
 import path from "path";
-import type { SquadInfo, SquadMember, SquadOfficeConfig, DecisionEntry } from "../../../shared/src/squad-types";
+import { randomUUID } from "crypto";
+import type { SquadInfo, SquadMember, SquadOfficeConfig, DecisionEntry, CeremonyConfig, CeremonyType, CeremonyState } from "../../../shared/src/squad-types";
+import type { EventEnvelope } from "../../../shared/src/schema";
 import { readSquadRoster, watchSquadRoster } from "./squad-reader";
 
 // System agents to skip when auto-populating
@@ -252,9 +258,102 @@ export function watchDecisionsFile(
 }
 
 /**
+ * Parse ceremonies.md into structured ceremony configs.
+ * Each `## <Name>` section with a table of fields is a ceremony.
+ */
+export function parseCeremoniesMd(content: string): CeremonyConfig[] {
+  const configs: CeremonyConfig[] = [];
+  const sections = content.split(/^## /m).slice(1); // skip preamble
+
+  for (const section of sections) {
+    const lines = section.split("\n");
+    const name = lines[0].trim();
+
+    // Map ceremony name to type
+    let type: CeremonyType;
+    const nameLower = name.toLowerCase();
+    if (nameLower.includes("design review")) {
+      type = "design-review";
+    } else if (nameLower.includes("retro")) {
+      type = "retro";
+    } else {
+      continue; // unknown ceremony type, skip
+    }
+
+    // Parse table fields
+    const fields: Record<string, string> = {};
+    for (const line of lines) {
+      const tableMatch = line.match(/^\|\s*\*\*(.+?)\*\*\s*\|\s*(.+?)\s*\|$/);
+      if (tableMatch) {
+        fields[tableMatch[1].toLowerCase()] = tableMatch[2].trim();
+      }
+    }
+
+    // Parse agenda items
+    const agenda: string[] = [];
+    let inAgenda = false;
+    for (const line of lines) {
+      if (line.includes("**Agenda:**")) {
+        inAgenda = true;
+        continue;
+      }
+      if (inAgenda) {
+        const itemMatch = line.match(/^\d+\.\s+(.+)/);
+        if (itemMatch) {
+          agenda.push(itemMatch[1].trim());
+        } else if (line.trim() === "" || line.startsWith("---")) {
+          inAgenda = false;
+        }
+      }
+    }
+
+    const enabled = (fields["enabled"] || "").includes("yes");
+
+    configs.push({
+      type,
+      name,
+      trigger: fields["trigger"] || "manual",
+      when: fields["when"] || "before",
+      condition: fields["condition"] || "",
+      facilitator: fields["facilitator"] || "lead",
+      participants: fields["participants"] || "all-relevant",
+      timeBudget: fields["time budget"] || "focused",
+      enabled,
+      agenda,
+    });
+  }
+
+  return configs;
+}
+
+// In-memory ceremony state
+const activeCeremonies = new Map<string, CeremonyState>();
+
+/**
+ * Agent record shape (matches index.ts AgentRecord for cross-referencing).
+ */
+interface AgentRecordRef {
+  agentId: string;
+  name?: string;
+  status?: string;
+  summary?: string;
+  lastSeen?: string;
+  squadId?: string;
+  squadRole?: string;
+  squadBadge?: string;
+  squadScope?: string;
+}
+
+/**
  * Create Express router for building/squad endpoints.
  */
-export function createBuildingRouter(state: BuildingState): Router {
+export function createBuildingRouter(
+  state: BuildingState,
+  opts?: {
+    getAgents?: () => AgentRecordRef[];
+    broadcast?: (event: EventEnvelope) => void;
+  }
+): Router {
   const router = Router();
 
   // GET /api/building/squads — list all squads
@@ -342,6 +441,179 @@ export function createBuildingRouter(state: BuildingState): Router {
       console.error(`[building] Error reading decisions.md for ${squad.id}:`, err);
       res.status(500).json({ error: "Failed to read decisions" });
     }
+  });
+
+  // POST /api/squads/:squadId/ceremonies/:type — Start a ceremony
+  router.post("/squads/:squadId/ceremonies/:type", (req: Request, res: Response) => {
+    const { squadId } = req.params;
+    const ceremonyType = req.params.type as string;
+
+    if (ceremonyType !== "design-review" && ceremonyType !== "retro") {
+      res.status(400).json({ error: `Invalid ceremony type: ${ceremonyType}. Must be "design-review" or "retro".` });
+      return;
+    }
+
+    const squad = state.squads.get(squadId);
+    if (!squad) {
+      res.status(404).json({ error: "Squad not found" });
+      return;
+    }
+
+    // Read ceremony config
+    const ceremoniesPath = path.join(squad.path, ".squad", "ceremonies.md");
+    let participants: string[] = squad.members.map((m) => m.name);
+
+    if (existsSync(ceremoniesPath)) {
+      try {
+        const content = readFileSync(ceremoniesPath, "utf-8");
+        const configs = parseCeremoniesMd(content);
+        const config = configs.find((c) => c.type === ceremonyType);
+        if (config && !config.enabled) {
+          res.status(400).json({ error: `Ceremony "${ceremonyType}" is not enabled` });
+          return;
+        }
+        // If participants config says "all-relevant" or "all-involved", use all members
+        // Otherwise, use all members as default
+      } catch (err) {
+        console.error(`[building] Error reading ceremonies.md for ${squadId}:`, err);
+      }
+    }
+
+    const ceremonyId = randomUUID();
+    const startedAt = new Date().toISOString();
+
+    const ceremony: CeremonyState = {
+      ceremonyId,
+      type: ceremonyType as CeremonyType,
+      squadId,
+      participants,
+      startedAt,
+      active: true,
+    };
+
+    activeCeremonies.set(ceremonyId, ceremony);
+
+    // Broadcast WebSocket event
+    if (opts?.broadcast) {
+      opts.broadcast({
+        type: "ceremony.start",
+        agentId: "system",
+        timestamp: startedAt,
+        payload: { squadId, ceremonyType, participants },
+      });
+    }
+
+    console.log(`[building] Ceremony "${ceremonyType}" started for squad "${squadId}" — ${participants.length} participants`);
+
+    res.json({
+      ceremonyId,
+      type: ceremonyType,
+      participants,
+      startedAt,
+    });
+  });
+
+  // POST /api/squads/:squadId/ceremonies/:ceremonyId/end — End a ceremony
+  router.post("/squads/:squadId/ceremonies/:ceremonyId/end", (req: Request, res: Response) => {
+    const { squadId, ceremonyId } = req.params;
+
+    const squad = state.squads.get(squadId);
+    if (!squad) {
+      res.status(404).json({ error: "Squad not found" });
+      return;
+    }
+
+    const ceremony = activeCeremonies.get(ceremonyId);
+    if (!ceremony) {
+      res.status(404).json({ error: "Ceremony not found" });
+      return;
+    }
+
+    if (ceremony.squadId !== squadId) {
+      res.status(400).json({ error: "Ceremony does not belong to this squad" });
+      return;
+    }
+
+    ceremony.active = false;
+    activeCeremonies.delete(ceremonyId);
+
+    // Broadcast WebSocket event
+    if (opts?.broadcast) {
+      opts.broadcast({
+        type: "ceremony.end",
+        agentId: "system",
+        timestamp: new Date().toISOString(),
+        payload: { squadId, ceremonyId },
+      });
+    }
+
+    console.log(`[building] Ceremony "${ceremony.type}" ended for squad "${squadId}"`);
+
+    res.json({ ok: true, ceremonyId, squadId });
+  });
+
+  // GET /api/squads/:squadId/status — Detailed squad status
+  router.get("/squads/:squadId/status", (req: Request, res: Response) => {
+    const { squadId } = req.params;
+    const squad = state.squads.get(squadId);
+    if (!squad) {
+      res.status(404).json({ error: "Squad not found" });
+      return;
+    }
+
+    const liveAgents = opts?.getAgents?.() ?? [];
+
+    // Cross-reference squad members with live agent records
+    const members = squad.members.map((m) => {
+      const agentId = `squad-${squadId}-${m.id}`;
+      const liveAgent = liveAgents.find((a) => a.agentId === agentId);
+
+      const blockers: string[] = [];
+      const agentStatus = liveAgent?.status ?? m.status ?? "available";
+      if (agentStatus === "error") blockers.push("Agent in error state");
+      if (agentStatus === "blocked") blockers.push("Agent is blocked");
+
+      return {
+        id: m.id,
+        name: m.name,
+        role: m.role,
+        badge: m.badge,
+        status: agentStatus,
+        summary: m.scope,
+        lastActivity: liveAgent?.lastSeen ?? new Date().toISOString(),
+        blockers,
+      };
+    });
+
+    // Find active ceremony for this squad
+    let activeCeremony: CeremonyState | null = null;
+    for (const c of activeCeremonies.values()) {
+      if (c.squadId === squadId && c.active) {
+        activeCeremony = c;
+        break;
+      }
+    }
+
+    // Count recent decisions
+    let recentDecisions = 0;
+    const decisionsPath = path.join(squad.path, ".squad", "decisions.md");
+    if (existsSync(decisionsPath)) {
+      try {
+        const content = readFileSync(decisionsPath, "utf-8");
+        const decisions = parseDecisionsMd(content);
+        recentDecisions = decisions.length;
+      } catch {
+        // ignore read errors
+      }
+    }
+
+    res.json({
+      squadId: squad.id,
+      squadName: squad.name,
+      members,
+      activeCeremony,
+      recentDecisions,
+    });
   });
 
   return router;
