@@ -15,3 +15,9 @@
   - Room mode shows green "Room" badge in panel, distinct from agent chat.
 - Pre-existing TS strict errors (10 count) in game.ts/main.ts — null-safety issues from original code, not introduced by us.
 - Vite build succeeds fine despite TS strict errors (Vite uses esbuild, not tsc).
+- Phase 2 frontend features implemented (Issues #3, #16, #17):
+  - Decisions Panel: D key toggles slide-in panel in PodScene. Fetches from /api/squads/{squadId}/decisions. Auto-refreshes on WS decisions.update events.
+  - Building Dashboard: Tab key toggles centered overlay in BuildingScene. Shows squad cards with activity status, member chips. Click to enter pod.
+  - Pod Previews: Mini colored circles in BuildingScene pods. Role-based colors (Lead=gold, Frontend=blue, Backend=green, Tester=red). Pulsing animation for active members. 30s periodic refresh from API.
+  - D key scoped to PodScene only (avoids WASD conflict in BuildingScene). Tab scoped to BuildingScene only.
+  - All features degrade gracefully when API endpoints aren't ready yet.

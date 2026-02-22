@@ -44,7 +44,7 @@
       </div>
       <div id="hud" class="hud">
         <div class="hud-title">AIOffice</div>
-        <div class="hud-subtitle">WASD to move. E to talk. R for room chat. 1-9 to jump to agent. Esc to close.</div>
+        <div class="hud-subtitle">WASD to move. E to talk. R for room chat. D for decisions. 1-9 to jump. Tab for dashboard.</div>
       </div>
       <div id="audio-controls" class="audio-controls">
         <button id="audio-play" class="audio-btn" aria-label="Play music">
@@ -67,6 +67,29 @@
         <span id="top-banner-text"></span>
         <button id="top-banner-close" class="top-banner-close" aria-label="Dismiss">×</button>
       </div>
+      <!-- Decisions Panel (Issue #3) -->
+      <div id="decisions-panel" class="decisions-panel" role="dialog" aria-label="Team Decisions">
+        <div class="decisions-panel-header">
+          <h2>📋 Team Decisions</h2>
+          <button class="decisions-panel-close" id="decisions-panel-close" aria-label="Close">×</button>
+        </div>
+        <div id="decisions-list" class="decisions-list">
+          <div class="decisions-empty">No decisions yet</div>
+        </div>
+      </div>
+
+      <!-- Building Dashboard (Issue #16) -->
+      <div id="building-dashboard" class="building-dashboard" role="dialog" aria-label="Building Dashboard">
+        <div class="dashboard-content">
+          <div class="dashboard-header">
+            <h2>🏢 Office Building</h2>
+            <p>Click a squad to enter their pod</p>
+          </div>
+          <div id="dashboard-squads" class="dashboard-squads"></div>
+          <div class="dashboard-footer">Press Tab or Escape to close</div>
+        </div>
+      </div>
+
       <!-- Add Agent Button -->
       <button id="add-agent-btn" class="add-agent-btn" aria-label="Add Agent">+</button>
       <!-- Add Agent Modal -->

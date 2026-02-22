@@ -7,11 +7,29 @@ import Phaser from "phaser";
  * Player walks between pods; entering a pod door transitions to PodScene.
  */
 
+const SERVER_URL = "http://localhost:3003";
+
+// Role color mapping for mini-previews (Issue #17)
+const ROLE_COLORS: Record<string, number> = {
+  lead: 0xd9a441,
+  frontend: 0x4fb0ff,
+  backend: 0x60d394,
+  tester: 0xe05d5d,
+  default: 0xa0a0a0,
+};
+
+export type PodMember = {
+  name: string;
+  role?: string;
+  active?: boolean;
+};
+
 export type PodInfo = {
   squadId: string;
   name: string;
   memberCount: number;
   active: boolean;
+  members?: PodMember[];
 };
 
 const DEFAULT_PODS: PodInfo[] = [
@@ -41,6 +59,10 @@ export class BuildingScene extends Phaser.Scene {
   private enterPrompt?: Phaser.GameObjects.Text;
   private nearbyPodId: string | null = null;
   private desiredPlayerHeight = 120;
+  // Pod preview state (Issue #17)
+  private podPreviews = new Map<string, Phaser.GameObjects.Graphics>();
+  private podPreviewTweens = new Map<string, Phaser.Tweens.Tween[]>();
+  private podCenters = new Map<string, { cx: number; cy: number }>();
 
   constructor() {
     super("BuildingScene");
@@ -108,6 +130,12 @@ export class BuildingScene extends Phaser.Scene {
       (zone.body as Phaser.Physics.Arcade.Body).setAllowGravity(false);
       (zone.body as Phaser.Physics.Arcade.Body).setImmovable(true);
       this.podZones.push({ zone, squadId: pod.squadId, name: pod.name });
+      this.podCenters.set(pod.squadId, { cx, cy });
+
+      // Render inline member previews if members data available (Issue #17)
+      if (pod.members && pod.members.length > 0) {
+        this.renderPodMembers(pod.squadId, cx, cy, pod.members);
+      }
     });
 
     // Wall across the top
@@ -188,6 +216,15 @@ export class BuildingScene extends Phaser.Scene {
 
     // Camera
     this.cameras.main.setBounds(0, 0, HALLWAY_WIDTH, HALLWAY_HEIGHT);
+
+    // Fetch and render pod member previews from API (Issue #17)
+    this.fetchAndRenderPreviews();
+    // Periodic refresh every 30s
+    this.time.addEvent({
+      delay: 30000,
+      callback: () => this.fetchAndRenderPreviews(),
+      loop: true,
+    });
   }
 
   update() {
@@ -251,6 +288,87 @@ export class BuildingScene extends Phaser.Scene {
       this.enterPrompt.setVisible(!!this.nearbyPodId);
       if (this.nearbyPodId && this.player) {
         this.enterPrompt.setPosition(this.player.x, this.player.y - this.player.displayHeight - 10);
+      }
+    }
+  }
+
+  // ============ Pod Previews (Issue #17) ============
+
+  private renderPodMembers(squadId: string, cx: number, cy: number, members: PodMember[]) {
+    // Clean up existing preview for this pod
+    const existing = this.podPreviews.get(squadId);
+    if (existing) existing.destroy();
+    const existingTweens = this.podPreviewTweens.get(squadId);
+    if (existingTweens) existingTweens.forEach((t) => t.destroy());
+
+    const gfx = this.add.graphics();
+    gfx.setDepth(3);
+    this.podPreviews.set(squadId, gfx);
+    const tweens: Phaser.Tweens.Tween[] = [];
+
+    // Layout: arrange members in a small grid inside the pod
+    const maxPerRow = 4;
+    const dotRadius = 4;
+    const spacing = 14;
+    const startY = cy + 8;
+    const totalCols = Math.min(members.length, maxPerRow);
+    const startX = cx - ((totalCols - 1) * spacing) / 2;
+
+    members.forEach((member, i) => {
+      const row = Math.floor(i / maxPerRow);
+      const col = i % maxPerRow;
+      const x = startX + col * spacing;
+      const y = startY + row * spacing;
+
+      const roleKey = (member.role || "").toLowerCase();
+      const color = ROLE_COLORS[roleKey] || ROLE_COLORS.default;
+
+      gfx.fillStyle(color, 1);
+      gfx.fillCircle(x, y, dotRadius);
+      // Subtle ring
+      gfx.lineStyle(1, color, 0.3);
+      gfx.strokeCircle(x, y, dotRadius + 1);
+
+      // Pulsing animation for active members
+      if (member.active) {
+        const pulseCircle = this.add.circle(x, y, dotRadius + 2, color, 0.3);
+        pulseCircle.setDepth(2);
+        const tween = this.tweens.add({
+          targets: pulseCircle,
+          scaleX: 1.6,
+          scaleY: 1.6,
+          alpha: 0,
+          duration: 1200,
+          repeat: -1,
+          ease: "Sine.easeOut",
+        });
+        tweens.push(tween);
+      }
+    });
+
+    this.podPreviewTweens.set(squadId, tweens);
+  }
+
+  /** Fetch squad details from API and render member previews */
+  async fetchAndRenderPreviews() {
+    for (const pod of this.pods) {
+      try {
+        const res = await fetch(`${SERVER_URL}/api/building/squads/${pod.squadId}`);
+        if (!res.ok) continue;
+        const data = await res.json();
+        const members: PodMember[] = (data.members ?? []).map((m: any) => ({
+          name: m.name || "Agent",
+          role: m.role || "",
+          active: m.active ?? m.status === "working",
+        }));
+        if (members.length > 0) {
+          const center = this.podCenters.get(pod.squadId);
+          if (center) {
+            this.renderPodMembers(pod.squadId, center.cx, center.cy, members);
+          }
+        }
+      } catch {
+        // API not available yet — previews will render from default data
       }
     }
   }

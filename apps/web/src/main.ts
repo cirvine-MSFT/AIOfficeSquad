@@ -97,6 +97,127 @@ let dismissedBanners = new Set<string>();
 let activeBannerAgentId: string | null = null;
 let roomChatMode = false; // Issue #15: "Talk to Room" mode
 
+// ============ Decisions Panel State (Issue #3) ============
+const decisionsPanel = document.getElementById("decisions-panel") as HTMLDivElement;
+const decisionsList = document.getElementById("decisions-list") as HTMLDivElement;
+const decisionsPanelClose = document.getElementById("decisions-panel-close") as HTMLButtonElement;
+let decisionsPanelOpen = false;
+
+function toggleDecisionsPanel() {
+  decisionsPanelOpen = !decisionsPanelOpen;
+  decisionsPanel.classList.toggle("open", decisionsPanelOpen);
+  if (decisionsPanelOpen) {
+    fetchDecisions();
+    scene.lockInput(true);
+  } else {
+    scene.lockInput(false);
+  }
+}
+
+async function fetchDecisions() {
+  const squadId = podScene.squadId || "default";
+  try {
+    const res = await fetch(`${SERVER_URL}/api/squads/${squadId}/decisions?limit=10`);
+    if (!res.ok) throw new Error(`HTTP ${res.status}`);
+    const data = await res.json();
+    renderDecisions(data.decisions ?? data ?? []);
+  } catch {
+    // If API not ready yet, show placeholder
+    renderDecisions([]);
+  }
+}
+
+function renderDecisions(decisions: Array<{ timestamp?: string; author?: string; title?: string; content?: string; what?: string; why?: string }>) {
+  if (!decisions || decisions.length === 0) {
+    decisionsList.innerHTML = '<div class="decisions-empty">No decisions yet.<br><span style="font-size:11px;opacity:0.5">Decisions will appear here as the team makes them.</span></div>';
+    return;
+  }
+  decisionsList.innerHTML = "";
+  decisions.forEach((d) => {
+    const entry = document.createElement("div");
+    entry.className = "decision-entry";
+    const ts = d.timestamp ? new Date(d.timestamp).toLocaleString() : "";
+    const title = d.title || d.what || "";
+    const content = d.content || d.why || "";
+    entry.innerHTML = `
+      <div class="decision-entry-header">
+        <span class="decision-author">${d.author || "Team"}</span>
+        <span class="decision-timestamp">${ts}</span>
+      </div>
+      ${title ? `<div class="decision-title">${title}</div>` : ""}
+      ${content ? `<div class="decision-content">${content}</div>` : ""}
+    `;
+    decisionsList.appendChild(entry);
+  });
+}
+
+decisionsPanelClose.addEventListener("click", () => {
+  if (decisionsPanelOpen) toggleDecisionsPanel();
+});
+
+// ============ Building Dashboard State (Issue #16) ============
+const buildingDashboard = document.getElementById("building-dashboard") as HTMLDivElement;
+const dashboardSquads = document.getElementById("dashboard-squads") as HTMLDivElement;
+let buildingDashboardOpen = false;
+
+function toggleBuildingDashboard() {
+  buildingDashboardOpen = !buildingDashboardOpen;
+  buildingDashboard.classList.toggle("open", buildingDashboardOpen);
+  if (buildingDashboardOpen) {
+    fetchBuildingSquads();
+  }
+}
+
+async function fetchBuildingSquads() {
+  try {
+    const res = await fetch(`${SERVER_URL}/api/building/squads`);
+    if (!res.ok) throw new Error(`HTTP ${res.status}`);
+    const data = await res.json();
+    renderDashboardSquads(data.squads ?? data ?? []);
+  } catch {
+    renderDashboardSquads([]);
+  }
+}
+
+function renderDashboardSquads(squads: Array<{ squadId?: string; name?: string; memberCount?: number; active?: boolean; members?: Array<{ name?: string; role?: string }> }>) {
+  if (!squads || squads.length === 0) {
+    dashboardSquads.innerHTML = '<div class="decisions-empty">No squads found.<br><span style="font-size:11px;opacity:0.5">Start squads to see them here.</span></div>';
+    return;
+  }
+  dashboardSquads.innerHTML = "";
+  squads.forEach((squad) => {
+    const card = document.createElement("div");
+    card.className = "squad-card";
+    const memberNames = (squad.members ?? []).map((m) => m.name || "Agent").slice(0, 6);
+    const memberChips = memberNames.map((n) => `<span class="squad-member-chip">${n}</span>`).join("");
+    card.innerHTML = `
+      <div class="squad-card-dot ${squad.active ? "active" : "idle"}"></div>
+      <div class="squad-card-info">
+        <div class="squad-card-name">${squad.name || squad.squadId || "Unknown"}</div>
+        <div class="squad-card-meta">${squad.memberCount ?? 0} member${(squad.memberCount ?? 0) !== 1 ? "s" : ""} · ${squad.active ? "Active" : "Idle"}</div>
+        ${memberChips ? `<div class="squad-card-members">${memberChips}</div>` : ""}
+      </div>
+      <div class="squad-card-arrow">→</div>
+    `;
+    card.addEventListener("click", () => {
+      toggleBuildingDashboard();
+      // Navigate to the pod
+      buildingScene.scene.start("PodScene", {
+        squadId: squad.squadId,
+        squadName: squad.name ?? squad.squadId,
+        hasBuilding: true,
+      });
+    });
+    dashboardSquads.appendChild(card);
+  });
+}
+
+buildingDashboard.addEventListener("click", (e) => {
+  if (e.target === buildingDashboard && buildingDashboardOpen) {
+    toggleBuildingDashboard();
+  }
+});
+
 const statusClasses = [
   "status-available",
   "status-thinking",
@@ -503,6 +624,14 @@ window.addEventListener("keydown", (event) => {
   const isTyping = active?.tagName === "INPUT" || active?.tagName === "TEXTAREA" || active?.tagName === "SELECT";
 
   if (event.key === "Escape") {
+    if (decisionsPanelOpen) {
+      toggleDecisionsPanel();
+      return;
+    }
+    if (buildingDashboardOpen) {
+      toggleBuildingDashboard();
+      return;
+    }
     if (!addAgentModal.classList.contains("hidden")) {
       addAgentModal.classList.add("hidden");
       scene.lockInput(false);
@@ -560,6 +689,25 @@ window.addEventListener("keydown", (event) => {
       scene.lockInput(true);
     } else {
       closePanel();
+    }
+  }
+
+  // D key: toggle Decisions Panel (Issue #3) — only in PodScene
+  if (event.key.toLowerCase() === "d" && !currentAgentId && !roomChatMode) {
+    // Don't intercept when WASD movement is expected in BuildingScene
+    const activeScene = game.scene.getScenes(true)[0];
+    if (activeScene?.scene.key === "PodScene") {
+      event.preventDefault();
+      toggleDecisionsPanel();
+    }
+  }
+
+  // Tab key: toggle Building Dashboard (Issue #16) — only in BuildingScene
+  if (event.key === "Tab") {
+    const activeScene = game.scene.getScenes(true)[0];
+    if (activeScene?.scene.key === "BuildingScene") {
+      event.preventDefault();
+      toggleBuildingDashboard();
     }
   }
 }, true); // Capture phase - fires before Phaser
@@ -680,6 +828,11 @@ function applyEvent(event: EventEnvelope) {
 
   scene.syncAgents(agents);
   renderPanel();
+
+  // Auto-refresh decisions panel on decisions.update event (Issue #3)
+  if (event.type === "decisions.update" && decisionsPanelOpen) {
+    fetchDecisions();
+  }
 }
 
 function connectWS() {
