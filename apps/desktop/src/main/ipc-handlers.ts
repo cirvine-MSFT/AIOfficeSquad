@@ -29,9 +29,9 @@ export function registerIpcHandlers(
 
   // ── Invoke channels (renderer → main) ─────────────────────────
 
-  handle('squad:connect', (config?: any) => runtime.connect())
-
-  handle('squad:disconnect', () => runtime.shutdown())
+  handle('squad:get-ready-state', () => 
+    Promise.resolve({ ready: runtime.isReady, squadRoot: runtime['squadRoot'] })
+  )
 
   handle('squad:create-session', (agentName: string, config?: any) =>
     runtime.createSession(agentName, config)
@@ -70,6 +70,11 @@ export function registerIpcHandlers(
   runtime.onEvent((event) => send('squad:event', event))
   runtime.onStreamDelta((delta) => send('squad:stream-delta', delta))
   runtime.onUsage((usage) => send('squad:stream-usage', usage))
+  
+  // Notify renderer when SDK becomes ready
+  runtime.onReady(() => {
+    send('squad:connection-state', { connected: true })
+  })
 }
 
 /**
@@ -77,8 +82,7 @@ export function registerIpcHandlers(
  */
 export function removeIpcHandlers(): void {
   const channels = [
-    'squad:connect',
-    'squad:disconnect',
+    'squad:get-ready-state',
     'squad:create-session',
     'squad:send-message',
     'squad:list-sessions',

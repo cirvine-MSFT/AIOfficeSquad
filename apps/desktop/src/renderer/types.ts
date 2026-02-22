@@ -4,11 +4,6 @@
  * Kept in the renderer rootDir to satisfy tsconfig boundaries.
  */
 
-export interface ConnectionState {
-  connected: boolean
-  error?: string
-}
-
 export interface StreamDelta {
   sessionId: string
   delta: string

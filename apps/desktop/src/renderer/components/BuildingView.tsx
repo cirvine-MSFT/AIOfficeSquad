@@ -6,9 +6,24 @@ interface Squad {
 interface BuildingViewProps {
   squads: Squad[]
   onSelectSquad: (name: string) => void
+  loading: boolean
 }
 
-export default function BuildingView({ squads, onSelectSquad }: BuildingViewProps) {
+export default function BuildingView({ squads, onSelectSquad, loading }: BuildingViewProps) {
+  if (loading) {
+    return (
+      <div className="flex-1 flex items-center justify-center animate-fade-in">
+        <div className="text-center px-6">
+          <div className="inline-block w-12 h-12 border-4 border-text-tertiary border-t-accent rounded-full animate-spin mb-4" />
+          <h2 className="text-lg font-semibold text-text-primary mb-2">Discovering squads...</h2>
+          <p className="text-sm text-text-secondary max-w-sm">
+            Loading squad data from <code>.squad/</code> directory
+          </p>
+        </div>
+      </div>
+    )
+  }
+
   if (squads.length === 0) {
     return (
       <div className="flex-1 flex items-center justify-center animate-fade-in">

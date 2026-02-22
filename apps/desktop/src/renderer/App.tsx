@@ -2,7 +2,6 @@ import { useState, useEffect, useCallback, useRef } from 'react'
 import type {
   SquadMember,
   AgentStatus,
-  ConnectionState,
   StreamDelta,
   UsageEvent,
   SquadConfig,
@@ -35,14 +34,11 @@ function nextMsgId(): string {
 }
 
 export default function App() {
-  // ── Connection state ──
-  const [connectionState, setConnectionState] = useState<ConnectionState>({ connected: false })
-  const [connecting, setConnecting] = useState(false)
-
   // ── Squad data ──
   const [config, setConfig] = useState<SquadConfig | null>(null)
   const [roster, setRoster] = useState<SquadMember[]>([])
   const [agentStatuses, setAgentStatuses] = useState<AgentStatus[]>([])
+  const [loading, setLoading] = useState(true)
 
   // ── Selection state ──
   const [selectedSquad, setSelectedSquad] = useState<string | null>(null)
@@ -85,19 +81,25 @@ export default function App() {
   // ── Initial data load ──
   useEffect(() => {
     async function loadInitialData() {
-      const [configRes, rosterRes, statusRes] = await Promise.all([
-        window.squadAPI.loadConfig(),
-        window.squadAPI.getRoster(),
-        window.squadAPI.getAgentStatuses(),
-      ])
+      try {
+        const [configRes, rosterRes, statusRes] = await Promise.all([
+          window.squadAPI.loadConfig(),
+          window.squadAPI.getRoster(),
+          window.squadAPI.getAgentStatuses(),
+        ])
 
-      const configResult = configRes as { ok: boolean; data?: SquadConfig; error?: string }
-      const rosterResult = rosterRes as { ok: boolean; data?: SquadMember[]; error?: string }
-      const statusResult = statusRes as { ok: boolean; data?: AgentStatus[]; error?: string }
+        const configResult = configRes as { ok: boolean; data?: SquadConfig; error?: string }
+        const rosterResult = rosterRes as { ok: boolean; data?: SquadMember[]; error?: string }
+        const statusResult = statusRes as { ok: boolean; data?: AgentStatus[]; error?: string }
 
-      if (configResult.ok && configResult.data) setConfig(configResult.data)
-      if (rosterResult.ok && rosterResult.data) setRoster(rosterResult.data)
-      if (statusResult.ok && statusResult.data) setAgentStatuses(statusResult.data)
+        if (configResult.ok && configResult.data) setConfig(configResult.data)
+        if (rosterResult.ok && rosterResult.data) setRoster(rosterResult.data)
+        if (statusResult.ok && statusResult.data) setAgentStatuses(statusResult.data)
+      } catch (err) {
+        setError(err instanceof Error ? err.message : 'Failed to load squad data')
+      } finally {
+        setLoading(false)
+      }
     }
 
     loadInitialData()
@@ -105,12 +107,6 @@ export default function App() {
 
   // ── Event subscriptions ──
   useEffect(() => {
-    const unsubConnection = window.squadAPI.onConnectionState((state) => {
-      const cs = state as ConnectionState
-      setConnectionState(cs)
-      if (cs.connected) setConnecting(false)
-    })
-
     const unsubDelta = window.squadAPI.onStreamDelta((delta) => {
       const d = delta as StreamDelta
       setStreamingText((prev) => {
@@ -167,7 +163,6 @@ export default function App() {
     })
 
     return () => {
-      unsubConnection()
       unsubDelta()
       unsubUsage()
       unsubEvent()
@@ -175,21 +170,6 @@ export default function App() {
   }, [])
 
   // ── Actions ──
-  const handleConnect = useCallback(async () => {
-    setConnecting(true)
-    setError(null)
-    const res = (await window.squadAPI.connect()) as { ok: boolean; error?: string }
-    if (!res.ok) {
-      setError(res.error ?? 'Connection failed')
-      setConnecting(false)
-    }
-  }, [])
-
-  const handleDisconnect = useCallback(async () => {
-    await window.squadAPI.disconnect()
-    setConnectionState({ connected: false })
-  }, [])
-
   const handleSelectSquad = useCallback((name: string) => {
     setSelectedSquad(name)
     setSelectedAgent(null)
@@ -280,12 +260,7 @@ export default function App() {
 
   return (
     <div className="flex flex-col h-screen bg-bg text-text-primary overflow-hidden">
-      <Header
-        connectionState={connectionState}
-        onConnect={handleConnect}
-        onDisconnect={handleDisconnect}
-        connecting={connecting}
-      />
+      <Header />
 
       {/* Error banner */}
       {error && (
@@ -309,6 +284,7 @@ export default function App() {
           agents={agents}
           selectedAgent={selectedAgent}
           onSelectAgent={handleSelectAgent}
+          loading={loading}
         />
 
         {/* Main content */}
@@ -319,6 +295,7 @@ export default function App() {
               memberCount: roster.length,
             }))}
             onSelectSquad={handleSelectSquad}
+            loading={loading}
           />
         ) : (
           <PodView
@@ -326,6 +303,7 @@ export default function App() {
             agents={agents}
             selectedAgent={selectedAgent}
             onSelectAgent={handleSelectAgent}
+            loading={loading}
           />
         )}
 
@@ -345,7 +323,8 @@ export default function App() {
       </div>
 
       <StatusBar
-        connectionState={connectionState}
+        squadRoot={config?.root ?? null}
+        squadName={config?.name ?? null}
         sessionCount={sessions.size}
         totalTokens={totalTokens}
         estimatedCost={estimatedCost}

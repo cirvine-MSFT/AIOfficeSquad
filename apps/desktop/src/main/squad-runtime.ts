@@ -1,5 +1,6 @@
-import { readFile } from 'fs/promises'
-import { join } from 'path'
+import { readFile, access } from 'fs/promises'
+import { join, dirname } from 'path'
+import { execSync } from 'child_process'
 import type {
   AgentStatus,
   CreateSessionConfig,
@@ -29,18 +30,37 @@ export class SquadRuntime {
   private pipeline: any = null
   private monitor: any = null
   private squadRoot: string
+  private _isReady: boolean = false
 
   private eventHandlers: Set<EventHandler> = new Set()
   private deltaHandlers: Set<DeltaHandler> = new Set()
   private usageHandlers: Set<UsageHandler> = new Set()
+  private readyHandlers: Set<() => void> = new Set()
 
   constructor(squadRoot?: string) {
-    this.squadRoot = squadRoot ?? process.cwd()
+    // Resolve to git repo root so we find .squad/ regardless of CWD
+    if (squadRoot) {
+      this.squadRoot = squadRoot
+    } else {
+      try {
+        this.squadRoot = execSync('git rev-parse --show-toplevel', { encoding: 'utf-8' }).trim()
+      } catch {
+        this.squadRoot = process.cwd()
+      }
+    }
+  }
+
+  get isReady(): boolean {
+    return this._isReady
   }
 
   // ── Lifecycle ──────────────────────────────────────────────────
 
-  async connect(): Promise<void> {
+  /**
+   * Initialize the Squad SDK components. Safe to call — if SDK is unavailable
+   * or auth fails, logs error but doesn't crash. Roster reading always works.
+   */
+  async initialize(): Promise<void> {
     try {
       // Dynamic imports to handle ESM subpath exports
       const { SquadClientWithPool } = await import('@bradygaster/squad-sdk/client')
@@ -49,12 +69,12 @@ export class SquadRuntime {
       const { RalphMonitor } = await import('@bradygaster/squad-sdk/ralph')
 
       this.eventBus = new EventBus()
-      this.client = new SquadClientWithPool()
+      this.client = new SquadClientWithPool({})
       this.pipeline = new StreamingPipeline()
       this.monitor = new RalphMonitor()
 
       // Subscribe to EventBus — forward all events to registered handlers
-      this.eventBus.onAny((event: SquadEvent) => {
+      this.eventBus.subscribeAll((event: SquadEvent) => {
         for (const handler of this.eventHandlers) {
           try { handler(event) } catch { /* handler errors don't crash runtime */ }
         }
@@ -78,14 +98,21 @@ export class SquadRuntime {
         })
       }
 
-      console.log('[SquadRuntime] connected')
+      this._isReady = true
+      console.log('[SquadRuntime] initialized successfully')
+
+      // Notify ready handlers
+      for (const handler of this.readyHandlers) {
+        try { handler() } catch { /* swallow */ }
+      }
     } catch (err) {
-      console.error('[SquadRuntime] connect failed:', err)
-      throw err
+      console.error('[SquadRuntime] initialize failed (SDK unavailable or auth issue):', err)
+      console.log('[SquadRuntime] continuing without SDK — roster reading still works')
+      // Don't throw — roster features work without SDK
     }
   }
 
-  async shutdown(): Promise<void> {
+  async cleanup(): Promise<void> {
     try {
       if (this.pipeline?.stop) await this.pipeline.stop()
       if (this.monitor?.stop) await this.monitor.stop()
@@ -93,13 +120,15 @@ export class SquadRuntime {
       this.eventHandlers.clear()
       this.deltaHandlers.clear()
       this.usageHandlers.clear()
+      this.readyHandlers.clear()
       this.client = null
       this.eventBus = null
       this.pipeline = null
       this.monitor = null
-      console.log('[SquadRuntime] shutdown complete')
+      this._isReady = false
+      console.log('[SquadRuntime] cleanup complete')
     } catch (err) {
-      console.error('[SquadRuntime] shutdown error:', err)
+      console.error('[SquadRuntime] cleanup error:', err)
     }
   }
 
@@ -109,7 +138,11 @@ export class SquadRuntime {
     agentName: string,
     config?: CreateSessionConfig
   ): Promise<{ sessionId: string }> {
-    if (!this.client) throw new Error('Runtime not connected')
+    if (!this.client) {
+      // Lazy init if not yet initialized
+      await this.initialize()
+      if (!this.client) throw new Error('SDK not available')
+    }
     const session = await this.client.createSession({
       agent: agentName,
       ...config
@@ -118,32 +151,32 @@ export class SquadRuntime {
   }
 
   async sendMessage(sessionId: string, prompt: string): Promise<void> {
-    if (!this.client) throw new Error('Runtime not connected')
+    if (!this.client) throw new Error('SDK not available')
     await this.client.sendMessage(sessionId, prompt)
   }
 
   async listSessions(): Promise<unknown[]> {
-    if (!this.client) throw new Error('Runtime not connected')
+    if (!this.client) throw new Error('SDK not available')
     return await this.client.listSessions()
   }
 
   async deleteSession(id: string): Promise<void> {
-    if (!this.client) throw new Error('Runtime not connected')
+    if (!this.client) throw new Error('SDK not available')
     await this.client.deleteSession(id)
   }
 
   async getStatus(): Promise<unknown> {
-    if (!this.client) throw new Error('Runtime not connected')
+    if (!this.client) throw new Error('SDK not available')
     return await this.client.getStatus()
   }
 
   async getAuthStatus(): Promise<unknown> {
-    if (!this.client) throw new Error('Runtime not connected')
+    if (!this.client) throw new Error('SDK not available')
     return await this.client.getAuthStatus()
   }
 
   async listModels(): Promise<unknown[]> {
-    if (!this.client) throw new Error('Runtime not connected')
+    if (!this.client) throw new Error('SDK not available')
     return await this.client.listModels()
   }
 
@@ -151,13 +184,18 @@ export class SquadRuntime {
 
   async loadSquadConfig(): Promise<SquadConfig> {
     try {
-      const { resolveSquad, loadConfig } = await import('@bradygaster/squad-sdk')
-      const squadDir = await resolveSquad(this.squadRoot)
-      const config = await loadConfig(squadDir)
       const members = await this.getRoster()
+      // Try to read squad name from team.md or fall back
+      const teamPath = join(this.squadRoot, '.squad', 'team.md')
+      let name = 'Squad Office'
+      try {
+        const content = await readFile(teamPath, 'utf-8')
+        const nameMatch = content.match(/^#\s+(.+)/m)
+        if (nameMatch) name = nameMatch[1]
+      } catch { /* use default */ }
       return {
-        name: config?.name ?? 'unknown',
-        root: squadDir,
+        name,
+        root: this.squadRoot,
         members
       }
     } catch (err) {
@@ -201,6 +239,15 @@ export class SquadRuntime {
   onUsage(handler: UsageHandler): () => void {
     this.usageHandlers.add(handler)
     return () => { this.usageHandlers.delete(handler) }
+  }
+
+  onReady(handler: () => void): () => void {
+    this.readyHandlers.add(handler)
+    // If already ready, call immediately
+    if (this._isReady) {
+      try { handler() } catch { /* swallow */ }
+    }
+    return () => { this.readyHandlers.delete(handler) }
   }
 }
 

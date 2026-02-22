@@ -2,9 +2,10 @@
 // These interfaces mirror the Squad SDK's runtime types so the main
 // process, preload, and renderer all share a single contract.
 
-/** Connection configuration for Squad runtime */
-export interface SquadConnectionConfig {
-  squadRoot?: string
+/** Ready state for Squad runtime */
+export interface ReadyState {
+  ready: boolean
+  squadRoot: string
 }
 
 /** Session creation options */
@@ -74,8 +75,7 @@ export type IpcResult<T = unknown> =
 // Single source of truth for all channel names and their signatures.
 
 export interface IpcInvokeChannels {
-  'squad:connect': { args: [SquadConnectionConfig?]; result: IpcResult<void> }
-  'squad:disconnect': { args: []; result: IpcResult<void> }
+  'squad:get-ready-state': { args: []; result: IpcResult<ReadyState> }
   'squad:create-session': { args: [string, CreateSessionConfig?]; result: IpcResult<{ sessionId: string }> }
   'squad:send-message': { args: [string, string]; result: IpcResult<void> }
   'squad:list-sessions': { args: []; result: IpcResult<unknown[]> }
@@ -93,6 +93,7 @@ export interface IpcPushChannels {
   'squad:stream-delta': StreamDelta
   'squad:stream-usage': UsageEvent
   'squad:connection-state': ConnectionState
+  'squad:config-loaded': SquadConfig
 }
 
 export type IpcInvokeChannel = keyof IpcInvokeChannels

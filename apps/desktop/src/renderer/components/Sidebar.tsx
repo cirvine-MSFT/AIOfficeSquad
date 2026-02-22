@@ -8,6 +8,7 @@ interface SidebarProps {
   agents: AgentInfo[]
   selectedAgent: string | null
   onSelectAgent: (name: string) => void
+  loading: boolean
 }
 
 function getInitials(name: string): string {
@@ -33,6 +34,7 @@ export default function Sidebar({
   agents,
   selectedAgent,
   onSelectAgent,
+  loading,
 }: SidebarProps) {
   return (
     <aside className="flex flex-col w-sidebar bg-bg-raised border-r border-border overflow-y-auto scrollbar-thin shrink-0 select-none">
@@ -41,7 +43,9 @@ export default function Sidebar({
         <h2 className="text-xs font-semibold text-text-tertiary uppercase tracking-wider mb-2 px-2">
           Squads
         </h2>
-        {squads.length === 0 ? (
+        {loading ? (
+          <p className="text-sm text-text-tertiary px-2 animate-pulse">Loading...</p>
+        ) : squads.length === 0 ? (
           <p className="text-sm text-text-tertiary px-2">No squads found</p>
         ) : (
           <ul className="space-y-0.5">
@@ -72,7 +76,9 @@ export default function Sidebar({
           <h2 className="text-xs font-semibold text-text-tertiary uppercase tracking-wider mb-2 px-2">
             Agents
           </h2>
-          {agents.length === 0 ? (
+          {loading ? (
+            <p className="text-sm text-text-tertiary px-2 animate-pulse">Loading agents...</p>
+          ) : agents.length === 0 ? (
             <p className="text-sm text-text-tertiary px-2">No agents in squad</p>
           ) : (
             <ul className="space-y-0.5">

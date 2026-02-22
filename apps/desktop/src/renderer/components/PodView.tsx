@@ -5,6 +5,7 @@ interface PodViewProps {
   agents: AgentInfo[]
   selectedAgent: string | null
   onSelectAgent: (name: string) => void
+  loading: boolean
 }
 
 export default function PodView({
@@ -12,6 +13,7 @@ export default function PodView({
   agents,
   selectedAgent,
   onSelectAgent,
+  loading,
 }: PodViewProps) {
   return (
     <div className="flex-1 overflow-y-auto p-6 animate-fade-in">
@@ -26,7 +28,12 @@ export default function PodView({
       </div>
 
       {/* Agent grid */}
-      {agents.length === 0 ? (
+      {loading ? (
+        <div className="text-center py-12">
+          <div className="inline-block w-8 h-8 border-4 border-text-tertiary border-t-accent rounded-full animate-spin mb-3" />
+          <p className="text-sm text-text-tertiary">Loading squad...</p>
+        </div>
+      ) : agents.length === 0 ? (
         <div className="text-center py-12">
           <p className="text-sm text-text-tertiary">No agents in this squad.</p>
         </div>

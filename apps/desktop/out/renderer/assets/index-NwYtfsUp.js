@@ -6966,45 +6966,16 @@ var m = reactDomExports;
   client.createRoot = m.createRoot;
   client.hydrateRoot = m.hydrateRoot;
 }
-function Header({
-  connectionState,
-  onConnect,
-  onDisconnect,
-  connecting
-}) {
-  const connected = connectionState.connected;
+function Header() {
   return /* @__PURE__ */ jsxRuntimeExports.jsxs("header", { className: "flex items-center justify-between h-header px-4 bg-bg-raised border-b border-border app-drag select-none shrink-0", children: [
     /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "flex items-center gap-2", children: [
       /* @__PURE__ */ jsxRuntimeExports.jsx("span", { className: "text-lg", children: "🏢" }),
       /* @__PURE__ */ jsxRuntimeExports.jsx("h1", { className: "text-md font-semibold text-text-primary", children: "Squad Office" })
     ] }),
-    /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "flex items-center gap-3 app-no-drag", children: [
-      /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "flex items-center gap-2 text-sm", children: [
-        /* @__PURE__ */ jsxRuntimeExports.jsx(
-          "span",
-          {
-            className: `status-dot ${connected ? "status-dot-active" : connecting ? "status-dot-working" : "status-dot-error"}`
-          }
-        ),
-        /* @__PURE__ */ jsxRuntimeExports.jsx("span", { className: "text-text-secondary", children: connected ? "Connected" : connecting ? "Connecting…" : "Disconnected" })
-      ] }),
-      connected ? /* @__PURE__ */ jsxRuntimeExports.jsx(
-        "button",
-        {
-          onClick: onDisconnect,
-          className: "h-8 px-3 text-sm font-medium rounded-md bg-bg-surface border border-border text-text-primary hover:bg-bg-hover transition-default",
-          children: "Disconnect"
-        }
-      ) : /* @__PURE__ */ jsxRuntimeExports.jsx(
-        "button",
-        {
-          onClick: onConnect,
-          disabled: connecting,
-          className: "h-8 px-3 text-sm font-medium rounded-md bg-accent text-white hover:bg-accent-hover active:bg-accent-pressed disabled:opacity-50 transition-default",
-          children: connecting ? "Connecting…" : "Connect"
-        }
-      )
-    ] })
+    /* @__PURE__ */ jsxRuntimeExports.jsx("div", { className: "flex items-center gap-3 app-no-drag", children: /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "flex items-center gap-2 text-sm", children: [
+      /* @__PURE__ */ jsxRuntimeExports.jsx("span", { className: "status-dot status-dot-active" }),
+      /* @__PURE__ */ jsxRuntimeExports.jsx("span", { className: "text-text-secondary", children: "Ready" })
+    ] }) })
   ] });
 }
 const ROLE_COLORS = {
@@ -7106,12 +7077,13 @@ function Sidebar({
   onSelectSquad,
   agents,
   selectedAgent,
-  onSelectAgent
+  onSelectAgent,
+  loading
 }) {
   return /* @__PURE__ */ jsxRuntimeExports.jsxs("aside", { className: "flex flex-col w-sidebar bg-bg-raised border-r border-border overflow-y-auto scrollbar-thin shrink-0 select-none", children: [
     /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "p-3", children: [
       /* @__PURE__ */ jsxRuntimeExports.jsx("h2", { className: "text-xs font-semibold text-text-tertiary uppercase tracking-wider mb-2 px-2", children: "Squads" }),
-      squads.length === 0 ? /* @__PURE__ */ jsxRuntimeExports.jsx("p", { className: "text-sm text-text-tertiary px-2", children: "No squads found" }) : /* @__PURE__ */ jsxRuntimeExports.jsx("ul", { className: "space-y-0.5", children: squads.map((name) => /* @__PURE__ */ jsxRuntimeExports.jsx("li", { children: /* @__PURE__ */ jsxRuntimeExports.jsx(
+      loading ? /* @__PURE__ */ jsxRuntimeExports.jsx("p", { className: "text-sm text-text-tertiary px-2 animate-pulse", children: "Loading..." }) : squads.length === 0 ? /* @__PURE__ */ jsxRuntimeExports.jsx("p", { className: "text-sm text-text-tertiary px-2", children: "No squads found" }) : /* @__PURE__ */ jsxRuntimeExports.jsx("ul", { className: "space-y-0.5", children: squads.map((name) => /* @__PURE__ */ jsxRuntimeExports.jsx("li", { children: /* @__PURE__ */ jsxRuntimeExports.jsx(
         "button",
         {
           onClick: () => onSelectSquad(name),
@@ -7123,7 +7095,7 @@ function Sidebar({
     selectedSquad && /* @__PURE__ */ jsxRuntimeExports.jsx("div", { className: "mx-3 border-t border-border" }),
     selectedSquad && /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "p-3 flex-1 overflow-y-auto", children: [
       /* @__PURE__ */ jsxRuntimeExports.jsx("h2", { className: "text-xs font-semibold text-text-tertiary uppercase tracking-wider mb-2 px-2", children: "Agents" }),
-      agents.length === 0 ? /* @__PURE__ */ jsxRuntimeExports.jsx("p", { className: "text-sm text-text-tertiary px-2", children: "No agents in squad" }) : /* @__PURE__ */ jsxRuntimeExports.jsx("ul", { className: "space-y-0.5", children: agents.map((agent, i) => {
+      loading ? /* @__PURE__ */ jsxRuntimeExports.jsx("p", { className: "text-sm text-text-tertiary px-2 animate-pulse", children: "Loading agents..." }) : agents.length === 0 ? /* @__PURE__ */ jsxRuntimeExports.jsx("p", { className: "text-sm text-text-tertiary px-2", children: "No agents in squad" }) : /* @__PURE__ */ jsxRuntimeExports.jsx("ul", { className: "space-y-0.5", children: agents.map((agent, i) => {
         const roleKey = getRoleKey$2(agent.role);
         const avatarBg = roleKey ? ROLE_COLORS[roleKey].accent : getAvatarColor(agent.name);
         return /* @__PURE__ */ jsxRuntimeExports.jsx("li", { children: /* @__PURE__ */ jsxRuntimeExports.jsxs(
@@ -7153,7 +7125,18 @@ function Sidebar({
     ] })
   ] });
 }
-function BuildingView({ squads, onSelectSquad }) {
+function BuildingView({ squads, onSelectSquad, loading }) {
+  if (loading) {
+    return /* @__PURE__ */ jsxRuntimeExports.jsx("div", { className: "flex-1 flex items-center justify-center animate-fade-in", children: /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "text-center px-6", children: [
+      /* @__PURE__ */ jsxRuntimeExports.jsx("div", { className: "inline-block w-12 h-12 border-4 border-text-tertiary border-t-accent rounded-full animate-spin mb-4" }),
+      /* @__PURE__ */ jsxRuntimeExports.jsx("h2", { className: "text-lg font-semibold text-text-primary mb-2", children: "Discovering squads..." }),
+      /* @__PURE__ */ jsxRuntimeExports.jsxs("p", { className: "text-sm text-text-secondary max-w-sm", children: [
+        "Loading squad data from ",
+        /* @__PURE__ */ jsxRuntimeExports.jsx("code", { children: ".squad/" }),
+        " directory"
+      ] })
+    ] }) });
+  }
   if (squads.length === 0) {
     return /* @__PURE__ */ jsxRuntimeExports.jsx("div", { className: "flex-1 flex items-center justify-center animate-fade-in", children: /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "text-center px-6", children: [
       /* @__PURE__ */ jsxRuntimeExports.jsx("div", { className: "text-4xl mb-4", children: "🏢" }),
@@ -7256,7 +7239,8 @@ function PodView({
   squadName,
   agents,
   selectedAgent,
-  onSelectAgent
+  onSelectAgent,
+  loading
 }) {
   return /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "flex-1 overflow-y-auto p-6 animate-fade-in", children: [
     /* @__PURE__ */ jsxRuntimeExports.jsx("div", { className: "flex items-center justify-between mb-6", children: /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { children: [
@@ -7267,7 +7251,10 @@ function PodView({
         agents.length !== 1 ? "s" : ""
       ] })
     ] }) }),
-    agents.length === 0 ? /* @__PURE__ */ jsxRuntimeExports.jsx("div", { className: "text-center py-12", children: /* @__PURE__ */ jsxRuntimeExports.jsx("p", { className: "text-sm text-text-tertiary", children: "No agents in this squad." }) }) : /* @__PURE__ */ jsxRuntimeExports.jsx("div", { className: "grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4", children: agents.map((agent) => /* @__PURE__ */ jsxRuntimeExports.jsx(
+    loading ? /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "text-center py-12", children: [
+      /* @__PURE__ */ jsxRuntimeExports.jsx("div", { className: "inline-block w-8 h-8 border-4 border-text-tertiary border-t-accent rounded-full animate-spin mb-3" }),
+      /* @__PURE__ */ jsxRuntimeExports.jsx("p", { className: "text-sm text-text-tertiary", children: "Loading squad..." })
+    ] }) : agents.length === 0 ? /* @__PURE__ */ jsxRuntimeExports.jsx("div", { className: "text-center py-12", children: /* @__PURE__ */ jsxRuntimeExports.jsx("p", { className: "text-sm text-text-tertiary", children: "No agents in this squad." }) }) : /* @__PURE__ */ jsxRuntimeExports.jsx("div", { className: "grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4", children: agents.map((agent) => /* @__PURE__ */ jsxRuntimeExports.jsx(
       AgentCard,
       {
         agent,
@@ -7424,20 +7411,23 @@ function ChatPanel({
   ] });
 }
 function StatusBar({
-  connectionState,
+  squadRoot,
+  squadName,
   sessionCount,
   totalTokens,
   estimatedCost,
   model
 }) {
-  const connected = connectionState.connected;
   return /* @__PURE__ */ jsxRuntimeExports.jsxs("footer", { className: "flex items-center justify-between h-status-bar px-4 bg-bg-raised border-t border-border text-xs text-text-secondary font-mono shrink-0 select-none", children: [
     /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "flex items-center gap-4", children: [
-      /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "flex items-center gap-1.5", children: [
-        /* @__PURE__ */ jsxRuntimeExports.jsx("span", { className: `status-dot ${connected ? "status-dot-active" : "status-dot-error"}` }),
-        /* @__PURE__ */ jsxRuntimeExports.jsx("span", { children: connected ? "Connected" : "Disconnected" })
+      squadName && /* @__PURE__ */ jsxRuntimeExports.jsxs(jsxRuntimeExports.Fragment, { children: [
+        /* @__PURE__ */ jsxRuntimeExports.jsx("span", { className: "text-text-primary", children: squadName }),
+        /* @__PURE__ */ jsxRuntimeExports.jsx("span", { className: "text-text-tertiary", children: "·" })
       ] }),
-      /* @__PURE__ */ jsxRuntimeExports.jsx("span", { className: "text-text-tertiary", children: "·" }),
+      squadRoot && /* @__PURE__ */ jsxRuntimeExports.jsxs(jsxRuntimeExports.Fragment, { children: [
+        /* @__PURE__ */ jsxRuntimeExports.jsx("span", { className: "truncate max-w-xs", title: squadRoot, children: squadRoot }),
+        /* @__PURE__ */ jsxRuntimeExports.jsx("span", { className: "text-text-tertiary", children: "·" })
+      ] }),
       /* @__PURE__ */ jsxRuntimeExports.jsxs("span", { children: [
         sessionCount,
         " session",
@@ -7479,11 +7469,10 @@ function nextMsgId() {
   return `msg-${Date.now()}-${++msgIdCounter}`;
 }
 function App() {
-  const [connectionState, setConnectionState] = reactExports.useState({ connected: false });
-  const [connecting, setConnecting] = reactExports.useState(false);
   const [config, setConfig] = reactExports.useState(null);
   const [roster, setRoster] = reactExports.useState([]);
   const [agentStatuses, setAgentStatuses] = reactExports.useState([]);
+  const [loading, setLoading] = reactExports.useState(true);
   const [selectedSquad, setSelectedSquad] = reactExports.useState(null);
   const [selectedAgent, setSelectedAgent] = reactExports.useState(null);
   const [sessions, setSessions] = reactExports.useState(/* @__PURE__ */ new Map());
@@ -7510,26 +7499,27 @@ function App() {
   }, [squads, selectedSquad]);
   reactExports.useEffect(() => {
     async function loadInitialData() {
-      const [configRes, rosterRes, statusRes] = await Promise.all([
-        window.squadAPI.loadConfig(),
-        window.squadAPI.getRoster(),
-        window.squadAPI.getAgentStatuses()
-      ]);
-      const configResult = configRes;
-      const rosterResult = rosterRes;
-      const statusResult = statusRes;
-      if (configResult.ok && configResult.data) setConfig(configResult.data);
-      if (rosterResult.ok && rosterResult.data) setRoster(rosterResult.data);
-      if (statusResult.ok && statusResult.data) setAgentStatuses(statusResult.data);
+      try {
+        const [configRes, rosterRes, statusRes] = await Promise.all([
+          window.squadAPI.loadConfig(),
+          window.squadAPI.getRoster(),
+          window.squadAPI.getAgentStatuses()
+        ]);
+        const configResult = configRes;
+        const rosterResult = rosterRes;
+        const statusResult = statusRes;
+        if (configResult.ok && configResult.data) setConfig(configResult.data);
+        if (rosterResult.ok && rosterResult.data) setRoster(rosterResult.data);
+        if (statusResult.ok && statusResult.data) setAgentStatuses(statusResult.data);
+      } catch (err) {
+        setError(err instanceof Error ? err.message : "Failed to load squad data");
+      } finally {
+        setLoading(false);
+      }
     }
     loadInitialData();
   }, []);
   reactExports.useEffect(() => {
-    const unsubConnection = window.squadAPI.onConnectionState((state) => {
-      const cs = state;
-      setConnectionState(cs);
-      if (cs.connected) setConnecting(false);
-    });
     const unsubDelta = window.squadAPI.onStreamDelta((delta) => {
       const d = delta;
       setStreamingText((prev) => {
@@ -7579,24 +7569,10 @@ function App() {
       });
     });
     return () => {
-      unsubConnection();
       unsubDelta();
       unsubUsage();
       unsubEvent();
     };
-  }, []);
-  const handleConnect = reactExports.useCallback(async () => {
-    setConnecting(true);
-    setError(null);
-    const res = await window.squadAPI.connect();
-    if (!res.ok) {
-      setError(res.error ?? "Connection failed");
-      setConnecting(false);
-    }
-  }, []);
-  const handleDisconnect = reactExports.useCallback(async () => {
-    await window.squadAPI.disconnect();
-    setConnectionState({ connected: false });
   }, []);
   const handleSelectSquad = reactExports.useCallback((name) => {
     setSelectedSquad(name);
@@ -7666,15 +7642,7 @@ function App() {
     return () => window.removeEventListener("keydown", handleKeyDown);
   }, [selectedAgent, selectedSquad, agents]);
   return /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "flex flex-col h-screen bg-bg text-text-primary overflow-hidden", children: [
-    /* @__PURE__ */ jsxRuntimeExports.jsx(
-      Header,
-      {
-        connectionState,
-        onConnect: handleConnect,
-        onDisconnect: handleDisconnect,
-        connecting
-      }
-    ),
+    /* @__PURE__ */ jsxRuntimeExports.jsx(Header, {}),
     error && /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "flex items-center justify-between px-4 py-2 bg-status-error/10 border-b border-status-error/20 text-sm text-status-error animate-fade-in", children: [
       /* @__PURE__ */ jsxRuntimeExports.jsx("span", { children: error }),
       /* @__PURE__ */ jsxRuntimeExports.jsx(
@@ -7695,7 +7663,8 @@ function App() {
           onSelectSquad: handleSelectSquad,
           agents,
           selectedAgent,
-          onSelectAgent: handleSelectAgent
+          onSelectAgent: handleSelectAgent,
+          loading
         }
       ),
       !selectedSquad ? /* @__PURE__ */ jsxRuntimeExports.jsx(
@@ -7705,7 +7674,8 @@ function App() {
             name,
             memberCount: roster.length
           })),
-          onSelectSquad: handleSelectSquad
+          onSelectSquad: handleSelectSquad,
+          loading
         }
       ) : /* @__PURE__ */ jsxRuntimeExports.jsx(
         PodView,
@@ -7713,7 +7683,8 @@ function App() {
           squadName: selectedSquad,
           agents,
           selectedAgent,
-          onSelectAgent: handleSelectAgent
+          onSelectAgent: handleSelectAgent,
+          loading
         }
       ),
       selectedAgent && selectedAgentInfo && /* @__PURE__ */ jsxRuntimeExports.jsx(
@@ -7733,7 +7704,8 @@ function App() {
     /* @__PURE__ */ jsxRuntimeExports.jsx(
       StatusBar,
       {
-        connectionState,
+        squadRoot: config?.root ?? null,
+        squadName: config?.name ?? null,
         sessionCount: sessions.size,
         totalTokens,
         estimatedCost,

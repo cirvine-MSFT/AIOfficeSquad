@@ -1,8 +1,6 @@
 import { contextBridge, ipcRenderer } from 'electron'
 
 export interface SquadAPI {
-  connect(config?: unknown): Promise<unknown>
-  disconnect(): Promise<unknown>
   createSession(agentName: string, config?: unknown): Promise<unknown>
   sendMessage(sessionId: string, prompt: string): Promise<unknown>
   listSessions(): Promise<unknown>
@@ -13,16 +11,14 @@ export interface SquadAPI {
   loadConfig(): Promise<unknown>
   getRoster(): Promise<unknown>
   getAgentStatuses(): Promise<unknown>
+  getReadyState(): Promise<unknown>
   onEvent(callback: (event: unknown) => void): () => void
   onStreamDelta(callback: (delta: unknown) => void): () => void
   onStreamUsage(callback: (usage: unknown) => void): () => void
-  onConnectionState(callback: (state: unknown) => void): () => void
 }
 
 const squadAPI: SquadAPI = {
   // ── Invoke channels (renderer → main) ─────────────────────────
-  connect: (config?) => ipcRenderer.invoke('squad:connect', config),
-  disconnect: () => ipcRenderer.invoke('squad:disconnect'),
   createSession: (agentName, config?) =>
     ipcRenderer.invoke('squad:create-session', agentName, config),
   sendMessage: (sessionId, prompt) =>
@@ -35,6 +31,7 @@ const squadAPI: SquadAPI = {
   loadConfig: () => ipcRenderer.invoke('squad:load-config'),
   getRoster: () => ipcRenderer.invoke('squad:get-roster'),
   getAgentStatuses: () => ipcRenderer.invoke('squad:get-agent-statuses'),
+  getReadyState: () => ipcRenderer.invoke('squad:get-ready-state'),
 
   // ── Push channels (main → renderer) ───────────────────────────
   onEvent: (callback) => {
@@ -51,11 +48,6 @@ const squadAPI: SquadAPI = {
     const handler = (_event: Electron.IpcRendererEvent, data: unknown) => callback(data)
     ipcRenderer.on('squad:stream-usage', handler)
     return () => { ipcRenderer.removeListener('squad:stream-usage', handler) }
-  },
-  onConnectionState: (callback) => {
-    const handler = (_event: Electron.IpcRendererEvent, data: unknown) => callback(data)
-    ipcRenderer.on('squad:connection-state', handler)
-    return () => { ipcRenderer.removeListener('squad:connection-state', handler) }
   }
 }
 

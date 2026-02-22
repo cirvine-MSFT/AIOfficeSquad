@@ -1,8 +1,6 @@
 import { contextBridge, ipcRenderer } from "electron";
 const squadAPI = {
   // ── Invoke channels (renderer → main) ─────────────────────────
-  connect: (config) => ipcRenderer.invoke("squad:connect", config),
-  disconnect: () => ipcRenderer.invoke("squad:disconnect"),
   createSession: (agentName, config) => ipcRenderer.invoke("squad:create-session", agentName, config),
   sendMessage: (sessionId, prompt) => ipcRenderer.invoke("squad:send-message", sessionId, prompt),
   listSessions: () => ipcRenderer.invoke("squad:list-sessions"),
@@ -13,6 +11,7 @@ const squadAPI = {
   loadConfig: () => ipcRenderer.invoke("squad:load-config"),
   getRoster: () => ipcRenderer.invoke("squad:get-roster"),
   getAgentStatuses: () => ipcRenderer.invoke("squad:get-agent-statuses"),
+  getReadyState: () => ipcRenderer.invoke("squad:get-ready-state"),
   // ── Push channels (main → renderer) ───────────────────────────
   onEvent: (callback) => {
     const handler = (_event, data) => callback(data);
@@ -33,13 +32,6 @@ const squadAPI = {
     ipcRenderer.on("squad:stream-usage", handler);
     return () => {
       ipcRenderer.removeListener("squad:stream-usage", handler);
-    };
-  },
-  onConnectionState: (callback) => {
-    const handler = (_event, data) => callback(data);
-    ipcRenderer.on("squad:connection-state", handler);
-    return () => {
-      ipcRenderer.removeListener("squad:connection-state", handler);
     };
   }
 };

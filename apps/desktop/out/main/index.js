@@ -2,6 +2,7 @@ import { ipcMain, app, BrowserWindow, shell } from "electron";
 import { join } from "path";
 import { is } from "@electron-toolkit/utils";
 import { readFile } from "fs/promises";
+import { execSync } from "child_process";
 import __cjs_mod__ from "node:module";
 const __filename = import.meta.filename;
 const __dirname = import.meta.dirname;
@@ -12,24 +13,41 @@ class SquadRuntime {
   pipeline = null;
   monitor = null;
   squadRoot;
+  _isReady = false;
   eventHandlers = /* @__PURE__ */ new Set();
   deltaHandlers = /* @__PURE__ */ new Set();
   usageHandlers = /* @__PURE__ */ new Set();
+  readyHandlers = /* @__PURE__ */ new Set();
   constructor(squadRoot) {
-    this.squadRoot = squadRoot ?? process.cwd();
+    if (squadRoot) {
+      this.squadRoot = squadRoot;
+    } else {
+      try {
+        this.squadRoot = execSync("git rev-parse --show-toplevel", { encoding: "utf-8" }).trim();
+      } catch {
+        this.squadRoot = process.cwd();
+      }
+    }
+  }
+  get isReady() {
+    return this._isReady;
   }
   // ── Lifecycle ──────────────────────────────────────────────────
-  async connect() {
+  /**
+   * Initialize the Squad SDK components. Safe to call — if SDK is unavailable
+   * or auth fails, logs error but doesn't crash. Roster reading always works.
+   */
+  async initialize() {
     try {
       const { SquadClientWithPool } = await import("@bradygaster/squad-sdk/client");
       const { EventBus } = await import("@bradygaster/squad-sdk/runtime/event-bus");
       const { StreamingPipeline } = await import("@bradygaster/squad-sdk/runtime/streaming");
       const { RalphMonitor } = await import("@bradygaster/squad-sdk/ralph");
       this.eventBus = new EventBus();
-      this.client = new SquadClientWithPool();
+      this.client = new SquadClientWithPool({});
       this.pipeline = new StreamingPipeline();
       this.monitor = new RalphMonitor();
-      this.eventBus.onAny((event) => {
+      this.eventBus.subscribeAll((event) => {
         for (const handler of this.eventHandlers) {
           try {
             handler(event);
@@ -57,13 +75,20 @@ class SquadRuntime {
           }
         });
       }
-      console.log("[SquadRuntime] connected");
+      this._isReady = true;
+      console.log("[SquadRuntime] initialized successfully");
+      for (const handler of this.readyHandlers) {
+        try {
+          handler();
+        } catch {
+        }
+      }
     } catch (err) {
-      console.error("[SquadRuntime] connect failed:", err);
-      throw err;
+      console.error("[SquadRuntime] initialize failed (SDK unavailable or auth issue):", err);
+      console.log("[SquadRuntime] continuing without SDK — roster reading still works");
     }
   }
-  async shutdown() {
+  async cleanup() {
     try {
       if (this.pipeline?.stop) await this.pipeline.stop();
       if (this.monitor?.stop) await this.monitor.stop();
@@ -71,18 +96,23 @@ class SquadRuntime {
       this.eventHandlers.clear();
       this.deltaHandlers.clear();
       this.usageHandlers.clear();
+      this.readyHandlers.clear();
       this.client = null;
       this.eventBus = null;
       this.pipeline = null;
       this.monitor = null;
-      console.log("[SquadRuntime] shutdown complete");
+      this._isReady = false;
+      console.log("[SquadRuntime] cleanup complete");
     } catch (err) {
-      console.error("[SquadRuntime] shutdown error:", err);
+      console.error("[SquadRuntime] cleanup error:", err);
     }
   }
   // ── Session management ─────────────────────────────────────────
   async createSession(agentName, config) {
-    if (!this.client) throw new Error("Runtime not connected");
+    if (!this.client) {
+      await this.initialize();
+      if (!this.client) throw new Error("SDK not available");
+    }
     const session = await this.client.createSession({
       agent: agentName,
       ...config
@@ -90,39 +120,44 @@ class SquadRuntime {
     return { sessionId: session.id ?? session.sessionId };
   }
   async sendMessage(sessionId, prompt) {
-    if (!this.client) throw new Error("Runtime not connected");
+    if (!this.client) throw new Error("SDK not available");
     await this.client.sendMessage(sessionId, prompt);
   }
   async listSessions() {
-    if (!this.client) throw new Error("Runtime not connected");
+    if (!this.client) throw new Error("SDK not available");
     return await this.client.listSessions();
   }
   async deleteSession(id) {
-    if (!this.client) throw new Error("Runtime not connected");
+    if (!this.client) throw new Error("SDK not available");
     await this.client.deleteSession(id);
   }
   async getStatus() {
-    if (!this.client) throw new Error("Runtime not connected");
+    if (!this.client) throw new Error("SDK not available");
     return await this.client.getStatus();
   }
   async getAuthStatus() {
-    if (!this.client) throw new Error("Runtime not connected");
+    if (!this.client) throw new Error("SDK not available");
     return await this.client.getAuthStatus();
   }
   async listModels() {
-    if (!this.client) throw new Error("Runtime not connected");
+    if (!this.client) throw new Error("SDK not available");
     return await this.client.listModels();
   }
   // ── Squad config & roster ──────────────────────────────────────
   async loadSquadConfig() {
     try {
-      const { resolveSquad, loadConfig } = await import("@bradygaster/squad-sdk");
-      const squadDir = await resolveSquad(this.squadRoot);
-      const config = await loadConfig(squadDir);
       const members = await this.getRoster();
+      const teamPath = join(this.squadRoot, ".squad", "team.md");
+      let name = "Squad Office";
+      try {
+        const content = await readFile(teamPath, "utf-8");
+        const nameMatch = content.match(/^#\s+(.+)/m);
+        if (nameMatch) name = nameMatch[1];
+      } catch {
+      }
       return {
-        name: config?.name ?? "unknown",
-        root: squadDir,
+        name,
+        root: this.squadRoot,
         members
       };
     } catch (err) {
@@ -167,6 +202,18 @@ class SquadRuntime {
       this.usageHandlers.delete(handler);
     };
   }
+  onReady(handler) {
+    this.readyHandlers.add(handler);
+    if (this._isReady) {
+      try {
+        handler();
+      } catch {
+      }
+    }
+    return () => {
+      this.readyHandlers.delete(handler);
+    };
+  }
 }
 function parseTeamMd(content) {
   const members = [];
@@ -205,8 +252,10 @@ function registerIpcHandlers(runtime2, getMainWindow) {
       }
     });
   }
-  handle("squad:connect", (config) => runtime2.connect());
-  handle("squad:disconnect", () => runtime2.shutdown());
+  handle(
+    "squad:get-ready-state",
+    () => Promise.resolve({ ready: runtime2.isReady, squadRoot: runtime2["squadRoot"] })
+  );
   handle(
     "squad:create-session",
     (agentName, config) => runtime2.createSession(agentName, config)
@@ -232,11 +281,13 @@ function registerIpcHandlers(runtime2, getMainWindow) {
   runtime2.onEvent((event) => send("squad:event", event));
   runtime2.onStreamDelta((delta) => send("squad:stream-delta", delta));
   runtime2.onUsage((usage) => send("squad:stream-usage", usage));
+  runtime2.onReady(() => {
+    send("squad:connection-state", { connected: true });
+  });
 }
 function removeIpcHandlers() {
   const channels = [
-    "squad:connect",
-    "squad:disconnect",
+    "squad:get-ready-state",
     "squad:create-session",
     "squad:send-message",
     "squad:list-sessions",
@@ -263,7 +314,7 @@ function createWindow() {
     backgroundColor: "#0f172a",
     titleBarStyle: process.platform === "darwin" ? "hiddenInset" : "default",
     webPreferences: {
-      preload: join(__dirname, "../preload/index.js"),
+      preload: join(__dirname, "../preload/index.mjs"),
       sandbox: false
     }
   });
@@ -281,9 +332,33 @@ function createWindow() {
   });
 }
 app.whenReady().then(async () => {
-  runtime = new SquadRuntime(process.cwd());
+  runtime = new SquadRuntime();
   registerIpcHandlers(runtime, () => mainWindow);
+  runtime.initialize().catch((err) => {
+    console.error("[Main] SDK initialization failed:", err);
+  });
+  runtime.onReady(() => {
+    if (mainWindow && !mainWindow.isDestroyed()) {
+      runtime.loadSquadConfig().then((config) => {
+        mainWindow?.webContents.send("squad:config-loaded", config);
+      }).catch((err) => {
+        console.error("[Main] Failed to load config:", err);
+      });
+      mainWindow.webContents.send("squad:connection-state", { connected: true });
+    }
+  });
   createWindow();
+  mainWindow?.webContents.once("did-finish-load", async () => {
+    try {
+      const config = await runtime.loadSquadConfig();
+      mainWindow?.webContents.send("squad:config-loaded", config);
+      if (runtime.isReady) {
+        mainWindow?.webContents.send("squad:connection-state", { connected: true });
+      }
+    } catch (err) {
+      console.error("[Main] Failed to load initial config:", err);
+    }
+  });
   app.on("activate", () => {
     if (BrowserWindow.getAllWindows().length === 0) {
       createWindow();
@@ -298,7 +373,7 @@ app.on("window-all-closed", () => {
 app.on("will-quit", async () => {
   removeIpcHandlers();
   if (runtime) {
-    await runtime.shutdown();
+    await runtime.cleanup();
     runtime = null;
   }
 });
