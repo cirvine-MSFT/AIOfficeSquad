@@ -19,12 +19,12 @@ https://github.com/user-attachments/assets/8083f778-1ab3-4c74-b1f4-34611d50191d
 git clone https://github.com/ChristianFJung/AIOffice
 cd AIOffice
 npm i
-npx officeagent demo
+npx squadoffice demo
 ```
 
 > **Windows:** Support is still in development. For best results, use macOS or Linux. WSL works but may have issues with chat bridging.
 
-<img src="demo/demo.gif" alt="officeagent demo — CLI detection and agent spawning" width="600">
+<img src="demo/demo.gif" alt="squadoffice demo — CLI detection and agent spawning" width="600">
 
 > Open **http://localhost:3000** — your office is ready. Walk around, assign tasks, be the boss.
 
@@ -48,10 +48,10 @@ See [Architecture →](docs/ARCHITECTURE.md)
 ## CLI
 
 ```bash
-npx officeagent start                        # Launch the office
-npx officeagent spawn                        # Add a Claude agent
-npx officeagent spawn -n "Bob" -c copilot    # Named Copilot agent
-npx officeagent demo                         # Auto-detect CLIs, full demo
+npx squadoffice start                        # Launch the office
+npx squadoffice spawn                        # Add a Claude agent
+npx squadoffice spawn -n "Bob" -c copilot    # Named Copilot agent
+npx squadoffice demo                         # Auto-detect CLIs, full demo
 ```
 
 ## Adding Agents
@@ -63,16 +63,16 @@ npx officeagent demo                         # Auto-detect CLIs, full demo
 **From the terminal:**
 ```bash
 # Claude agent in current directory
-npx officeagent spawn
+npx squadoffice spawn
 
 # Named Copilot agent working on your project
-npx officeagent spawn --name "Alice" --dir ~/projects/myapp --cli copilot
+npx squadoffice spawn --name "Alice" --dir ~/projects/myapp --cli copilot
 
 # Give them a personality
-npx officeagent spawn -n "Grumpy Gary" -p "Sarcastic senior dev who's seen it all"
+npx squadoffice spawn -n "Grumpy Gary" -p "Sarcastic senior dev who's seen it all"
 
 # Resume a previous conversation
-npx officeagent spawn -n "Alice" -d ~/projects/myapp --continue
+npx squadoffice spawn -n "Alice" -d ~/projects/myapp --continue
 ```
 
 ## Controls
@@ -108,7 +108,7 @@ aioffice/
 ├── apps/
 │   ├── web/           # Phaser 3 game + UI (Vite + TypeScript)
 │   ├── server/        # Express server, PTY management, JSONL bridge
-│   └── officeagent/   # CLI tool (start, spawn, demo)
+│   └── officeagent/   # CLI tool — "squadoffice" (start, spawn, demo, init)
 ├── shared/            # Shared types and schemas
 ├── demo/              # Demo projects for agents to work on
 ├── tests/             # Playwright integration tests
@@ -121,26 +121,27 @@ aioffice/
 
 ## CLI Reference
 
-### `officeagent start`
+### `squadoffice start`
 
 Launch the server and web app.
 
 ```bash
-npx officeagent start              # Start both server (:3003) and web (:3000)
-npx officeagent start --server-only  # Server only
-npx officeagent start --web-only     # Web app only
+npx squadoffice start              # Start both server (:3003) and web (:3000)
+npx squadoffice start --server-only  # Server only
+npx squadoffice start --web-only     # Web app only
 ```
 
-### `officeagent spawn`
+### `squadoffice spawn`
 
 Spawn an AI agent into the office.
 
 ```bash
-npx officeagent spawn                                          # Claude agent, random name
-npx officeagent spawn --name "Alice" --cli copilot             # Named Copilot agent
-npx officeagent spawn -n "Bob" -d ~/projects/myapp             # Custom working directory
-npx officeagent spawn -n "Grumpy" -p "Sarcastic senior dev"    # With personality
-npx officeagent spawn --continue                               # Resume previous conversation
+npx squadoffice spawn                                          # Claude agent, random name
+npx squadoffice spawn --name "Alice" --cli copilot             # Named Copilot agent
+npx squadoffice spawn -n "Bob" -d ~/projects/myapp             # Custom working directory
+npx squadoffice spawn -n "Grumpy" -p "Sarcastic senior dev"    # With personality
+npx squadoffice spawn --continue                               # Resume previous conversation
+npx squadoffice spawn Mac                                      # Spawn squad member by name
 ```
 
 | Flag | Short | Description | Default |
@@ -152,12 +153,20 @@ npx officeagent spawn --continue                               # Resume previous
 | `--continue` | | Resume previous conversation | `false` |
 | `--server` | `-s` | Server URL | `http://localhost:3003` |
 
-### `officeagent demo`
+### `squadoffice demo`
 
-One command to see everything. Detects which AI CLIs you have installed and spawns agents into demo projects.
+One command to see everything. Reads your squad roster from `.squad/team.md` and spawns agents into demo projects.
 
 ```bash
-npx officeagent demo    # Auto-detect CLIs, start world, spawn agents
+npx squadoffice demo    # Read squad roster, start world, spawn agents
+```
+
+### `squadoffice init`
+
+Check if your squad is configured.
+
+```bash
+npx squadoffice init    # Check for .squad/ directory and show roster
 ```
 
 | You have installed | What happens |

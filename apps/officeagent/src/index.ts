@@ -1,17 +1,45 @@
 #!/usr/bin/env node
 
 /**
- * officeagent — CLI for AIOffice
+ * squadoffice — CLI for Squad Office
  *
  * Commands:
  *   start   — Launch the server and web app
- *   spawn   — Spawn an AI agent into the world
+ *   spawn   — Spawn an AI agent (or squad member) into the world
+ *   demo    — Launch a full demo with your squad roster
+ *   init    — Check for .squad/ setup
+ *   clear   — Remove all agents from the office
  */
 
 import { spawn as nodeSpawn, execSync } from "child_process";
 import * as path from "path";
+import * as fs from "fs";
 
 const ROOT = path.resolve(import.meta.dirname ?? __dirname, "../../..");
+
+// ── squad roster helpers ─────────────────────────────────────────────
+
+type SquadMember = { name: string; role: string; scope: string; badge: string };
+
+function parseSquadRoster(): SquadMember[] {
+  const teamPath = path.join(ROOT, ".squad", "team.md");
+  if (!fs.existsSync(teamPath)) return [];
+  const content = fs.readFileSync(teamPath, "utf-8");
+  const members: SquadMember[] = [];
+  for (const line of content.split("\n")) {
+    const m = line.match(/^\|\s*([^|]+?)\s*\|\s*([^|]+?)\s*\|\s*([^|]+?)\s*\|\s*([^|]+?)\s*\|/);
+    if (m && m[1] !== "Name" && !m[1].startsWith("-")) {
+      members.push({ name: m[1].trim(), role: m[2].trim(), scope: m[3].trim(), badge: m[4].trim() });
+    }
+  }
+  return members;
+}
+
+function findSquadMember(nameQuery: string): SquadMember | undefined {
+  const roster = parseSquadRoster();
+  const q = nameQuery.toLowerCase();
+  return roster.find((m) => m.name.toLowerCase() === q) || roster.find((m) => m.name.toLowerCase().startsWith(q));
+}
 
 // ── start command ────────────────────────────────────────────────────
 
@@ -24,10 +52,10 @@ function startWorld(args: string[]) {
     if (arg === "--web-only") webOnly = true;
     if (arg === "--help" || arg === "-h") {
       console.log(`
-officeagent start — Launch AIOffice
+squadoffice start — Launch Squad Office
 
 Usage:
-  officeagent start [options]
+  squadoffice start [options]
 
 Options:
   --server-only   Only start the server (port 3003)
@@ -40,7 +68,7 @@ With no flags, starts both the server and web app.
     }
   }
 
-  console.log("🏢 Starting AIOffice...\n");
+  console.log("🏢 Starting Squad Office...\n");
 
   const procs: ReturnType<typeof nodeSpawn>[] = [];
 
@@ -55,7 +83,7 @@ With no flags, starts both the server and web app.
   }
 
   if (!serverOnly) {
-    console.log("  🌐 Web    → http://localhost:3000");
+    console.log("  🌐 Web    → http://localhost:3000/?building=1");
     const web = nodeSpawn("npm", ["run", "dev:web"], {
       cwd: ROOT,
       stdio: "inherit",
@@ -105,10 +133,11 @@ async function spawnAgent(args: string[]) {
       continueConversation = true;
     } else if (args[i] === "--help" || args[i] === "-h") {
       console.log(`
-officeagent spawn — Spawn an AI agent into the world
+squadoffice spawn — Spawn an AI agent into the world
 
 Usage:
-  officeagent spawn [options]
+  squadoffice spawn [options]
+  squadoffice spawn <member-name>    Spawn a squad member by name (from .squad/team.md)
 
 Options:
   --name, -n <name>          Agent display name (default: random)
@@ -120,12 +149,22 @@ Options:
   --help, -h                 Show this help
 
 Examples:
-  officeagent spawn                                         # Random name, Claude
-  officeagent spawn --name "Bob" --dir ~/projects/myapp
-  officeagent spawn -n "Alice" -c copilot
-  officeagent spawn -n "Grumpy" -p "Sarcastic senior dev"
+  squadoffice spawn                                         # Random name, Claude
+  squadoffice spawn --name "Bob" --dir ~/projects/myapp
+  squadoffice spawn -n "Alice" -c copilot
+  squadoffice spawn -n "Grumpy" -p "Sarcastic senior dev"
+  squadoffice spawn Mac                                     # Spawn squad member by name
 `);
       process.exit(0);
+    }
+  }
+
+  // Check if first positional arg is a squad member name
+  if (args.length > 0 && !args[0].startsWith("-") && !name) {
+    const member = findSquadMember(args[0]);
+    if (member) {
+      name = `${member.name} (${member.role})`;
+      personality = `${member.badge} ${member.scope}`;
     }
   }
 
@@ -185,20 +224,16 @@ async function runDemo(args: string[]) {
   for (const arg of args) {
     if (arg === "--help" || arg === "-h") {
       console.log(`
-officeagent demo — Launch a full demo with auto-detected AI agents
+squadoffice demo — Launch a full demo with your squad roster
 
 Usage:
-  officeagent demo [options]
+  squadoffice demo [options]
 
 Options:
   --help, -h   Show this help
 
-Detects which AI CLIs are installed (claude, copilot) and spawns agents
-into two demo projects: a todo-api spec and a partially-built world-clock app.
-
-  Both installed → one Claude + one Copilot agent
-  Only Claude    → two Claude agents
-  Only Copilot   → two Copilot agents
+Reads .squad/team.md for your squad roster and spawns agents into the office.
+Detects which AI CLIs are installed (claude, copilot) and assigns them accordingly.
 `);
       process.exit(0);
     }
@@ -217,7 +252,7 @@ Install at least one:
     process.exit(1);
   }
 
-  console.log("\n🏢 AIOffice — Demo Mode\n");
+  console.log("\n🏢 Squad Office — Demo Mode\n");
   console.log("  Detected CLIs:");
   if (hasClaude) console.log("    ✅ Claude Code");
   else console.log("    ⬜ Claude Code (not found)");
@@ -236,7 +271,7 @@ Install at least one:
   });
   procs.push(server);
 
-  console.log("  🌐 Web    → http://localhost:3000");
+  console.log("  🌐 Web    → http://localhost:3000/?building=1");
   const web = nodeSpawn("npm", ["run", "dev:web"], {
     cwd: ROOT,
     stdio: "ignore",
@@ -263,22 +298,31 @@ Install at least one:
   }
   console.log("  ✅ Server ready!\n");
 
-  // Determine agent assignments
+  // Read squad roster for agent names
+  const roster = parseSquadRoster();
   const demoDir1 = path.join(ROOT, "demo", "todo-api");
   const demoDir2 = path.join(ROOT, "demo", "world-clock");
 
-  type AgentDef = { name: string; cli: string; dir: string };
+  type AgentDef = { name: string; cli: string; dir: string; personality?: string };
   const agents: AgentDef[] = [];
 
-  if (hasClaude && hasCopilot) {
-    agents.push({ name: "Sarah (Lead)", cli: "claude-code", dir: demoDir1 });
-    agents.push({ name: "Jake (Intern)", cli: "copilot-cli", dir: demoDir2 });
+  if (roster.length >= 2) {
+    // Use first two squad members from team.md
+    const m1 = roster[0];
+    const m2 = roster[1];
+    const cli1 = hasClaude ? "claude-code" : "copilot-cli";
+    const cli2 = hasCopilot && hasClaude ? "copilot-cli" : cli1;
+    agents.push({ name: `${m1.name} (${m1.role})`, cli: cli1, dir: demoDir1, personality: `${m1.badge} ${m1.scope}` });
+    agents.push({ name: `${m2.name} (${m2.role})`, cli: cli2, dir: demoDir2, personality: `${m2.badge} ${m2.scope}` });
+  } else if (hasClaude && hasCopilot) {
+    agents.push({ name: "Agent 1", cli: "claude-code", dir: demoDir1 });
+    agents.push({ name: "Agent 2", cli: "copilot-cli", dir: demoDir2 });
   } else if (hasClaude) {
-    agents.push({ name: "Sarah (Lead)", cli: "claude-code", dir: demoDir1 });
-    agents.push({ name: "Priya (Dev)", cli: "claude-code", dir: demoDir2 });
+    agents.push({ name: "Agent 1", cli: "claude-code", dir: demoDir1 });
+    agents.push({ name: "Agent 2", cli: "claude-code", dir: demoDir2 });
   } else {
-    agents.push({ name: "Sarah (Lead)", cli: "copilot-cli", dir: demoDir1 });
-    agents.push({ name: "Jake (Intern)", cli: "copilot-cli", dir: demoDir2 });
+    agents.push({ name: "Agent 1", cli: "copilot-cli", dir: demoDir1 });
+    agents.push({ name: "Agent 2", cli: "copilot-cli", dir: demoDir2 });
   }
 
   // Spawn agents with dramatic pacing
@@ -293,6 +337,7 @@ Install at least one:
           name: agent.name,
           cliType: agent.cli,
           workingDirectory: agent.dir,
+          personality: agent.personality || undefined,
         }),
       });
       if (!res.ok) {
@@ -307,9 +352,9 @@ Install at least one:
   }
 
   console.log(`
-  🌐 Office ready → http://localhost:3000
+  🌐 Office ready → http://localhost:3000/?building=1
 
-  👔 You're the boss. Go manage your team.
+  🏢 Your squad office is ready.
      Walk up to an agent and press E to chat.
      Press Ctrl+C to stop.
 `);
@@ -341,22 +386,47 @@ async function clearAgents(args: string[]) {
   console.log("\n✨ Office cleared.\n");
 }
 
+// ── init command ──────────────────────────────────────────────────────
+
+function initSquad() {
+  const squadDir = path.join(ROOT, ".squad");
+  if (fs.existsSync(squadDir)) {
+    console.log("\n✅ .squad/ directory found. Your squad is configured.\n");
+    const roster = parseSquadRoster();
+    if (roster.length > 0) {
+      console.log("  Squad members:");
+      for (const m of roster) {
+        console.log(`    ${m.badge} ${m.name} — ${m.role}`);
+      }
+      console.log();
+    }
+  } else {
+    console.log(`
+⚠️  No .squad/ directory found.
+
+To initialize your squad, run:
+  npx @bradygaster/squad-cli init
+`);
+  }
+}
+
 // ── main ─────────────────────────────────────────────────────────────
 
 function showHelp() {
   console.log(`
-officeagent — CLI for AIOffice
+squadoffice — CLI for Squad Office
 
 Usage:
-  officeagent <command> [options]
+  squadoffice <command> [options]
 
 Commands:
   start    Launch the server and web app
   spawn    Spawn an AI agent into the world
-  demo     Launch a full demo with auto-detected agents
+  demo     Launch a full demo with your squad roster
+  init     Check .squad/ setup status
   clear    Remove all agents from the office
 
-Run "officeagent <command> --help" for command-specific options.
+Run "squadoffice <command> --help" for command-specific options.
 `);
 }
 
@@ -377,6 +447,9 @@ switch (command) {
       console.error("Fatal:", e.message || e);
       process.exit(1);
     });
+    break;
+  case "init":
+    initSquad();
     break;
   case "clear":
     clearAgents(rest).catch((e) => {

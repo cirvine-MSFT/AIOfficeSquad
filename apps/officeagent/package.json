@@ -1,9 +1,9 @@
 {
-  "name": "officeagent",
+  "name": "squadoffice",
   "version": "1.0.0",
   "type": "module",
   "bin": {
-    "officeagent": "./dist/index.js"
+    "squadoffice": "./dist/index.js"
   },
   "scripts": {
     "build": "tsc",
