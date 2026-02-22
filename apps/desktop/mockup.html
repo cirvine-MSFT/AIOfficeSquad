@@ -1,0 +1,1510 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Squad Office — Building/Floor/Office UI Mockup</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+  <style>
+    /* ========== CSS Variables (Design System) ========== */
+    :root {
+      --bg: #0f1117;
+      --bg-raised: #151820;
+      --bg-surface: #1a1d27;
+      --bg-hover: #1f2330;
+      --bg-active: #252936;
+      --bg-floor: #12151c;
+      --bg-wall: #1e2230;
+      --bg-desk: #2a2f3d;
+      
+      --text-primary: #e8eaf0;
+      --text-secondary: #9ba1b0;
+      --text-tertiary: #636a7c;
+      
+      --role-lead: #6366f1;
+      --role-lead-light: #a5b4fc;
+      --role-frontend: #f472b6;
+      --role-frontend-light: #f9a8d4;
+      --role-backend: #22d3ee;
+      --role-backend-light: #67e8f9;
+      --role-tester: #a3e635;
+      --role-tester-light: #bef264;
+      --role-domain: #fbbf24;
+      --role-domain-light: #fcd34d;
+      --role-design: #c084fc;
+      --role-design-light: #d8b4fe;
+      
+      --status-active: #4ade80;
+      --status-idle: #facc15;
+      --status-error: #f87171;
+      --status-working: #60a5fa;
+      
+      --accent: #5b8def;
+      --border: #2a2f3d;
+      --border-focus: #5b8def;
+      
+      --glow-window: 0 0 20px rgba(251, 191, 36, 0.4);
+      --glow-active: 0 0 8px rgba(74,222,128,0.3);
+    }
+    
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    
+    body {
+      font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+      background: var(--bg);
+      color: var(--text-primary);
+      height: 100vh;
+      overflow: hidden;
+    }
+    
+    .app {
+      display: flex;
+      flex-direction: column;
+      height: 100vh;
+    }
+    
+    /* Header */
+    .header {
+      height: 48px;
+      background: var(--bg-raised);
+      border-bottom: 1px solid var(--border);
+      display: flex;
+      align-items: center;
+      padding: 0 16px;
+      gap: 16px;
+      flex-shrink: 0;
+    }
+    
+    .header-logo {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      font-weight: 600;
+      font-size: 14px;
+    }
+    
+    .header-logo svg { width: 24px; height: 24px; }
+    
+    .breadcrumb {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      font-size: 13px;
+      color: var(--text-secondary);
+    }
+    
+    .breadcrumb-item {
+      cursor: pointer;
+      transition: color 0.15s;
+    }
+    
+    .breadcrumb-item:hover { color: var(--text-primary); }
+    .breadcrumb-item.active { color: var(--text-primary); font-weight: 500; }
+    .breadcrumb-sep { color: var(--text-tertiary); }
+    .header-spacer { flex: 1; }
+    
+    .connection-status {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      font-size: 12px;
+      color: var(--text-secondary);
+    }
+    
+    .status-dot {
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      background: var(--status-active);
+      box-shadow: var(--glow-active);
+    }
+    
+    /* Main Layout */
+    .main-layout {
+      display: flex;
+      flex: 1;
+      overflow: hidden;
+    }
+    
+    /* Sidebar */
+    .sidebar {
+      width: 260px;
+      background: var(--bg-raised);
+      border-right: 1px solid var(--border);
+      display: flex;
+      flex-direction: column;
+    }
+    
+    .sidebar-header {
+      padding: 16px;
+      border-bottom: 1px solid var(--border);
+    }
+    
+    .sidebar-title {
+      font-size: 11px;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      color: var(--text-tertiary);
+      margin-bottom: 8px;
+    }
+    
+    .hub-info {
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+    }
+    
+    .hub-name { font-size: 16px; font-weight: 600; }
+    .hub-meta { font-size: 12px; color: var(--text-secondary); }
+    
+    .sidebar-content {
+      flex: 1;
+      overflow-y: auto;
+      padding: 12px;
+    }
+    
+    .squad-list {
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+    }
+    
+    .squad-item {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      padding: 10px 12px;
+      border-radius: 6px;
+      cursor: pointer;
+      transition: background 0.15s;
+    }
+    
+    .squad-item:hover { background: var(--bg-hover); }
+    .squad-item.active { background: var(--bg-active); }
+    
+    .squad-icon {
+      width: 32px;
+      height: 32px;
+      border-radius: 6px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 14px;
+    }
+    
+    .squad-info { flex: 1; min-width: 0; }
+    
+    .squad-name {
+      font-size: 13px;
+      font-weight: 500;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+    
+    .squad-members { font-size: 11px; color: var(--text-secondary); }
+    
+    .squad-status {
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+    }
+    
+    /* Main Content */
+    .main-content {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
+      position: relative;
+    }
+    
+    .view-container {
+      flex: 1;
+      position: relative;
+      overflow: hidden;
+    }
+    
+    .view {
+      position: absolute;
+      inset: 0;
+      opacity: 0;
+      pointer-events: none;
+      transition: opacity 0.3s ease-out;
+    }
+    
+    .view.active {
+      opacity: 1;
+      pointer-events: auto;
+    }
+    
+    /* Status Bar */
+    .status-bar {
+      height: 28px;
+      background: var(--bg-raised);
+      border-top: 1px solid var(--border);
+      display: flex;
+      align-items: center;
+      padding: 0 16px;
+      gap: 24px;
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 11px;
+      color: var(--text-secondary);
+    }
+    
+    .status-item {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+    
+    /* ========== BUILDING VIEW ========== */
+    .building-view {
+      flex: 1;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 40px;
+      background: radial-gradient(ellipse at center bottom, #1a1d27 0%, var(--bg) 70%);
+    }
+    
+    .building-wrapper {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+    }
+    
+    .building {
+      position: relative;
+    }
+    
+    /* Building structure */
+    .building-roof {
+      width: 380px;
+      height: 50px;
+      background: linear-gradient(135deg, #252936 0%, #1a1d27 100%);
+      border: 1px solid var(--border);
+      border-bottom: none;
+      border-radius: 12px 12px 0 0;
+      position: relative;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+    
+    .building-sign {
+      background: var(--bg);
+      border: 1px solid var(--border);
+      padding: 4px 16px;
+      border-radius: 4px;
+      font-size: 11px;
+      font-weight: 600;
+      color: var(--accent);
+      letter-spacing: 1px;
+    }
+    
+    .building-body {
+      display: flex;
+      flex-direction: column;
+    }
+    
+    .floor-row {
+      width: 380px;
+      height: 90px;
+      background: linear-gradient(180deg, var(--bg-surface) 0%, var(--bg-raised) 100%);
+      border-left: 3px solid #3d4555;
+      border-right: 3px solid #3d4555;
+      display: flex;
+      align-items: center;
+      padding: 0 20px;
+      cursor: pointer;
+      transition: all 0.2s;
+      position: relative;
+    }
+    
+    .floor-row::before {
+      content: '';
+      position: absolute;
+      left: 3px;
+      right: 3px;
+      bottom: 0;
+      height: 2px;
+      background: #3d4555;
+    }
+    
+    .floor-row:hover {
+      background: linear-gradient(180deg, var(--bg-hover) 0%, var(--bg-surface) 100%);
+    }
+    
+    .floor-row:last-child {
+      border-bottom: 3px solid #3d4555;
+      border-radius: 0 0 4px 4px;
+    }
+    
+    .floor-number {
+      width: 24px;
+      height: 24px;
+      background: var(--bg);
+      border: 1px solid var(--border);
+      border-radius: 4px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 11px;
+      font-weight: 600;
+      color: var(--text-secondary);
+      margin-right: 16px;
+    }
+    
+    .floor-windows {
+      display: flex;
+      gap: 6px;
+      margin-right: 16px;
+    }
+    
+    .window {
+      width: 28px;
+      height: 44px;
+      border-radius: 3px;
+      background: var(--bg);
+      border: 2px solid #3d4555;
+      position: relative;
+      overflow: hidden;
+      transition: all 0.3s;
+    }
+    
+    .window::before {
+      content: '';
+      position: absolute;
+      left: 50%;
+      top: 0;
+      bottom: 0;
+      width: 1px;
+      background: #3d4555;
+    }
+    
+    .window::after {
+      content: '';
+      position: absolute;
+      left: 0;
+      right: 0;
+      top: 50%;
+      height: 1px;
+      background: #3d4555;
+    }
+    
+    .window.lit {
+      background: linear-gradient(180deg, rgba(251, 191, 36, 0.6) 0%, rgba(251, 191, 36, 0.3) 100%);
+      border-color: rgba(251, 191, 36, 0.5);
+      box-shadow: var(--glow-window);
+    }
+    
+    .floor-info {
+      flex: 1;
+    }
+    
+    .floor-name {
+      font-size: 14px;
+      font-weight: 600;
+      margin-bottom: 2px;
+    }
+    
+    .floor-meta {
+      font-size: 11px;
+      color: var(--text-secondary);
+    }
+    
+    .floor-badge {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      font-size: 11px;
+      padding: 4px 8px;
+      background: var(--bg);
+      border-radius: 12px;
+      color: var(--text-secondary);
+    }
+    
+    .floor-badge .dot {
+      width: 6px;
+      height: 6px;
+      border-radius: 50%;
+    }
+    
+    .building-foundation {
+      width: 400px;
+      height: 16px;
+      background: linear-gradient(180deg, #3d4555 0%, #2a2f3d 100%);
+      border-radius: 0 0 8px 8px;
+      margin-top: -1px;
+    }
+    
+    .building-label {
+      margin-top: 24px;
+      text-align: center;
+    }
+    
+    .building-label h2 {
+      font-size: 22px;
+      font-weight: 700;
+      margin-bottom: 4px;
+    }
+    
+    .building-label p {
+      font-size: 13px;
+      color: var(--text-secondary);
+    }
+    
+    /* ========== FLOOR VIEW (Floor Plan) ========== */
+    .floor-view {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
+    }
+    
+    .floor-view-header {
+      padding: 20px 24px 16px;
+      border-bottom: 1px solid var(--border);
+      background: var(--bg-raised);
+    }
+    
+    .floor-view-title {
+      font-size: 18px;
+      font-weight: 600;
+      margin-bottom: 4px;
+    }
+    
+    .floor-view-subtitle {
+      font-size: 12px;
+      color: var(--text-secondary);
+    }
+    
+    .floor-plan-container {
+      flex: 1;
+      padding: 24px;
+      overflow: auto;
+      background: var(--bg-floor);
+    }
+    
+    .floor-plan {
+      display: flex;
+      gap: 24px;
+      min-height: 100%;
+    }
+    
+    /* Office Pods */
+    .offices-row {
+      display: flex;
+      flex-direction: column;
+      gap: 16px;
+      flex: 1;
+    }
+    
+    .office-pod {
+      background: var(--bg-surface);
+      border: 2px solid var(--bg-wall);
+      border-radius: 8px;
+      padding: 16px;
+      cursor: pointer;
+      transition: all 0.2s;
+      position: relative;
+      min-height: 140px;
+    }
+    
+    .office-pod::before {
+      content: '';
+      position: absolute;
+      bottom: -2px;
+      left: 30px;
+      width: 40px;
+      height: 4px;
+      background: var(--bg-floor);
+      border-radius: 0 0 4px 4px;
+    }
+    
+    .office-pod:hover {
+      border-color: var(--accent);
+      box-shadow: 0 4px 20px rgba(0,0,0,0.3);
+    }
+    
+    .office-pod.active {
+      border-color: var(--status-active);
+      box-shadow: 0 0 20px rgba(74, 222, 128, 0.15);
+    }
+    
+    .office-pod.active::after {
+      content: '';
+      position: absolute;
+      top: 12px;
+      right: 12px;
+      width: 10px;
+      height: 10px;
+      border-radius: 50%;
+      background: var(--status-active);
+      box-shadow: var(--glow-active);
+      animation: pulse 2s ease-in-out infinite;
+    }
+    
+    @keyframes pulse {
+      0%, 100% { opacity: 1; }
+      50% { opacity: 0.5; }
+    }
+    
+    .office-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-start;
+      margin-bottom: 12px;
+    }
+    
+    .office-title {
+      font-size: 13px;
+      font-weight: 600;
+    }
+    
+    .office-meta {
+      font-size: 11px;
+      color: var(--text-secondary);
+      margin-top: 2px;
+    }
+    
+    .office-status {
+      font-size: 10px;
+      padding: 2px 8px;
+      border-radius: 10px;
+      background: var(--bg);
+    }
+    
+    .office-status.working {
+      color: var(--status-working);
+    }
+    
+    .office-status.idle {
+      color: var(--status-idle);
+    }
+    
+    /* Desk layout inside office */
+    .office-desks {
+      display: flex;
+      gap: 8px;
+      flex-wrap: wrap;
+    }
+    
+    .desk {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 4px;
+    }
+    
+    .desk-surface {
+      width: 44px;
+      height: 24px;
+      background: var(--bg-desk);
+      border-radius: 4px;
+      border: 1px solid #3d4555;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 10px;
+      position: relative;
+    }
+    
+    .desk-surface.has-member::after {
+      content: '💻';
+      font-size: 12px;
+    }
+    
+    .desk-chair {
+      width: 20px;
+      height: 14px;
+      background: var(--bg-active);
+      border-radius: 6px 6px 2px 2px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+    
+    .member-at-desk {
+      font-size: 14px;
+      animation: typing 1.5s ease-in-out infinite;
+    }
+    
+    @keyframes typing {
+      0%, 100% { transform: translateY(0); }
+      50% { transform: translateY(-2px); }
+    }
+    
+    .desk.empty .desk-chair {
+      background: var(--bg-surface);
+    }
+    
+    /* Water Cooler / Break Area */
+    .break-area {
+      background: linear-gradient(135deg, #1a2535 0%, #151d2a 100%);
+      border: 2px dashed #2a3545;
+      border-radius: 12px;
+      padding: 16px;
+      min-height: 180px;
+      position: relative;
+    }
+    
+    .break-area-header {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      margin-bottom: 16px;
+      font-size: 12px;
+      font-weight: 600;
+      color: var(--text-secondary);
+    }
+    
+    .break-area-header span {
+      font-size: 16px;
+    }
+    
+    .water-cooler-scene {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+    }
+    
+    .water-cooler {
+      font-size: 32px;
+      margin-bottom: 8px;
+      position: relative;
+    }
+    
+    .water-cooler::after {
+      content: '💧';
+      position: absolute;
+      font-size: 12px;
+      bottom: -4px;
+      right: -8px;
+      animation: drip 2s ease-in-out infinite;
+    }
+    
+    @keyframes drip {
+      0%, 100% { opacity: 1; transform: translateY(0); }
+      50% { opacity: 0.5; transform: translateY(3px); }
+    }
+    
+    .idle-members {
+      display: flex;
+      gap: 8px;
+      flex-wrap: wrap;
+      justify-content: center;
+      margin-top: 8px;
+    }
+    
+    .idle-member {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 4px;
+      padding: 8px;
+      background: var(--bg-surface);
+      border-radius: 8px;
+      border: 1px solid var(--border);
+    }
+    
+    .idle-member-avatar {
+      font-size: 20px;
+      animation: chat 3s ease-in-out infinite;
+    }
+    
+    @keyframes chat {
+      0%, 100% { transform: rotate(0deg); }
+      25% { transform: rotate(-5deg); }
+      75% { transform: rotate(5deg); }
+    }
+    
+    .idle-member-name {
+      font-size: 10px;
+      color: var(--text-secondary);
+      font-weight: 500;
+    }
+    
+    .idle-member-bubble {
+      font-size: 10px;
+      background: var(--bg);
+      padding: 2px 6px;
+      border-radius: 8px;
+      color: var(--status-idle);
+    }
+    
+    /* New Office Card */
+    .new-office-card {
+      background: transparent;
+      border: 2px dashed var(--border);
+      border-radius: 8px;
+      padding: 20px;
+      cursor: pointer;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      min-height: 120px;
+      transition: all 0.2s;
+    }
+    
+    .new-office-card:hover {
+      border-color: var(--accent);
+      background: rgba(91,141,239,0.05);
+    }
+    
+    .new-office-icon {
+      font-size: 24px;
+      margin-bottom: 8px;
+      color: var(--text-tertiary);
+    }
+    
+    .new-office-label {
+      font-size: 12px;
+      color: var(--text-secondary);
+    }
+    
+    /* ========== OFFICE VIEW (Detail) ========== */
+    .office-view {
+      flex: 1;
+      display: flex;
+      overflow: hidden;
+    }
+    
+    .office-main {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
+    }
+    
+    .office-view-header {
+      padding: 20px 24px;
+      border-bottom: 1px solid var(--border);
+      background: var(--bg-raised);
+    }
+    
+    .office-view-title {
+      font-size: 18px;
+      font-weight: 600;
+      margin-bottom: 4px;
+    }
+    
+    .office-view-meta {
+      font-size: 12px;
+      color: var(--text-secondary);
+    }
+    
+    .office-workspace {
+      flex: 1;
+      padding: 24px;
+      overflow-y: auto;
+      background: var(--bg-floor);
+    }
+    
+    .workspace-room {
+      background: var(--bg-surface);
+      border: 2px solid var(--bg-wall);
+      border-radius: 12px;
+      padding: 20px;
+      margin-bottom: 20px;
+    }
+    
+    .workspace-title {
+      font-size: 12px;
+      font-weight: 600;
+      color: var(--text-secondary);
+      margin-bottom: 16px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    
+    .members-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+      gap: 16px;
+    }
+    
+    .member-card {
+      background: var(--bg-raised);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 16px;
+      transition: all 0.2s;
+    }
+    
+    .member-card:hover {
+      border-color: var(--border-focus);
+    }
+    
+    .member-card.working {
+      border-color: var(--status-working);
+    }
+    
+    .member-header {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      margin-bottom: 12px;
+    }
+    
+    .member-avatar {
+      width: 40px;
+      height: 40px;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 16px;
+      font-weight: 600;
+      color: white;
+    }
+    
+    .member-info { flex: 1; }
+    
+    .member-name {
+      font-size: 14px;
+      font-weight: 600;
+      margin-bottom: 2px;
+    }
+    
+    .member-role {
+      font-size: 11px;
+      color: var(--text-secondary);
+    }
+    
+    .member-status-dot {
+      width: 10px;
+      height: 10px;
+      border-radius: 50%;
+    }
+    
+    .member-status-dot.working {
+      background: var(--status-working);
+      animation: pulse 2s ease-in-out infinite;
+    }
+    
+    .member-status-dot.idle {
+      background: var(--status-idle);
+    }
+    
+    .member-activity {
+      font-size: 11px;
+      color: var(--text-secondary);
+      padding: 8px;
+      background: var(--bg);
+      border-radius: 4px;
+      font-family: 'JetBrains Mono', monospace;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+    
+    /* Chat Panel */
+    .chat-panel {
+      width: 340px;
+      border-left: 1px solid var(--border);
+      display: flex;
+      flex-direction: column;
+      background: var(--bg-raised);
+    }
+    
+    .chat-header {
+      padding: 16px;
+      border-bottom: 1px solid var(--border);
+      font-size: 14px;
+      font-weight: 600;
+    }
+    
+    .chat-messages {
+      flex: 1;
+      overflow-y: auto;
+      padding: 16px;
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+    }
+    
+    .chat-message {
+      display: flex;
+      gap: 10px;
+    }
+    
+    .chat-avatar {
+      width: 28px;
+      height: 28px;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 10px;
+      font-weight: 600;
+      color: white;
+      flex-shrink: 0;
+    }
+    
+    .chat-bubble {
+      flex: 1;
+      background: var(--bg-surface);
+      border-radius: 8px;
+      padding: 10px 12px;
+    }
+    
+    .chat-sender {
+      font-size: 12px;
+      font-weight: 600;
+      margin-bottom: 4px;
+    }
+    
+    .chat-text {
+      font-size: 13px;
+      line-height: 1.5;
+      color: var(--text-secondary);
+    }
+    
+    .chat-input-area {
+      padding: 16px;
+      border-top: 1px solid var(--border);
+    }
+    
+    .chat-input {
+      width: 100%;
+      padding: 10px 12px;
+      background: var(--bg);
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      color: var(--text-primary);
+      font-size: 13px;
+      font-family: inherit;
+      resize: none;
+    }
+    
+    .chat-input:focus {
+      outline: none;
+      border-color: var(--border-focus);
+    }
+    
+    .chat-input::placeholder {
+      color: var(--text-tertiary);
+    }
+    
+    /* Stream Output */
+    .stream-section {
+      margin-top: 20px;
+    }
+    
+    .stream-header {
+      font-size: 12px;
+      font-weight: 600;
+      color: var(--text-secondary);
+      margin-bottom: 12px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    
+    .stream-indicator {
+      width: 6px;
+      height: 6px;
+      border-radius: 50%;
+      background: var(--status-working);
+      animation: pulse 1.5s ease-in-out infinite;
+    }
+    
+    .stream-output {
+      background: var(--bg);
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      padding: 12px;
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 11px;
+      line-height: 1.6;
+      color: var(--text-secondary);
+      max-height: 180px;
+      overflow-y: auto;
+    }
+    
+    .stream-line { margin-bottom: 4px; }
+    .stream-line .prefix { color: var(--accent); }
+    
+    /* Role colors */
+    .bg-lead { background: var(--role-lead); }
+    .bg-frontend { background: var(--role-frontend); }
+    .bg-backend { background: var(--role-backend); }
+    .bg-tester { background: var(--role-tester); }
+    .bg-domain { background: var(--role-domain); }
+    .bg-design { background: var(--role-design); }
+    
+    .status-active-bg { background: var(--status-active); box-shadow: var(--glow-active); }
+    .status-idle-bg { background: var(--status-idle); }
+    .status-working-bg { background: var(--status-working); animation: pulse 2s ease-in-out infinite; }
+    
+    .hidden { display: none !important; }
+  </style>
+</head>
+<body>
+  <div class="app">
+    <!-- Header -->
+    <header class="header">
+      <div class="header-logo">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/>
+          <polyline points="9 22 9 12 15 12 15 22"/>
+        </svg>
+        <span>Squad Office</span>
+      </div>
+      
+      <nav class="breadcrumb" id="breadcrumb">
+        <span class="breadcrumb-item active" data-view="building">Predator Hub</span>
+      </nav>
+      
+      <div class="header-spacer"></div>
+      
+      <div class="connection-status">
+        <div class="status-dot"></div>
+        <span>Connected</span>
+      </div>
+    </header>
+    
+    <!-- Main Layout -->
+    <div class="main-layout">
+      <!-- Sidebar -->
+      <aside class="sidebar">
+        <div class="sidebar-header">
+          <div class="sidebar-title">Hub</div>
+          <div class="hub-info">
+            <div class="hub-name">🏢 Predator Hub</div>
+            <div class="hub-meta">4 floors • 24 members</div>
+          </div>
+        </div>
+        
+        <div class="sidebar-content">
+          <div class="sidebar-title">Floors</div>
+          <div class="squad-list" id="squadList"></div>
+        </div>
+      </aside>
+      
+      <!-- Main Content -->
+      <main class="main-content">
+        <div class="view-container">
+          <!-- Building View -->
+          <div class="view active" id="buildingView">
+            <div class="building-view">
+              <div class="building-wrapper">
+                <div class="building">
+                  <div class="building-roof">
+                    <div class="building-sign">PREDATOR HUB</div>
+                  </div>
+                  <div class="building-body" id="buildingBody"></div>
+                  <div class="building-foundation"></div>
+                </div>
+                <div class="building-label">
+                  <h2>🏢 Predator Hub</h2>
+                  <p>4 floors • 24 members • 8 active sessions</p>
+                </div>
+              </div>
+            </div>
+          </div>
+          
+          <!-- Floor View -->
+          <div class="view" id="floorView">
+            <div class="floor-view">
+              <div class="floor-view-header">
+                <div class="floor-view-title" id="floorViewTitle">API Team</div>
+                <div class="floor-view-subtitle" id="floorViewSubtitle">Floor 4 • 6 members • 2 active sessions</div>
+              </div>
+              <div class="floor-plan-container">
+                <div class="floor-plan" id="floorPlan"></div>
+              </div>
+            </div>
+          </div>
+          
+          <!-- Office View -->
+          <div class="view" id="officeView">
+            <div class="office-view">
+              <div class="office-main">
+                <div class="office-view-header">
+                  <div class="office-view-title" id="officeViewTitle">Session #1</div>
+                  <div class="office-view-meta" id="officeViewMeta">API Team • Started 2h ago • 3 members</div>
+                </div>
+                <div class="office-workspace" id="officeWorkspace"></div>
+              </div>
+              <div class="chat-panel">
+                <div class="chat-header">💬 Session Chat</div>
+                <div class="chat-messages" id="chatMessages"></div>
+                <div class="chat-input-area">
+                  <textarea class="chat-input" placeholder="Send a message to the team..." rows="2"></textarea>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+        
+        <!-- Status Bar -->
+        <div class="status-bar">
+          <div class="status-item">
+            <span>👥</span>
+            <span>24 members</span>
+          </div>
+          <div class="status-item">
+            <span>💼</span>
+            <span>8 active sessions</span>
+          </div>
+          <div class="status-item">
+            <span>☕</span>
+            <span>6 at water cooler</span>
+          </div>
+        </div>
+      </main>
+    </div>
+  </div>
+
+  <script>
+    // Sample Data
+    const squads = [
+      {
+        id: 'api-team',
+        name: 'API Team',
+        floor: 4,
+        members: [
+          { id: 'dutch', name: 'Dutch', role: 'Lead', roleClass: 'lead', status: 'working', activity: 'Reviewing PR #42' },
+          { id: 'mac', name: 'Mac', role: 'Backend', roleClass: 'backend', status: 'working', activity: 'Writing auth middleware' },
+          { id: 'blain', name: 'Blain', role: 'Tester', roleClass: 'tester', status: 'idle', activity: 'Taking a break' },
+        ],
+        sessions: [
+          { id: 1, name: 'Session #1', status: 'active', task: 'Building REST endpoints', members: ['dutch', 'mac'] },
+          { id: 2, name: 'Session #2', status: 'idle', task: 'Test suite setup', members: ['blain'] },
+        ]
+      },
+      {
+        id: 'frontend-team',
+        name: 'Frontend Team',
+        floor: 3,
+        members: [
+          { id: 'poncho', name: 'Poncho', role: 'Frontend', roleClass: 'frontend', status: 'working', activity: 'Styling dashboard' },
+          { id: 'hawkins', name: 'Hawkins', role: 'Design', roleClass: 'design', status: 'idle', activity: 'Grabbing coffee' },
+          { id: 'dillon', name: 'Dillon', role: 'Frontend', roleClass: 'frontend', status: 'working', activity: 'React components' },
+        ],
+        sessions: [
+          { id: 1, name: 'Session #1', status: 'active', task: 'Dashboard UI', members: ['poncho', 'dillon'] },
+          { id: 2, name: 'Session #2', status: 'idle', task: 'Design review', members: ['hawkins'] },
+        ]
+      },
+      {
+        id: 'core-platform',
+        name: 'Core Platform',
+        floor: 2,
+        members: [
+          { id: 'billy', name: 'Billy', role: 'Domain', roleClass: 'domain', status: 'working', activity: 'Data modeling' },
+          { id: 'anna', name: 'Anna', role: 'Backend', roleClass: 'backend', status: 'idle', activity: 'Water cooler chat' },
+          { id: 'rick', name: 'Rick', role: 'Lead', roleClass: 'lead', status: 'working', activity: 'Sprint planning' },
+        ],
+        sessions: [
+          { id: 1, name: 'Session #1', status: 'active', task: 'Core services refactor', members: ['billy', 'rick'] },
+        ]
+      },
+      {
+        id: 'infra-ops',
+        name: 'Infra & Ops',
+        floor: 1,
+        members: [
+          { id: 'george', name: 'George', role: 'Backend', roleClass: 'backend', status: 'idle', activity: 'On break' },
+          { id: 'phil', name: 'Phil', role: 'Tester', roleClass: 'tester', status: 'idle', activity: 'Coffee time' },
+          { id: 'al', name: 'Al', role: 'Domain', roleClass: 'domain', status: 'working', activity: 'CI/CD pipeline' },
+        ],
+        sessions: [
+          { id: 1, name: 'Session #1', status: 'active', task: 'Kubernetes setup', members: ['al'] },
+          { id: 2, name: 'Session #2', status: 'idle', task: 'Monitoring dashboard', members: ['george', 'phil'] },
+        ]
+      }
+    ];
+
+    let currentView = 'building';
+    let currentSquad = null;
+    let currentSession = null;
+
+    // Initialize
+    function init() {
+      renderSidebar();
+      renderBuilding();
+    }
+
+    // Render sidebar
+    function renderSidebar() {
+      const squadList = document.getElementById('squadList');
+      squadList.innerHTML = squads.map(squad => {
+        const activeCount = squad.sessions.filter(s => s.status === 'active').length;
+        const workingCount = squad.members.filter(m => m.status === 'working').length;
+        return `
+          <div class="squad-item ${currentSquad?.id === squad.id ? 'active' : ''}" onclick="showFloor('${squad.id}')">
+            <div class="squad-icon" style="background: var(--bg-surface);">F${squad.floor}</div>
+            <div class="squad-info">
+              <div class="squad-name">${squad.name}</div>
+              <div class="squad-members">${squad.members.length} members • ${activeCount} active</div>
+            </div>
+            <div class="squad-status ${activeCount > 0 ? 'status-active-bg' : 'status-idle-bg'}"></div>
+          </div>
+        `;
+      }).join('');
+    }
+
+    // Render building view
+    function renderBuilding() {
+      const buildingBody = document.getElementById('buildingBody');
+      const sortedSquads = [...squads].sort((a, b) => b.floor - a.floor);
+      
+      buildingBody.innerHTML = sortedSquads.map(squad => {
+        const activeCount = squad.sessions.filter(s => s.status === 'active').length;
+        const totalSessions = squad.sessions.length;
+        const windows = [];
+        for (let i = 0; i < 5; i++) {
+          const isLit = i < activeCount;
+          windows.push(`<div class="window ${isLit ? 'lit' : ''}"></div>`);
+        }
+        
+        return `
+          <div class="floor-row" onclick="showFloor('${squad.id}')">
+            <div class="floor-number">${squad.floor}</div>
+            <div class="floor-windows">${windows.join('')}</div>
+            <div class="floor-info">
+              <div class="floor-name">${squad.name}</div>
+              <div class="floor-meta">${squad.members.length} members</div>
+            </div>
+            <div class="floor-badge">
+              <div class="dot ${activeCount > 0 ? 'status-active-bg' : 'status-idle-bg'}"></div>
+              <span>${activeCount} active</span>
+            </div>
+          </div>
+        `;
+      }).join('');
+    }
+
+    // Show floor view
+    function showFloor(squadId) {
+      currentSquad = squads.find(s => s.id === squadId);
+      currentView = 'floor';
+      
+      document.getElementById('buildingView').classList.remove('active');
+      document.getElementById('floorView').classList.add('active');
+      document.getElementById('officeView').classList.remove('active');
+      
+      document.getElementById('floorViewTitle').textContent = currentSquad.name;
+      const activeCount = currentSquad.sessions.filter(s => s.status === 'active').length;
+      document.getElementById('floorViewSubtitle').textContent = 
+        `Floor ${currentSquad.floor} • ${currentSquad.members.length} members • ${activeCount} active sessions`;
+      
+      updateBreadcrumb();
+      renderSidebar();
+      renderFloorPlan();
+    }
+
+    // Render floor plan
+    function renderFloorPlan() {
+      const floorPlan = document.getElementById('floorPlan');
+      const workingMembers = currentSquad.members.filter(m => m.status === 'working');
+      const idleMembers = currentSquad.members.filter(m => m.status === 'idle');
+      
+      // Office pods
+      const officePods = currentSquad.sessions.map(session => {
+        const sessionMembers = currentSquad.members.filter(m => session.members.includes(m.id));
+        const desks = sessionMembers.map(member => `
+          <div class="desk">
+            <div class="desk-surface has-member"></div>
+            <div class="desk-chair">
+              <span class="member-at-desk" title="${member.name}">🧑‍💻</span>
+            </div>
+          </div>
+        `).join('');
+        
+        // Add empty desks
+        const emptyDesks = Array(Math.max(0, 3 - sessionMembers.length)).fill(`
+          <div class="desk empty">
+            <div class="desk-surface"></div>
+            <div class="desk-chair"></div>
+          </div>
+        `).join('');
+        
+        return `
+          <div class="office-pod ${session.status === 'active' ? 'active' : ''}" onclick="showOffice(${session.id})">
+            <div class="office-header">
+              <div>
+                <div class="office-title">${session.name}</div>
+                <div class="office-meta">${session.task}</div>
+              </div>
+              <div class="office-status ${session.status}">${session.status === 'active' ? '● Working' : '○ Idle'}</div>
+            </div>
+            <div class="office-desks">
+              ${desks}
+              ${emptyDesks}
+            </div>
+          </div>
+        `;
+      }).join('');
+      
+      // Water cooler break area
+      const breakArea = `
+        <div class="break-area">
+          <div class="break-area-header">
+            <span>☕</span>
+            Water Cooler
+          </div>
+          <div class="water-cooler-scene">
+            <div class="water-cooler">🚰</div>
+            <div class="idle-members">
+              ${idleMembers.map(member => `
+                <div class="idle-member">
+                  <span class="idle-member-avatar">🧍</span>
+                  <span class="idle-member-name">${member.name}</span>
+                  <span class="idle-member-bubble">☕ chillin'</span>
+                </div>
+              `).join('')}
+              ${idleMembers.length === 0 ? '<div style="color: var(--text-tertiary); font-size: 12px;">Everyone\'s working! 💪</div>' : ''}
+            </div>
+          </div>
+        </div>
+      `;
+      
+      // New office card
+      const newOffice = `
+        <div class="new-office-card">
+          <div class="new-office-icon">+</div>
+          <div class="new-office-label">Start new session</div>
+        </div>
+      `;
+      
+      floorPlan.innerHTML = `
+        <div class="offices-row">
+          ${officePods}
+          ${newOffice}
+        </div>
+        ${breakArea}
+      `;
+    }
+
+    // Show office view
+    function showOffice(sessionId) {
+      currentSession = currentSquad.sessions.find(s => s.id === sessionId);
+      currentView = 'office';
+      
+      document.getElementById('buildingView').classList.remove('active');
+      document.getElementById('floorView').classList.remove('active');
+      document.getElementById('officeView').classList.add('active');
+      
+      document.getElementById('officeViewTitle').textContent = currentSession.name;
+      const memberCount = currentSession.members.length;
+      document.getElementById('officeViewMeta').textContent = 
+        `${currentSquad.name} • ${currentSession.task} • ${memberCount} members`;
+      
+      updateBreadcrumb();
+      renderOfficeWorkspace();
+      renderChatMessages();
+    }
+
+    // Render office workspace
+    function renderOfficeWorkspace() {
+      const workspace = document.getElementById('officeWorkspace');
+      const sessionMembers = currentSquad.members.filter(m => currentSession.members.includes(m.id));
+      
+      const memberCards = sessionMembers.map(member => `
+        <div class="member-card ${member.status}">
+          <div class="member-header">
+            <div class="member-avatar bg-${member.roleClass}">${member.name.charAt(0)}</div>
+            <div class="member-info">
+              <div class="member-name">${member.name}</div>
+              <div class="member-role">${member.role}</div>
+            </div>
+            <div class="member-status-dot ${member.status}"></div>
+          </div>
+          <div class="member-activity">${member.activity}</div>
+        </div>
+      `).join('');
+      
+      workspace.innerHTML = `
+        <div class="workspace-room">
+          <div class="workspace-title">
+            <span>👥</span>
+            Members at work
+          </div>
+          <div class="members-grid">
+            ${memberCards}
+          </div>
+        </div>
+        
+        <div class="stream-section">
+          <div class="stream-header">
+            <div class="stream-indicator"></div>
+            Live Output
+          </div>
+          <div class="stream-output">
+            <div class="stream-line"><span class="prefix">▶</span> Building REST endpoints...</div>
+            <div class="stream-line"><span class="prefix">▶</span> Created /api/users route</div>
+            <div class="stream-line"><span class="prefix">▶</span> Added JWT authentication</div>
+            <div class="stream-line"><span class="prefix">▶</span> Writing tests for auth middleware</div>
+            <div class="stream-line"><span class="prefix">▶</span> Tests passing: 12/12 ✓</div>
+          </div>
+        </div>
+      `;
+    }
+
+    // Render chat messages
+    function renderChatMessages() {
+      const chatMessages = document.getElementById('chatMessages');
+      const messages = [
+        { sender: 'Dutch', role: 'lead', text: 'Let\'s focus on the auth endpoints first.' },
+        { sender: 'Mac', role: 'backend', text: 'On it. I\'ll handle the JWT middleware.' },
+        { sender: 'Dutch', role: 'lead', text: 'Perfect. Make sure we add refresh token support.' },
+      ];
+      
+      chatMessages.innerHTML = messages.map(msg => `
+        <div class="chat-message">
+          <div class="chat-avatar bg-${msg.role}">${msg.sender.charAt(0)}</div>
+          <div class="chat-bubble">
+            <div class="chat-sender">${msg.sender}</div>
+            <div class="chat-text">${msg.text}</div>
+          </div>
+        </div>
+      `).join('');
+    }
+
+    // Update breadcrumb
+    function updateBreadcrumb() {
+      const breadcrumb = document.getElementById('breadcrumb');
+      let html = `<span class="breadcrumb-item ${currentView === 'building' ? 'active' : ''}" onclick="showBuilding()">Predator Hub</span>`;
+      
+      if (currentSquad) {
+        html += `<span class="breadcrumb-sep">›</span>`;
+        html += `<span class="breadcrumb-item ${currentView === 'floor' ? 'active' : ''}" onclick="showFloor('${currentSquad.id}')">${currentSquad.name}</span>`;
+      }
+      
+      if (currentSession) {
+        html += `<span class="breadcrumb-sep">›</span>`;
+        html += `<span class="breadcrumb-item active">${currentSession.name}</span>`;
+      }
+      
+      breadcrumb.innerHTML = html;
+    }
+
+    // Show building view
+    function showBuilding() {
+      currentSquad = null;
+      currentSession = null;
+      currentView = 'building';
+      
+      document.getElementById('buildingView').classList.add('active');
+      document.getElementById('floorView').classList.remove('active');
+      document.getElementById('officeView').classList.remove('active');
+      
+      updateBreadcrumb();
+      renderSidebar();
+    }
+
+    // Initialize on load
+    init();
+  </script>
+</body>
+</html>
