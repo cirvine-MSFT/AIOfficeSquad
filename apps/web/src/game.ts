@@ -222,7 +222,7 @@ export class PodScene extends Phaser.Scene {
 
     this.cameras.main.setBounds(0, 0, map.widthInPixels, map.heightInPixels);
     this.cameras.main.startFollow(player, true, 0.08, 0.08);
-    this.cameras.main.setZoom(2);
+    this.cameras.main.setZoom(1.25);
     this.cameras.main.roundPixels = true;
 
     floor.setDepth(0);

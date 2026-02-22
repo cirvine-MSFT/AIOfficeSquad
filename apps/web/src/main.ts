@@ -636,9 +636,13 @@ function renderPanel() {
   panelEmpty.classList.add("hidden");
   panelTitle.textContent = agent.name ?? agent.agentId;
 
-  // Show provider
+  // Show provider with squad role if available
   const cliType = (agent as any).cliType;
-  if (cliType === "claude-code") {
+  const squadRole = (agent as any).squadRole;
+  if (squadRole) {
+    panelProvider.textContent = squadRole;
+    panelProvider.className = "panel-provider copilot";
+  } else if (cliType === "claude-code") {
     panelProvider.textContent = "Claude Code";
     panelProvider.className = "panel-provider claude";
   } else if (cliType === "copilot-cli") {
@@ -653,11 +657,25 @@ function renderPanel() {
   setPanelStatusClass(agent.status ?? "available");
   chatInput.disabled = false;
   chatSend.disabled = false;
+  chatInput.placeholder = `Message ${(agent.name || "agent").split(" ")[0]}...`;
   panelNewChat.style.display = "flex";
   panelDelete.style.display = "flex";
 
   panelMessages.innerHTML = "";
   const messages = (agent as any).messages ?? [];
+
+  // Show squad scope intro if no messages yet
+  if (messages.length === 0) {
+    const squadScope = (agent as any).squadScope;
+    const squadBadge = (agent as any).squadBadge;
+    if (squadScope || squadBadge) {
+      const intro = document.createElement("div");
+      intro.className = "panel-message meta";
+      intro.innerHTML = `${squadBadge || ""} <strong>${agent.name}</strong><br><em>${squadScope || "Ready to chat"}</em><br><br><span style="opacity:0.5">Send a message to start a conversation. A CLI session will be auto-spawned.</span>`;
+      panelMessages.appendChild(intro);
+    }
+  }
+
   messages.slice(-20).forEach((msg: any) => {
     const div = document.createElement("div");
     const channel = msg.channel as string;
@@ -1092,18 +1110,50 @@ chatSend.addEventListener("click", async () => {
   }
 
   if (!currentAgentId || !chatInput.value.trim()) return;
-  const payload = {
-    type: "agent.message",
-    agentId: currentAgentId,
-    timestamp: new Date().toISOString(),
-    payload: { text: chatInput.value.trim(), channel: "task" }
-  };
-  await fetch(`${SERVER_URL}/events`, {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify(payload)
-  });
+  const text = chatInput.value.trim();
+  const squadId = podScene.squadId || "default";
+
+  // Show sent message immediately
+  const div = document.createElement("div");
+  div.className = "panel-message you";
+  div.innerHTML = marked.parse(text) as string;
+  panelMessages.appendChild(div);
+  panelMessages.scrollTop = panelMessages.scrollHeight;
   chatInput.value = "";
+
+  // Use squad agent chat endpoint which auto-spawns PTY (#23/#25)
+  try {
+    const res = await fetch(`${SERVER_URL}/api/squads/${squadId}/agents/${currentAgentId}/chat`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ text, timestamp: new Date().toISOString() })
+    });
+    if (!res.ok) {
+      // Fall back to generic events endpoint
+      await fetch(`${SERVER_URL}/events`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          type: "agent.message",
+          agentId: currentAgentId,
+          timestamp: new Date().toISOString(),
+          payload: { text, channel: "task" }
+        })
+      });
+    }
+  } catch {
+    // Fall back to generic events endpoint
+    await fetch(`${SERVER_URL}/events`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        type: "agent.message",
+        agentId: currentAgentId,
+        timestamp: new Date().toISOString(),
+        payload: { text, channel: "task" }
+      })
+    }).catch(() => null);
+  }
 });
 
 chatInput.addEventListener("keydown", (event) => {
