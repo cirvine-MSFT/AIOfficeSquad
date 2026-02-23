@@ -87,3 +87,11 @@
   - BuildingView updated: campus header ("🏫 Squad Campus" + building count), each squad card shows 🏢 building icon + "Floor 1" badge pill. 3-level navigation (building→floor→office) preserved — not flattened.
   - Empty state emoji also changed to 🏫 for consistency.
   - Key rebrand files: Header.tsx, App.tsx:230, squad-runtime.ts:249, index.html:6, package.json:2, BuildingView.tsx.
+- SDK Data Wiring in App.tsx:
+  - Fixed sdkConnected detection: replaced broken getStatus() call with getConnectionInfo() which returns { connected: boolean }.
+  - Added `sessions` state (SessionSummary[]) and `mapSessions()` helper to convert raw SDK session data.
+  - Sessions loaded on init (loadInitialData), on connection state changes (onConnectionState listener), and via 15s polling when connected.
+  - Passed real sessions to FloorView, Sidebar (activeSessionCount), StatusBar (sessionCount).
+  - Header and StatusBar `connected` prop now uses `sdkConnected` instead of `!loading`.
+  - mapSessions() is a module-level helper to avoid duplication across 3 call sites.
+  - onConnectionState useEffect has a guard (`if (!window.squadAPI.onConnectionState) return`) for backward compat until preload is updated.
