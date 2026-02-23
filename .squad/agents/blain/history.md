@@ -53,4 +53,10 @@
 - **Pattern:** ErrorBoundary `resetKey` prop auto-clears error state when key changes — use for navigation-scoped boundaries.
 - **Key learning:** Any component rendered conditionally in App.tsx should be wrapped in ErrorBoundary. The ChatPanel was protected but the side panels weren't — classic "forgot to add the wrapper" bug.
 - Written up in `.squad/decisions/inbox/blain-crash-audit.md` for team review.
+- 2025-07-25: Created unit tests for useNavigation and useChat renderer hooks (Dutch's audit flagged as highest-risk untested code):
+  - `apps/desktop/src/__tests__/renderer/hooks.test.ts` — 39 tests total (21 navigation + 18 chat)
+  - **useNavigation tests:** initial state, selectSquad/selectSession/selectAgent transitions, toggle/deselect, no-op guards (wrong level), back from each level, squad switching clears state, auto-select single squad, auto-select guards (0 squads, 2+ squads), breadcrumb generation at all 3 levels + fallback labels, full round-trip drill-down/back-up.
+  - **useChat tests:** unique message ID generation, createSession mapping, empty agent error, failed/default error, sendMessage adds user message, no-op without agent/session, send error handling, stream delta accumulation, streamingText for active session, usage event commits assistant message, usage token accumulation, cost formula verification ($3/$15 per MTok), clearError, multi-agent message isolation, initial computed values.
+  - **Pattern:** Test React hooks as pure state machines without jsdom/React rendering. Create a mirror class that replicates the hook's state transitions and computed values. Inject mock IPC results as function parameters instead of mocking `window.squadAPI`.
+  - All 124 desktop tests passing (was 85). Zero new dependencies added.
 
