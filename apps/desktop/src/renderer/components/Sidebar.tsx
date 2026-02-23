@@ -52,7 +52,7 @@ export default function Sidebar({
   loading,
 }: SidebarProps) {
   return (
-    <aside className="flex flex-col w-sidebar bg-bg-raised border-r border-border overflow-y-auto scrollbar-thin shrink-0 select-none">
+    <aside role="navigation" aria-label="Squad navigation" className="flex flex-col w-sidebar bg-bg-raised border-r border-border overflow-y-auto scrollbar-thin shrink-0 select-none">
       {/* Hub info */}
       <div className="px-3 pt-3 pb-1">
         <h2 className="text-xs font-semibold text-text-tertiary uppercase tracking-wider px-2">

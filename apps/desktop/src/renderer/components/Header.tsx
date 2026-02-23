@@ -9,7 +9,7 @@ interface HeaderProps {
 
 export default function Header({ breadcrumbs, onNavigate, connected }: HeaderProps) {
   return (
-    <header className="flex items-center justify-between h-header px-4 bg-bg-raised border-b border-border app-drag select-none shrink-0">
+    <header role="banner" className="flex items-center justify-between h-header px-4 bg-bg-raised border-b border-border app-drag select-none shrink-0">
       <div className="flex items-center gap-3">
         <span className="text-lg">🏫</span>
         <h1 className="text-md font-semibold text-text-primary">Squad Campus</h1>

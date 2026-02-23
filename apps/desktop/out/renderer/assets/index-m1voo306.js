@@ -7211,7 +7211,7 @@ function Breadcrumb({ items, onNavigate }) {
   }) });
 }
 function Header({ breadcrumbs, onNavigate, connected }) {
-  return /* @__PURE__ */ jsxRuntimeExports.jsxs("header", { className: "flex items-center justify-between h-header px-4 bg-bg-raised border-b border-border app-drag select-none shrink-0", children: [
+  return /* @__PURE__ */ jsxRuntimeExports.jsxs("header", { role: "banner", className: "flex items-center justify-between h-header px-4 bg-bg-raised border-b border-border app-drag select-none shrink-0", children: [
     /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "flex items-center gap-3", children: [
       /* @__PURE__ */ jsxRuntimeExports.jsx("span", { className: "text-lg", children: "🏫" }),
       /* @__PURE__ */ jsxRuntimeExports.jsx("h1", { className: "text-md font-semibold text-text-primary", children: "Squad Campus" }),
@@ -7330,7 +7330,7 @@ function Sidebar({
   onChatWithAgent,
   loading
 }) {
-  return /* @__PURE__ */ jsxRuntimeExports.jsxs("aside", { className: "flex flex-col w-sidebar bg-bg-raised border-r border-border overflow-y-auto scrollbar-thin shrink-0 select-none", children: [
+  return /* @__PURE__ */ jsxRuntimeExports.jsxs("aside", { role: "navigation", "aria-label": "Squad navigation", className: "flex flex-col w-sidebar bg-bg-raised border-r border-border overflow-y-auto scrollbar-thin shrink-0 select-none", children: [
     /* @__PURE__ */ jsxRuntimeExports.jsx("div", { className: "px-3 pt-3 pb-1", children: /* @__PURE__ */ jsxRuntimeExports.jsx("h2", { className: "text-xs font-semibold text-text-tertiary uppercase tracking-wider px-2", children: hubName }) }),
     /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "px-3 pb-3", children: [
       /* @__PURE__ */ jsxRuntimeExports.jsx("h3", { className: "text-xs font-semibold text-text-tertiary uppercase tracking-wider mb-2 px-2", children: "Squads" }),
@@ -7628,6 +7628,8 @@ function AgentCard({ agent, selected, onClick, index = 0 }) {
     "button",
     {
       onClick,
+      "aria-label": `${agent.name}, ${agent.role}, ${STATUS_LABEL[agent.status] ?? agent.status}`,
+      "aria-pressed": selected,
       title: `${agent.name} — ${agent.role} (${STATUS_LABEL[agent.status] ?? agent.status})`,
       className: `w-full text-left rounded-lg bg-bg-surface border shadow-elevation-1 p-4 transition-default hover:bg-bg-hover hover:shadow-elevation-2 hover:-translate-y-0.5 focus-visible:ring-2 focus-visible:ring-border-focus animate-fade-in-up ${selected ? "border-accent bg-bg-active" : "border-border"}`,
       style: { animationDelay: `${index * 60}ms`, animationFillMode: "both" },
@@ -8184,7 +8186,7 @@ function StatusBar({
   totalMembers,
   connected
 }) {
-  return /* @__PURE__ */ jsxRuntimeExports.jsxs("footer", { className: "flex items-center justify-between h-status-bar px-4 bg-bg-raised border-t border-border text-xs text-text-secondary font-mono shrink-0 select-none", children: [
+  return /* @__PURE__ */ jsxRuntimeExports.jsxs("footer", { role: "status", className: "flex items-center justify-between h-status-bar px-4 bg-bg-raised border-t border-border text-xs text-text-secondary font-mono shrink-0 select-none", children: [
     /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "flex items-center gap-4", children: [
       /* @__PURE__ */ jsxRuntimeExports.jsxs("span", { className: "flex items-center gap-1.5", children: [
         /* @__PURE__ */ jsxRuntimeExports.jsx("span", { className: `status-dot ${connected ? "status-dot-active" : "status-dot-idle"}` }),

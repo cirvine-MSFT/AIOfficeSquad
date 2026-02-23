@@ -65,6 +65,8 @@ export default function AgentCard({ agent, selected, onClick, index = 0 }: Agent
   return (
     <button
       onClick={onClick}
+      aria-label={`${agent.name}, ${agent.role}, ${STATUS_LABEL[agent.status] ?? agent.status}`}
+      aria-pressed={selected}
       title={`${agent.name} — ${agent.role} (${STATUS_LABEL[agent.status] ?? agent.status})`}
       className={`w-full text-left rounded-lg bg-bg-surface border shadow-elevation-1 p-4 transition-default hover:bg-bg-hover hover:shadow-elevation-2 hover:-translate-y-0.5 focus-visible:ring-2 focus-visible:ring-border-focus animate-fade-in-up ${
         selected ? 'border-accent bg-bg-active' : 'border-border'

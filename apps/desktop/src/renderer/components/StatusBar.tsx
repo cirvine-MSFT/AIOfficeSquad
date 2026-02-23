@@ -20,7 +20,7 @@ export default function StatusBar({
   connected,
 }: StatusBarProps) {
   return (
-    <footer className="flex items-center justify-between h-status-bar px-4 bg-bg-raised border-t border-border text-xs text-text-secondary font-mono shrink-0 select-none">
+    <footer role="status" className="flex items-center justify-between h-status-bar px-4 bg-bg-raised border-t border-border text-xs text-text-secondary font-mono shrink-0 select-none">
       <div className="flex items-center gap-4">
         {/* Connection status */}
         <span className="flex items-center gap-1.5">
