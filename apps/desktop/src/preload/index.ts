@@ -1,25 +1,39 @@
 import { contextBridge, ipcRenderer } from 'electron'
+import type {
+  IpcResult,
+  ReadyState,
+  SquadConfig,
+  SquadMember,
+  AgentStatus,
+  SessionDetail,
+  ConnectionInfo,
+  HookEvent,
+  SquadEvent,
+  StreamDelta,
+  UsageEvent,
+  ConnectionState
+} from '../main/types'
 
 export interface SquadAPI {
-  createSession(agentName: string, config?: unknown): Promise<unknown>
-  sendMessage(sessionId: string, prompt: string): Promise<unknown>
-  listSessions(): Promise<unknown>
-  deleteSession(id: string): Promise<unknown>
-  getStatus(): Promise<unknown>
-  getAuthStatus(): Promise<unknown>
-  listModels(): Promise<unknown>
-  loadConfig(): Promise<unknown>
-  getRoster(): Promise<unknown>
-  getAgentStatuses(): Promise<unknown>
-  getReadyState(): Promise<unknown>
-  getSessionDetail(sessionId: string): Promise<unknown>
-  getDecisions(): Promise<unknown>
-  getConnectionInfo(): Promise<unknown>
-  getHookActivity(): Promise<unknown>
-  onConnectionState(callback: (state: { connected: boolean }) => void): () => void
-  onEvent(callback: (event: unknown) => void): () => void
-  onStreamDelta(callback: (delta: unknown) => void): () => void
-  onStreamUsage(callback: (usage: unknown) => void): () => void
+  createSession(agentName: string, config?: unknown): Promise<IpcResult<{ sessionId: string }>>
+  sendMessage(sessionId: string, prompt: string): Promise<IpcResult<void>>
+  listSessions(): Promise<IpcResult<unknown[]>>
+  deleteSession(id: string): Promise<IpcResult<void>>
+  getStatus(): Promise<IpcResult<unknown>>
+  getAuthStatus(): Promise<IpcResult<unknown>>
+  listModels(): Promise<IpcResult<unknown[]>>
+  loadConfig(): Promise<IpcResult<SquadConfig>>
+  getRoster(): Promise<IpcResult<SquadMember[]>>
+  getAgentStatuses(): Promise<IpcResult<AgentStatus[]>>
+  getReadyState(): Promise<IpcResult<ReadyState>>
+  getSessionDetail(sessionId: string): Promise<IpcResult<SessionDetail>>
+  getDecisions(): Promise<IpcResult<string>>
+  getConnectionInfo(): Promise<IpcResult<ConnectionInfo>>
+  getHookActivity(): Promise<IpcResult<HookEvent[]>>
+  onConnectionState(callback: (state: ConnectionState) => void): () => void
+  onEvent(callback: (event: SquadEvent) => void): () => void
+  onStreamDelta(callback: (delta: StreamDelta) => void): () => void
+  onStreamUsage(callback: (usage: UsageEvent) => void): () => void
 }
 
 const squadAPI: SquadAPI = {
@@ -64,7 +78,7 @@ const squadAPI: SquadAPI = {
   // ── Push channels (main → renderer) ───────────────────────────
   onConnectionState: (callback) => {
     const handler = (_event: Electron.IpcRendererEvent, data: unknown) => {
-      try { callback(data as { connected: boolean }) } catch (err) { console.error('[Preload] onConnectionState callback error:', err) }
+      try { callback(data as ConnectionState) } catch (err) { console.error('[Preload] onConnectionState callback error:', err) }
     }
     ipcRenderer.on('squad:connection-state', handler)
     return () => { ipcRenderer.removeListener('squad:connection-state', handler) }
