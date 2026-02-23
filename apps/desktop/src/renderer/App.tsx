@@ -40,6 +40,7 @@ export default function App() {
   const [roster, setRoster] = useState<SquadMember[]>([])
   const [agentStatuses, setAgentStatuses] = useState<AgentStatus[]>([])
   const [loading, setLoading] = useState(true)
+  const [sdkConnected, setSdkConnected] = useState(false)
 
   // ── Derived data for hooks ──
   const squads: SquadLookup[] = config ? [{ id: config.name, name: config.name }] : []
@@ -94,6 +95,10 @@ export default function App() {
         if (configResult.ok && configResult.data) setConfig(configResult.data)
         if (rosterResult.ok && rosterResult.data) setRoster(rosterResult.data)
         if (statusResult.ok && statusResult.data) setAgentStatuses(statusResult.data)
+
+        // Check SDK connection
+        const sdkStatus = await window.squadAPI.getStatus().catch(() => ({ status: 'disconnected' }))
+        setSdkConnected((sdkStatus as { status: string }).status === 'connected')
       } catch (_err) {
         // Errors surface via chat.error when relevant
       } finally {
@@ -240,6 +245,17 @@ export default function App() {
         </div>
       )}
 
+      {/* SDK connection banner — shown when disconnected */}
+      {!loading && !sdkConnected && navigation.state.level !== 'building' && (
+        <div className="flex items-center gap-3 px-4 py-2 bg-accent/5 border-b border-accent/10 text-xs text-text-secondary animate-fade-in">
+          <span className="w-2 h-2 rounded-full bg-status-warning shrink-0" />
+          <span>
+            <strong className="text-text-primary">Roster mode</strong> — Copilot CLI not detected. Agent cards show team info; live status &amp; chat require{' '}
+            <code className="text-accent/80">squad start</code> running.
+          </span>
+        </div>
+      )}
+
       {/* Main three-panel layout */}
       <div className="flex flex-1 overflow-hidden">
         <Sidebar
@@ -293,6 +309,7 @@ export default function App() {
                 }
               }}
               loading={loading}
+              sdkConnected={sdkConnected}
             />
           )}
 

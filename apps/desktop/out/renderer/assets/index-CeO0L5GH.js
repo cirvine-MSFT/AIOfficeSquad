@@ -7649,7 +7649,8 @@ function FloorView({
   onSelectAgent,
   onSelectSession,
   onCreateSession,
-  loading
+  loading,
+  sdkConnected
 }) {
   const activeSessionCount = squad.sessions.filter((s) => s.status === "active").length;
   return /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "flex-1 flex flex-col overflow-hidden animate-fade-in", children: [
@@ -7659,13 +7660,44 @@ function FloorView({
         squadName: squad.name,
         floor: squad.floor,
         members: squad.members,
-        activeSessionCount
+        activeSessionCount,
+        connected: sdkConnected
       }
     ),
     /* @__PURE__ */ jsxRuntimeExports.jsx("div", { className: "flex-1 overflow-auto p-6", style: { background: "#12151c" }, children: loading ? /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "text-center py-12", children: [
       /* @__PURE__ */ jsxRuntimeExports.jsx("div", { className: "inline-block w-8 h-8 border-4 border-text-tertiary border-t-accent rounded-full animate-spin mb-3" }),
       /* @__PURE__ */ jsxRuntimeExports.jsx("p", { className: "text-sm text-text-tertiary", children: "Loading floor plan…" })
     ] }) : /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "max-w-[1200px] mx-auto space-y-8", children: [
+      /* @__PURE__ */ jsxRuntimeExports.jsx("section", { className: "rounded-lg border border-border/40 bg-bg-secondary/40 p-4", children: /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "flex items-start gap-4", children: [
+        /* @__PURE__ */ jsxRuntimeExports.jsx("div", { className: "text-2xl mt-0.5", children: "🏢" }),
+        /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "flex-1 min-w-0", children: [
+          /* @__PURE__ */ jsxRuntimeExports.jsxs("h2", { className: "text-sm font-semibold text-text-primary mb-1", children: [
+            squad.name || "Squad",
+            /* @__PURE__ */ jsxRuntimeExports.jsxs("span", { className: "ml-2 text-2xs font-normal text-text-tertiary", children: [
+              "Floor ",
+              squad.floor
+            ] })
+          ] }),
+          /* @__PURE__ */ jsxRuntimeExports.jsxs("p", { className: "text-xs text-text-secondary leading-relaxed", children: [
+            agents.length,
+            " team member",
+            agents.length !== 1 ? "s" : "",
+            " •",
+            " ",
+            squad.sessions.length,
+            " session room",
+            squad.sessions.length !== 1 ? "s" : "",
+            " •",
+            " ",
+            activeSessionCount > 0 ? `${activeSessionCount} active` : "No active sessions"
+          ] }),
+          !sdkConnected && /* @__PURE__ */ jsxRuntimeExports.jsxs("p", { className: "text-2xs text-text-tertiary mt-1 italic", children: [
+            "📋 Showing team roster — start ",
+            /* @__PURE__ */ jsxRuntimeExports.jsx("code", { className: "text-accent/60", children: "squad start" }),
+            " for live agent status"
+          ] })
+        ] })
+      ] }) }),
       /* @__PURE__ */ jsxRuntimeExports.jsxs("section", { children: [
         /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "flex items-center gap-2 text-2xs text-text-tertiary uppercase tracking-wider mb-4", children: [
           /* @__PURE__ */ jsxRuntimeExports.jsx("span", { className: "w-[3px] h-3 bg-accent rounded-sm" }),
@@ -8484,6 +8516,7 @@ function App() {
   const [roster, setRoster] = reactExports.useState([]);
   const [agentStatuses, setAgentStatuses] = reactExports.useState([]);
   const [loading, setLoading] = reactExports.useState(true);
+  const [sdkConnected, setSdkConnected] = reactExports.useState(false);
   const squads = config ? [{ id: config.name, name: config.name }] : [];
   const agents = mergeAgentInfo(roster, agentStatuses);
   const navigation = useNavigation(squads, []);
@@ -8519,6 +8552,8 @@ function App() {
         if (configResult.ok && configResult.data) setConfig(configResult.data);
         if (rosterResult.ok && rosterResult.data) setRoster(rosterResult.data);
         if (statusResult.ok && statusResult.data) setAgentStatuses(statusResult.data);
+        const sdkStatus = await window.squadAPI.getStatus().catch(() => ({ status: "disconnected" }));
+        setSdkConnected(sdkStatus.status === "connected");
       } catch (_err) {
       } finally {
         setLoading(false);
@@ -8637,6 +8672,16 @@ function App() {
         }
       )
     ] }),
+    !loading && !sdkConnected && navigation.state.level !== "building" && /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "flex items-center gap-3 px-4 py-2 bg-accent/5 border-b border-accent/10 text-xs text-text-secondary animate-fade-in", children: [
+      /* @__PURE__ */ jsxRuntimeExports.jsx("span", { className: "w-2 h-2 rounded-full bg-status-warning shrink-0" }),
+      /* @__PURE__ */ jsxRuntimeExports.jsxs("span", { children: [
+        /* @__PURE__ */ jsxRuntimeExports.jsx("strong", { className: "text-text-primary", children: "Roster mode" }),
+        " — Copilot CLI not detected. Agent cards show team info; live status & chat require",
+        " ",
+        /* @__PURE__ */ jsxRuntimeExports.jsx("code", { className: "text-accent/80", children: "squad start" }),
+        " running."
+      ] })
+    ] }),
     /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "flex flex-1 overflow-hidden", children: [
       /* @__PURE__ */ jsxRuntimeExports.jsx(
         Sidebar,
@@ -8690,7 +8735,8 @@ function App() {
                 chat.createSession(agent);
               }
             },
-            loading
+            loading,
+            sdkConnected
           }
         ),
         navigation.state.level === "office" && currentSessionDetail && /* @__PURE__ */ jsxRuntimeExports.jsx(

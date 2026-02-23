@@ -23,6 +23,8 @@ export interface FloorViewProps {
   onCreateSession: () => void
   /** Whether data is still loading */
   loading: boolean
+  /** Whether SDK is connected */
+  sdkConnected?: boolean
 }
 
 // ── Component ──
@@ -42,6 +44,7 @@ export default function FloorView({
   onSelectSession,
   onCreateSession,
   loading,
+  sdkConnected,
 }: FloorViewProps) {
   const activeSessionCount = squad.sessions.filter((s) => s.status === 'active').length
 
@@ -53,6 +56,7 @@ export default function FloorView({
         floor={squad.floor}
         members={squad.members}
         activeSessionCount={activeSessionCount}
+        connected={sdkConnected}
       />
 
       {/* Floor plan area */}
@@ -64,6 +68,33 @@ export default function FloorView({
           </div>
         ) : (
           <div className="max-w-[1200px] mx-auto space-y-8">
+            {/* ── Squad Bulletin Board ── */}
+            <section className="rounded-lg border border-border/40 bg-bg-secondary/40 p-4">
+              <div className="flex items-start gap-4">
+                <div className="text-2xl mt-0.5">🏢</div>
+                <div className="flex-1 min-w-0">
+                  <h2 className="text-sm font-semibold text-text-primary mb-1">
+                    {squad.name || 'Squad'}
+                    <span className="ml-2 text-2xs font-normal text-text-tertiary">
+                      Floor {squad.floor}
+                    </span>
+                  </h2>
+                  <p className="text-xs text-text-secondary leading-relaxed">
+                    {agents.length} team member{agents.length !== 1 ? 's' : ''} •{' '}
+                    {squad.sessions.length} session room{squad.sessions.length !== 1 ? 's' : ''} •{' '}
+                    {activeSessionCount > 0
+                      ? `${activeSessionCount} active`
+                      : 'No active sessions'}
+                  </p>
+                  {!sdkConnected && (
+                    <p className="text-2xs text-text-tertiary mt-1 italic">
+                      📋 Showing team roster — start <code className="text-accent/60">squad start</code> for live agent status
+                    </p>
+                  )}
+                </div>
+              </div>
+            </section>
+
             {/* ── Open Office: Agent desk grid ── */}
             <section>
               <div className="flex items-center gap-2 text-2xs text-text-tertiary uppercase tracking-wider mb-4">
