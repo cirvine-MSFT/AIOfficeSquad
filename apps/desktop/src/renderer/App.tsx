@@ -273,6 +273,10 @@ export default function App() {
           agents={agents}
           selectedAgent={effectiveAgent}
           onSelectAgent={handleSelectAgent}
+          onChatWithAgent={(name) => {
+            setShowChat(true)
+            chat.createSession(name)
+          }}
           loading={loading}
         />
 

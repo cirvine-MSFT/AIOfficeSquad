@@ -7327,6 +7327,7 @@ function Sidebar({
   agents,
   selectedAgent,
   onSelectAgent,
+  onChatWithAgent,
   loading
 }) {
   return /* @__PURE__ */ jsxRuntimeExports.jsxs("aside", { className: "flex flex-col w-sidebar bg-bg-raised border-r border-border overflow-y-auto scrollbar-thin shrink-0 select-none", children: [
@@ -7386,7 +7387,18 @@ function Sidebar({
           }
         ) }, agent.name);
       }) })
-    ] })
+    ] }),
+    selectedAgent && onChatWithAgent && /* @__PURE__ */ jsxRuntimeExports.jsx("div", { className: "p-3 border-t border-border mt-auto", children: /* @__PURE__ */ jsxRuntimeExports.jsxs(
+      "button",
+      {
+        onClick: () => onChatWithAgent(selectedAgent),
+        className: "w-full flex items-center justify-center gap-2 px-3 py-2 rounded-md bg-accent/10 text-accent text-sm font-medium transition-default hover:bg-accent/20",
+        children: [
+          "💬 Chat with ",
+          selectedAgent
+        ]
+      }
+    ) })
   ] });
 }
 function BuildingView({ squads, onSelectSquad, loading }) {
@@ -7586,6 +7598,16 @@ function getRoleKey$2(role) {
   if (normalized === "squadexpert") return "expert";
   return null;
 }
+const ROLE_ICON = {
+  lead: "🎖️",
+  frontend: "🎨",
+  backend: "⚙️",
+  tester: "🧪",
+  expert: "📚",
+  design: "✏️",
+  scribe: "📝",
+  monitor: "📡"
+};
 const STATUS_LABEL = {
   active: "Active",
   idle: "Idle",
@@ -7598,24 +7620,29 @@ const STATUS_BADGE = {
   error: "bg-status-error/15 text-status-error",
   working: "bg-status-working/15 text-status-working"
 };
-function AgentCard({ agent, selected, onClick }) {
+function AgentCard({ agent, selected, onClick, index = 0 }) {
   const roleKey = getRoleKey$2(agent.role);
   const avatarBg = roleKey ? ROLE_COLORS[roleKey].accent : getAvatarColor(agent.name);
+  const roleIcon = roleKey ? ROLE_ICON[roleKey] : "👤";
   return /* @__PURE__ */ jsxRuntimeExports.jsx(
     "button",
     {
       onClick,
       title: `${agent.name} — ${agent.role} (${STATUS_LABEL[agent.status] ?? agent.status})`,
       className: `w-full text-left rounded-lg bg-bg-surface border shadow-elevation-1 p-4 transition-default hover:bg-bg-hover hover:shadow-elevation-2 hover:-translate-y-0.5 focus-visible:ring-2 focus-visible:ring-border-focus animate-fade-in-up ${selected ? "border-accent bg-bg-active" : "border-border"}`,
+      style: { animationDelay: `${index * 60}ms`, animationFillMode: "both" },
       children: /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "flex flex-col items-center gap-3", children: [
-        /* @__PURE__ */ jsxRuntimeExports.jsx(
-          "div",
-          {
-            className: "flex items-center justify-center rounded-full w-10 h-10 text-lg font-semibold text-white shrink-0",
-            style: { backgroundColor: avatarBg },
-            children: getInitials$2(agent.name)
-          }
-        ),
+        /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "relative", children: [
+          /* @__PURE__ */ jsxRuntimeExports.jsx(
+            "div",
+            {
+              className: "flex items-center justify-center rounded-full w-10 h-10 text-lg font-semibold text-white shrink-0",
+              style: { backgroundColor: avatarBg },
+              children: getInitials$2(agent.name)
+            }
+          ),
+          /* @__PURE__ */ jsxRuntimeExports.jsx("span", { className: "absolute -bottom-1 -right-1 text-sm", title: agent.role, children: roleIcon })
+        ] }),
         /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "text-center min-w-0", children: [
           /* @__PURE__ */ jsxRuntimeExports.jsx("div", { className: "text-md font-semibold text-text-primary truncate", children: agent.name }),
           /* @__PURE__ */ jsxRuntimeExports.jsx(
@@ -7710,12 +7737,13 @@ function FloorView({
         agents.length === 0 ? /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "text-center py-8", children: [
           /* @__PURE__ */ jsxRuntimeExports.jsx("span", { className: "text-3xl mb-2 block", children: "🏢" }),
           /* @__PURE__ */ jsxRuntimeExports.jsx("p", { className: "text-sm text-text-tertiary", children: "No team members on this floor" })
-        ] }) : /* @__PURE__ */ jsxRuntimeExports.jsx("div", { className: "grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4", children: agents.map((agent) => /* @__PURE__ */ jsxRuntimeExports.jsx(
+        ] }) : /* @__PURE__ */ jsxRuntimeExports.jsx("div", { className: "grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4", children: agents.map((agent, i) => /* @__PURE__ */ jsxRuntimeExports.jsx(
           AgentCard,
           {
             agent,
             selected: selectedAgent === agent.name,
-            onClick: () => onSelectAgent(agent.name)
+            onClick: () => onSelectAgent(agent.name),
+            index: i
           },
           agent.name
         )) })
@@ -8700,6 +8728,10 @@ function App() {
           agents,
           selectedAgent: effectiveAgent,
           onSelectAgent: handleSelectAgent,
+          onChatWithAgent: (name) => {
+            setShowChat(true);
+            chat.createSession(name);
+          },
           loading
         }
       ),

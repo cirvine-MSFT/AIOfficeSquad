@@ -20,6 +20,7 @@ interface SidebarProps {
   agents: AgentInfo[]
   selectedAgent: string | null
   onSelectAgent: (name: string) => void
+  onChatWithAgent?: (name: string) => void
   loading: boolean
 }
 
@@ -47,6 +48,7 @@ export default function Sidebar({
   agents,
   selectedAgent,
   onSelectAgent,
+  onChatWithAgent,
   loading,
 }: SidebarProps) {
   return (
@@ -150,6 +152,18 @@ export default function Sidebar({
               })}
             </ul>
           )}
+        </div>
+      )}
+
+      {/* Chat action — shown when agent is selected */}
+      {selectedAgent && onChatWithAgent && (
+        <div className="p-3 border-t border-border mt-auto">
+          <button
+            onClick={() => onChatWithAgent(selectedAgent)}
+            className="w-full flex items-center justify-center gap-2 px-3 py-2 rounded-md bg-accent/10 text-accent text-sm font-medium transition-default hover:bg-accent/20"
+          >
+            💬 Chat with {selectedAgent}
+          </button>
         </div>
       )}
     </aside>

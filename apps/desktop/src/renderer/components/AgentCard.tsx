@@ -12,6 +12,8 @@ interface AgentCardProps {
   agent: AgentInfo
   selected: boolean
   onClick: () => void
+  /** Index for staggered entrance animation */
+  index?: number
 }
 
 function getInitials(name: string): string {
@@ -30,6 +32,17 @@ function getRoleKey(role: string): AgentRole | null {
   return null
 }
 
+const ROLE_ICON: Record<string, string> = {
+  lead: '🎖️',
+  frontend: '🎨',
+  backend: '⚙️',
+  tester: '🧪',
+  expert: '📚',
+  design: '✏️',
+  scribe: '📝',
+  monitor: '📡',
+}
+
 const STATUS_LABEL: Record<string, string> = {
   active: 'Active',
   idle: 'Idle',
@@ -44,9 +57,10 @@ const STATUS_BADGE: Record<string, string> = {
   working: 'bg-status-working/15 text-status-working',
 }
 
-export default function AgentCard({ agent, selected, onClick }: AgentCardProps) {
+export default function AgentCard({ agent, selected, onClick, index = 0 }: AgentCardProps) {
   const roleKey = getRoleKey(agent.role)
   const avatarBg = roleKey ? ROLE_COLORS[roleKey].accent : getAvatarColor(agent.name)
+  const roleIcon = roleKey ? ROLE_ICON[roleKey] : '👤'
 
   return (
     <button
@@ -55,14 +69,20 @@ export default function AgentCard({ agent, selected, onClick }: AgentCardProps) 
       className={`w-full text-left rounded-lg bg-bg-surface border shadow-elevation-1 p-4 transition-default hover:bg-bg-hover hover:shadow-elevation-2 hover:-translate-y-0.5 focus-visible:ring-2 focus-visible:ring-border-focus animate-fade-in-up ${
         selected ? 'border-accent bg-bg-active' : 'border-border'
       }`}
+      style={{ animationDelay: `${index * 60}ms`, animationFillMode: 'both' }}
     >
       <div className="flex flex-col items-center gap-3">
-        {/* Avatar */}
-        <div
-          className="flex items-center justify-center rounded-full w-10 h-10 text-lg font-semibold text-white shrink-0"
-          style={{ backgroundColor: avatarBg }}
-        >
-          {getInitials(agent.name)}
+        {/* Avatar with role icon */}
+        <div className="relative">
+          <div
+            className="flex items-center justify-center rounded-full w-10 h-10 text-lg font-semibold text-white shrink-0"
+            style={{ backgroundColor: avatarBg }}
+          >
+            {getInitials(agent.name)}
+          </div>
+          <span className="absolute -bottom-1 -right-1 text-sm" title={agent.role}>
+            {roleIcon}
+          </span>
         </div>
 
         {/* Info */}

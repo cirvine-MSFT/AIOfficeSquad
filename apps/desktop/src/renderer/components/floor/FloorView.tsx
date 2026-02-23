@@ -110,12 +110,13 @@ export default function FloorView({
                 </div>
               ) : (
                 <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4">
-                  {agents.map((agent) => (
+                  {agents.map((agent, i) => (
                     <AgentCard
                       key={agent.name}
                       agent={agent}
                       selected={selectedAgent === agent.name}
                       onClick={() => onSelectAgent(agent.name)}
+                      index={i}
                     />
                   ))}
                 </div>
