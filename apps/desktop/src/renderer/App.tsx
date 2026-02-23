@@ -196,6 +196,20 @@ export default function App() {
         }
       : null
 
+  // ── Loading splash ──
+  if (loading) {
+    return (
+      <div className="flex flex-col h-screen bg-bg text-text-primary items-center justify-center animate-fade-in">
+        <div className="text-center">
+          <div className="text-6xl mb-6 animate-bounce" style={{ animationDuration: '2s' }}>🏫</div>
+          <h1 className="text-2xl font-bold text-text-primary mb-2">Squad Campus</h1>
+          <p className="text-sm text-text-secondary mb-6">Loading your AI team's workspace…</p>
+          <div className="inline-block w-8 h-8 border-4 border-border border-t-accent rounded-full animate-spin" />
+        </div>
+      </div>
+    )
+  }
+
   return (
     <div className="flex flex-col h-screen bg-bg text-text-primary overflow-hidden">
       <Header

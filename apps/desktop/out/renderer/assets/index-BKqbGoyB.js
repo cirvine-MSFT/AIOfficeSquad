@@ -8765,6 +8765,14 @@ function App() {
     })),
     createdAt: Date.now()
   } : null;
+  if (loading) {
+    return /* @__PURE__ */ jsxRuntimeExports.jsx("div", { className: "flex flex-col h-screen bg-bg text-text-primary items-center justify-center animate-fade-in", children: /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "text-center", children: [
+      /* @__PURE__ */ jsxRuntimeExports.jsx("div", { className: "text-6xl mb-6 animate-bounce", style: { animationDuration: "2s" }, children: "🏫" }),
+      /* @__PURE__ */ jsxRuntimeExports.jsx("h1", { className: "text-2xl font-bold text-text-primary mb-2", children: "Squad Campus" }),
+      /* @__PURE__ */ jsxRuntimeExports.jsx("p", { className: "text-sm text-text-secondary mb-6", children: "Loading your AI team's workspace…" }),
+      /* @__PURE__ */ jsxRuntimeExports.jsx("div", { className: "inline-block w-8 h-8 border-4 border-border border-t-accent rounded-full animate-spin" })
+    ] }) });
+  }
   return /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "flex flex-col h-screen bg-bg text-text-primary overflow-hidden", children: [
     /* @__PURE__ */ jsxRuntimeExports.jsx(
       Header,
