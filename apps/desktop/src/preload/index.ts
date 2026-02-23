@@ -16,6 +16,7 @@ export interface SquadAPI {
   getDecisions(): Promise<unknown>
   getConnectionInfo(): Promise<unknown>
   getHookActivity(): Promise<unknown>
+  onConnectionState(callback: (state: { connected: boolean }) => void): () => void
   onEvent(callback: (event: unknown) => void): () => void
   onStreamDelta(callback: (delta: unknown) => void): () => void
   onStreamUsage(callback: (usage: unknown) => void): () => void
@@ -61,6 +62,13 @@ const squadAPI: SquadAPI = {
       .catch((err: unknown) => ({ ok: false, error: err instanceof Error ? err.message : String(err) })),
 
   // ── Push channels (main → renderer) ───────────────────────────
+  onConnectionState: (callback) => {
+    const handler = (_event: Electron.IpcRendererEvent, data: unknown) => {
+      try { callback(data as { connected: boolean }) } catch (err) { console.error('[Preload] onConnectionState callback error:', err) }
+    }
+    ipcRenderer.on('squad:connection-state', handler)
+    return () => { ipcRenderer.removeListener('squad:connection-state', handler) }
+  },
   onEvent: (callback) => {
     const handler = (_event: Electron.IpcRendererEvent, data: unknown) => {
       try { callback(data) } catch (err) { console.error('[Preload] onEvent callback error:', err) }

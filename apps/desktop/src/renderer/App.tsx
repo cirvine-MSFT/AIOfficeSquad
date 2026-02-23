@@ -1,5 +1,6 @@
 import { useState, useEffect, useCallback } from 'react'
 import type { SquadMember, AgentStatus, SquadConfig, SessionDetail } from './types'
+import type { SessionSummary } from './components/floor/types'
 import { useNavigation, type SquadLookup, type BreadcrumbItem } from './hooks/useNavigation'
 import { useChat } from './hooks/useChat'
 import Header from './components/Header'
@@ -35,6 +36,19 @@ function mergeAgentInfo(members: SquadMember[], statuses: AgentStatus[]): AgentI
   })
 }
 
+/** Map raw SDK session data to SessionSummary for FloorView */
+function mapSessions(data: any[]): SessionSummary[] {
+  return data.map((s: any) => ({
+    id: s.sessionId ?? s.id ?? '',
+    name: s.summary ?? `Session ${(s.sessionId ?? '').slice(0, 8)}`,
+    status: 'active' as const,
+    task: s.summary ?? '',
+    memberIds: [],
+    workingCount: 0,
+    idleCount: 0,
+  }))
+}
+
 export default function App() {
   // ── Squad data (future: useSquadData hook) ──
   const [config, setConfig] = useState<SquadConfig | null>(null)
@@ -42,6 +56,7 @@ export default function App() {
   const [agentStatuses, setAgentStatuses] = useState<AgentStatus[]>([])
   const [loading, setLoading] = useState(true)
   const [sdkConnected, setSdkConnected] = useState(false)
+  const [sessions, setSessions] = useState<SessionSummary[]>([])
 
   // ── Derived data for hooks ──
   const squads: SquadLookup[] = config ? [{ id: config.name, name: config.name }] : []
@@ -103,8 +118,16 @@ export default function App() {
         if (statusResult.ok && statusResult.data) setAgentStatuses(statusResult.data)
 
         // Check SDK connection
-        const sdkStatus = await window.squadAPI.getStatus().catch(() => ({ status: 'disconnected' }))
-        setSdkConnected((sdkStatus as { status: string }).status === 'connected')
+        const connRes = await window.squadAPI.getConnectionInfo().catch(() => ({ ok: false }))
+        const connResult = connRes as { ok: boolean; data?: { connected: boolean } }
+        if (connResult.ok && connResult.data) setSdkConnected(connResult.data.connected)
+
+        // Load live sessions
+        const sessRes = await window.squadAPI.listSessions().catch(() => ({ ok: false }))
+        const sessResult = sessRes as { ok: boolean; data?: any[] }
+        if (sessResult.ok && Array.isArray(sessResult.data)) {
+          setSessions(mapSessions(sessResult.data))
+        }
       } catch (_err) {
         // Errors surface via chat.error when relevant
       } finally {
@@ -125,6 +148,38 @@ export default function App() {
     })
     return () => { unsubEvent() }
   }, [])
+
+  // ── Connection state push events ──
+  useEffect(() => {
+    if (!window.squadAPI.onConnectionState) return  // guard until preload is updated
+    const unsub = window.squadAPI.onConnectionState((state: { connected: boolean }) => {
+      setSdkConnected(state.connected)
+      // Refresh sessions when connection state changes
+      if (state.connected) {
+        window.squadAPI.listSessions().then((res) => {
+          const result = res as { ok: boolean; data?: any[] }
+          if (result.ok && Array.isArray(result.data)) {
+            setSessions(mapSessions(result.data))
+          }
+        }).catch(() => {})
+      }
+    })
+    return () => { unsub() }
+  }, [])
+
+  // ── Periodic session refresh when SDK connected ──
+  useEffect(() => {
+    if (!sdkConnected) return
+    const interval = setInterval(() => {
+      window.squadAPI.listSessions().then((res) => {
+        const result = res as { ok: boolean; data?: any[] }
+        if (result.ok && Array.isArray(result.data)) {
+          setSessions(mapSessions(result.data))
+        }
+      }).catch(() => {})
+    }, 15000) // every 15 seconds
+    return () => clearInterval(interval)
+  }, [sdkConnected])
 
   // ── Breadcrumb navigation ──
   const handleBreadcrumbNavigate = useCallback(
@@ -215,7 +270,7 @@ export default function App() {
       <Header
         breadcrumbs={navigation.breadcrumbs}
         onNavigate={handleBreadcrumbNavigate}
-        connected={!loading}
+        connected={sdkConnected}
       />
 
       {/* Toolbar with panel toggles */}
@@ -285,7 +340,7 @@ export default function App() {
             name: s.name,
             floor: 1,
             memberCount: roster.length,
-            activeSessionCount: 0,
+            activeSessionCount: sessions.length,
             status: 'connected' as const,
           }))}
           selectedSquadId={navigation.state.selectedSquadId}
@@ -320,7 +375,7 @@ export default function App() {
                 name: config?.name ?? '',
                 floor: 1,
                 members: roster,
-                sessions: [],
+                sessions: sessions,
               }}
               agents={agents}
               selectedAgent={effectiveAgent}
@@ -408,12 +463,12 @@ export default function App() {
       <StatusBar
         squadRoot={config?.root ?? null}
         squadName={config?.name ?? null}
-        sessionCount={chat.sessionId ? 1 : 0}
+        sessionCount={sessions.length}
         totalTokens={chat.usage.totalTokens}
         estimatedCost={chat.usage.estimatedCost}
         model={chat.usage.model}
         totalMembers={roster.length}
-        connected={!loading}
+        connected={sdkConnected}
       />
 
       {/* Keyboard shortcuts overlay (toggle with ?) */}
