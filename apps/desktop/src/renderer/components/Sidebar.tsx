@@ -1,4 +1,5 @@
-import { ROLE_COLORS, getAvatarColor, type AgentRole } from '../styles/design-tokens'
+import { ROLE_COLORS, getAvatarColor } from '../styles/design-tokens'
+import { getInitials, getRoleKey } from './shared/RoleAvatar'
 import type { AgentInfo } from './AgentCard'
 
 // ── Types (matches Dutch arch doc §C.3) ──
@@ -22,22 +23,6 @@ interface SidebarProps {
   onSelectAgent: (name: string) => void
   onChatWithAgent?: (name: string) => void
   loading: boolean
-}
-
-function getInitials(name: string): string {
-  return name
-    .split(/[\s-]+/)
-    .map((w) => w[0])
-    .join('')
-    .toUpperCase()
-    .slice(0, 2)
-}
-
-function getRoleKey(role: string): AgentRole | null {
-  const normalized = role.toLowerCase().replace(/\s+/g, '')
-  if (normalized in ROLE_COLORS) return normalized as AgentRole
-  if (normalized === 'squadexpert') return 'expert'
-  return null
 }
 
 export default function Sidebar({

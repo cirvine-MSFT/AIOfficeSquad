@@ -1,4 +1,5 @@
-import { ROLE_COLORS, getAvatarColor, type AgentRole } from '../styles/design-tokens'
+import { ROLE_COLORS, getAvatarColor } from '../styles/design-tokens'
+import { getInitials, getRoleKey } from './shared/RoleAvatar'
 
 export interface AgentInfo {
   name: string
@@ -14,22 +15,6 @@ interface AgentCardProps {
   onClick: () => void
   /** Index for staggered entrance animation */
   index?: number
-}
-
-function getInitials(name: string): string {
-  return name
-    .split(/[\s-]+/)
-    .map((w) => w[0])
-    .join('')
-    .toUpperCase()
-    .slice(0, 2)
-}
-
-function getRoleKey(role: string): AgentRole | null {
-  const normalized = role.toLowerCase().replace(/\s+/g, '')
-  if (normalized in ROLE_COLORS) return normalized as AgentRole
-  if (normalized === 'squadexpert') return 'expert'
-  return null
 }
 
 const ROLE_ICON: Record<string, string> = {
