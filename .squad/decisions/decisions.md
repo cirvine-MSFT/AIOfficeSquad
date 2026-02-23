@@ -181,3 +181,28 @@
 - App now survives SDK unavailability, failed init, and panel render errors
 - Test suite grew to 106 total tests (85 unit + 8 E2E crash-specific + 13 existing E2E)
 - Residual flakiness in 5 E2E tests from Electron render timing (not code bugs — needs CI investigation)
+
+## 2026-02-23T13:09Z: Decision — Implementation Audit: Squad Campus Grade C+
+**By:** Dutch (Lead)
+**What:**
+Squad Campus desktop app is a **well-architected shell** with solid crash resilience but limited end-to-end functionality. Audit spans 6 dimensions:
+1. **Working End-to-End (Grade B-):** Roster loading from `.squad/team.md` → IPC → renderer. Config loading, 3-level navigation state machine, decisions panel, keyboard shortcuts, error boundaries, agent selection, SDK connection detection all verified working with real disk data.
+2. **Cosmetic Features (Grade D+):** Session rooms, agent status, office view, terminal panel, cost dashboard, hooks panel all beautifully built but receive empty/stubbed data. No real SDK-dependent features have been tested.
+3. **SDK Integration (Grade B):** `SquadRuntime` architecture is solid (4 dynamic imports, session lifecycle plumbing, push channels for events/deltas/usage). Connection is aspirational — untestable without running Squad SDK. Graceful degradation excellent (app continues in "roster mode" on SDK failure).
+4. **Test Coverage (Grade C+):** Backend/IPC well-tested (55 Vitest tests across squad-runtime, ipc-handlers, crash-resistance); frontend smoke-tested at best (25 Playwright E2E tests, heavy conditional assertions). **Critical gaps:** Zero tests for `useChat` hook (most complex state), zero tests for `useNavigation` hook, zero component tests (FloorView, OfficeView, ChatPanel, Sidebar).
+5. **Architecture Quality (Grade B+):** Clean state machines (`useNavigation`, `useChat`), robust error handling (Grade A-), well-structured components. Duplication issue: `getInitials()` and `getRoleKey()` copied into 5 files despite canonical versions in `shared/RoleAvatar.tsx`. Type boundary problem: Preload API all `Promise<unknown>` with `as any` casts defeats TypeScript.
+6. **Gap to Production (Grade C):** Primary blocker: `@bradygaster/squad-sdk` must exist as shippable dependency (not a code problem). Secondary blockers: chat round-trip untested, sessions hardcoded to empty array, terminal panel is styled div (not xterm), synthetic session detail will diverge from reality, no persistent chat history, SDK API changes would break everywhere (no adapter layer), single-squad assumption baked deep.
+**Why:** Comprehensive pre-shipping audit requested by Casey Irvine to assess production readiness and identify tech debt.
+**Status:** Complete. Grade C+: Good shell, needs SDK to become real.
+**Recommendations (Priority Order):**
+1. Get SDK running — everything else is polish until dependency works
+2. Add Vitest tests for `useChat` and `useNavigation` — highest-risk untested code
+3. Wire `listSessions()` into FloorView — sessions currently always empty
+4. Clean up duplicated helpers — use shared/RoleAvatar exports everywhere
+5. Type the preload bridge — replace `Promise<unknown>` with proper generics
+6. Build mock SDK mode — so app can be demo'd without real SDK (fake sessions, streaming, status)
+**Impact:**
+- Clear visibility into what actually works vs. cosmetic
+- Test debt prioritized (hook coverage highest-risk)
+- SDK dependency risk documented
+- Path to production readiness explicit

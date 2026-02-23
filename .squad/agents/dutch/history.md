@@ -121,3 +121,38 @@
 **Implementation order:** Phase 1a (hooks + types) → 1b (FloorView) → 1c (OfficeView) → 1d (integration + tests). Mac and Poncho can parallelize on 1a.
 
 **Written to:** `.squad/decisions/inbox/dutch-implementation-architecture.md`
+
+### 2026-02-22: Implementation Audit — Brutally Honest Assessment
+
+**What's real:**
+- Roster loading (`.squad/team.md` → IPC → renderer) is the ONE fully end-to-end flow that works with real data.
+- Decisions timeline reads `.squad/decisions.md` from disk — real data.
+- 3-level navigation state machine (useNavigation) works correctly.
+- Error handling / crash resilience is genuinely excellent (A- grade).
+
+**What's cosmetic:**
+- Session rooms on floor view always show `[]` — sessions are never populated from SDK.
+- Agent statuses are always "idle" without SDK's RalphMonitor.
+- Office view (desk grid, water cooler, terminal) renders beautifully but with synthetic/empty data.
+- Chat, streaming, cost dashboard, hooks panel — all dormant without SDK.
+- TerminalPanel is a styled div, not xterm.js.
+
+**Architecture findings:**
+- IPC layer well-designed: 15 channels, typed channel map, consistent IpcResult<T> wrapper.
+- Preload boundary is untyped (`Promise<unknown>` everywhere) — defeats TypeScript's purpose.
+- `getInitials()` and `getRoleKey()` duplicated in 5 files despite shared canonical versions existing.
+- `effectiveAgent` dual-tracking (hook vs local state) is fragile.
+- Single-squad assumption baked deep; multi-squad support claimed but not exercised.
+
+**Test gaps:**
+- useChat hook (most complex state manager): zero tests.
+- useNavigation hook (core state machine): zero tests.
+- Zero component tests for any React components.
+- E2E tests use conditional assertions — many pass vacuously.
+- Backend IPC + runtime tests are genuinely good (55 tests, well-mocked).
+
+**Key risk:** Everything depends on `@bradygaster/squad-sdk` which isn't running. ~70% of features are wired-but-dormant. The app is a well-built shell waiting for its engine.
+
+**Overall grade: C+** — Good architecture, good crash resilience, needs SDK to become real.
+
+**Written to:** `.squad/decisions/inbox/dutch-implementation-audit.md`
