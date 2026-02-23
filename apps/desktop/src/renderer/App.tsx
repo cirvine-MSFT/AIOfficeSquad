@@ -259,44 +259,49 @@ export default function App() {
           loading={loading}
         />
 
-        {/* Main content — 3-level conditional rendering */}
-        {navigation.state.level === 'building' && (
-          <BuildingView
-            squads={squads.map((s) => ({
-              name: s.name,
-              memberCount: roster.length,
-            }))}
-            onSelectSquad={(name) => navigation.selectSquad(name)}
-            loading={loading}
-          />
-        )}
+        {/* Main content — 3-level conditional rendering, each wrapped in ErrorBoundary */}
+        <ErrorBoundary>
+          {navigation.state.level === 'building' && (
+            <BuildingView
+              squads={squads.map((s) => ({
+                name: s.name,
+                memberCount: roster.length,
+              }))}
+              onSelectSquad={(name) => navigation.selectSquad(name)}
+              loading={loading}
+            />
+          )}
 
-        {navigation.state.level === 'floor' && (
-          <FloorView
-            squad={{
-              id: navigation.state.selectedSquadId ?? '',
-              name: config?.name ?? '',
-              floor: 1,
-              members: roster,
-              sessions: [],
-            }}
-            onSelectSession={navigation.selectSession}
-            onCreateSession={() => {
-              const agent = effectiveAgent ?? ''
-              chat.createSession(agent)
-            }}
-            loading={loading}
-          />
-        )}
+          {navigation.state.level === 'floor' && (
+            <FloorView
+              squad={{
+                id: navigation.state.selectedSquadId ?? '',
+                name: config?.name ?? '',
+                floor: 1,
+                members: roster,
+                sessions: [],
+              }}
+              agents={agents}
+              selectedAgent={effectiveAgent}
+              onSelectAgent={handleSelectAgent}
+              onSelectSession={navigation.selectSession}
+              onCreateSession={() => {
+                const agent = effectiveAgent ?? ''
+                chat.createSession(agent)
+              }}
+              loading={loading}
+            />
+          )}
 
-        {navigation.state.level === 'office' && currentSessionDetail && (
-          <OfficeView
-            session={currentSessionDetail}
-            streamingText={chat.streamingText}
-            onBack={navigation.back}
-            loading={loading}
-          />
-        )}
+          {navigation.state.level === 'office' && currentSessionDetail && (
+            <OfficeView
+              session={currentSessionDetail}
+              streamingText={chat.streamingText}
+              onBack={navigation.back}
+              loading={loading}
+            />
+          )}
+        </ErrorBoundary>
 
         {/* Chat detail panel — shows when agent is selected */}
         {selectedAgentInfo && (
@@ -314,25 +319,31 @@ export default function App() {
           </ErrorBoundary>
         )}
 
-        {/* Toggleable side panels */}
+        {/* Toggleable side panels — all wrapped in ErrorBoundary to prevent crashes */}
         {activePanel === 'decisions' && (
-          <div className="w-80 border-l border-border shrink-0 animate-fade-in">
-            <DecisionsTimeline />
-          </div>
+          <ErrorBoundary>
+            <div className="w-80 border-l border-border shrink-0 animate-fade-in">
+              <DecisionsTimeline />
+            </div>
+          </ErrorBoundary>
         )}
         {activePanel === 'cost' && (
-          <div className="w-80 border-l border-border shrink-0 animate-fade-in">
-            <CostDashboard
-              totalTokens={chat.usage.totalTokens}
-              estimatedCost={chat.usage.estimatedCost}
-              model={chat.usage.model}
-            />
-          </div>
+          <ErrorBoundary>
+            <div className="w-80 border-l border-border shrink-0 animate-fade-in">
+              <CostDashboard
+                totalTokens={chat.usage.totalTokens}
+                estimatedCost={chat.usage.estimatedCost}
+                model={chat.usage.model}
+              />
+            </div>
+          </ErrorBoundary>
         )}
         {activePanel === 'hooks' && (
-          <div className="w-80 border-l border-border shrink-0 animate-fade-in">
-            <HooksPanel />
-          </div>
+          <ErrorBoundary>
+            <div className="w-80 border-l border-border shrink-0 animate-fade-in">
+              <HooksPanel />
+            </div>
+          </ErrorBoundary>
         )}
       </div>
 

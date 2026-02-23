@@ -44,14 +44,14 @@ test.describe('Electron App E2E', () => {
     await page.waitForTimeout(2000)
 
     // Click the first squad in sidebar (if exists)
-    const squadItem = page.locator('[role="button"], button').filter({ hasText: /Squad Campus|Squad Office|ai-office-squad/i }).first()
+    const squadItem = page.locator('[role="button"], button').filter({ hasText: /Squad Campus|Squad Office|ai-office-squad|Team/i }).first()
     
     if (await squadItem.isVisible()) {
       await squadItem.click()
       
-      // Floor view should show agent cards or "New Session" button
+      // Floor view should show Open Office section with agent cards or New Session area
       await expect(
-        page.locator('text=New Session, button:has-text("New Session")').first()
+        page.locator('text=/Open Office|New session|New Session/i').first()
       ).toBeVisible({ timeout: 5000 })
     }
   })

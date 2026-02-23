@@ -35,16 +35,26 @@ export class ErrorBoundary extends Component<Props, State> {
   render(): ReactNode {
     if (this.state.hasError) {
       return (
-        <div className="flex flex-col items-center justify-center p-6 text-center min-h-[200px]">
-          <p className="text-sm text-status-error mb-3">
-            {this.state.error?.message ?? 'Something went wrong'}
+        <div className="flex flex-col items-center justify-center p-6 text-center min-h-[200px] animate-fade-in">
+          <span className="text-2xl mb-2">⚠️</span>
+          <p className="text-sm text-text-secondary mb-1">Something went wrong</p>
+          <p className="text-xs text-text-tertiary mb-4 max-w-xs">
+            {this.state.error?.message ?? 'An unexpected error occurred'}
           </p>
-          <button
-            onClick={() => this.setState({ hasError: false, error: null })}
-            className="px-3 py-1.5 text-sm font-medium rounded-md bg-accent text-white hover:bg-accent-hover transition-default"
-          >
-            Try Again
-          </button>
+          <div className="flex gap-2">
+            <button
+              onClick={() => this.setState({ hasError: false, error: null })}
+              className="px-3 py-1.5 text-sm font-medium rounded-md bg-accent text-white hover:bg-accent-hover transition-default"
+            >
+              Try Again
+            </button>
+            <button
+              onClick={() => window.location.reload()}
+              className="px-3 py-1.5 text-sm font-medium rounded-md bg-bg-surface border border-border text-text-secondary hover:text-text-primary hover:bg-bg-hover transition-default"
+            >
+              Reload App
+            </button>
+          </div>
         </div>
       )
     }

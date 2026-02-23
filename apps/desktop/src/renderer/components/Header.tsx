@@ -25,8 +25,8 @@ export default function Header({ breadcrumbs, onNavigate, connected }: HeaderPro
 
       <div className="flex items-center gap-3 app-no-drag">
         <div className="flex items-center gap-2 text-sm">
-          <span className={`status-dot ${connected ? 'status-dot-active' : 'status-dot-idle'}`} />
-          <span className="text-text-secondary">{connected ? 'Ready' : 'Loading…'}</span>
+          <span className={`w-2 h-2 rounded-full ${connected ? 'bg-status-active shadow-[0_0_6px_rgba(74,222,128,0.4)]' : 'bg-status-idle'}`} />
+          <span className="text-text-secondary">{connected ? 'Connected' : 'Offline'}</span>
         </div>
       </div>
     </header>

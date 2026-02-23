@@ -53,22 +53,48 @@ test.describe('Crash Resistance — Panel Toggling', () => {
     }
   })
 
+  test('clicking Hooks panel does not crash', async ({ page }) => {
+    await page.waitForTimeout(3000)
+
+    const hooksBtn = page.locator('button').filter({ hasText: /Hooks/i }).first()
+    const isVisible = await hooksBtn.isVisible().catch(() => false)
+
+    if (isVisible) {
+      await hooksBtn.click()
+      await page.waitForTimeout(1000)
+
+      const stillAlive = await page.locator('body').isVisible().catch(() => false)
+      expect(stillAlive).toBe(true)
+
+      const panelContent = await page.locator('text=/Governance Hooks|No governance|Hook activity|Try Again/i').first().isVisible().catch(() => false)
+      console.log('Hooks panel visible:', panelContent)
+    } else {
+      console.log('Hooks button not rendered — app may still be loading (known env issue)')
+    }
+  })
+
   test('rapid panel toggling does not crash', async ({ page }) => {
     await page.waitForTimeout(3000)
 
     const decisionsBtn = page.locator('button').filter({ hasText: /Decisions/i }).first()
     const costBtn = page.locator('button').filter({ hasText: /Cost/i }).first()
+    const hooksBtn = page.locator('button').filter({ hasText: /Hooks/i }).first()
 
     const decisionsVisible = await decisionsBtn.isVisible().catch(() => false)
     const costVisible = await costBtn.isVisible().catch(() => false)
+    const hooksVisible = await hooksBtn.isVisible().catch(() => false)
 
     if (decisionsVisible && costVisible) {
-      // Rapidly toggle panels
+      // Rapidly toggle panels including hooks
       for (let i = 0; i < 5; i++) {
         await decisionsBtn.click()
         await page.waitForTimeout(100)
         await costBtn.click()
         await page.waitForTimeout(100)
+        if (hooksVisible) {
+          await hooksBtn.click()
+          await page.waitForTimeout(100)
+        }
       }
       // Close panel
       await costBtn.click()
@@ -185,6 +211,13 @@ test.describe('Crash Resistance — SDK Unavailability', () => {
     const costBtn = page.locator('button').filter({ hasText: /Cost/i }).first()
     if (await costBtn.isVisible().catch(() => false)) {
       await costBtn.click()
+      await page.waitForTimeout(1000)
+    }
+
+    // Try to open Hooks panel
+    const hooksBtn = page.locator('button').filter({ hasText: /Hooks/i }).first()
+    if (await hooksBtn.isVisible().catch(() => false)) {
+      await hooksBtn.click()
       await page.waitForTimeout(1000)
     }
 

@@ -27,12 +27,21 @@ export default function BuildingView({ squads, onSelectSquad, loading }: Buildin
   if (squads.length === 0) {
     return (
       <div className="flex-1 flex items-center justify-center animate-fade-in">
-        <div className="text-center px-6">
-          <div className="text-4xl mb-4">🏫</div>
-          <h2 className="text-lg font-semibold text-text-primary mb-2">No squads found</h2>
-          <p className="text-sm text-text-secondary max-w-sm">
-            Open a project with a <code>.squad/</code> directory to get started.
+        <div className="text-center px-6 max-w-md">
+          <div className="text-5xl mb-4">🏫</div>
+          <h2 className="text-xl font-semibold text-text-primary mb-2">Welcome to Squad Campus</h2>
+          <p className="text-sm text-text-secondary mb-6">
+            Your AI team's home base. Open a project with a <code>.squad/</code> directory
+            to see your team working in their office.
           </p>
+          <div className="bg-bg-surface border border-border rounded-lg p-4 text-left">
+            <p className="text-xs text-text-tertiary uppercase tracking-wider mb-2">Quick Start</p>
+            <div className="space-y-2 text-sm text-text-secondary">
+              <p>1. Navigate to a repo with a <code>.squad/</code> directory</p>
+              <p>2. Run <code>npx @bradygaster/squad-cli init</code> to create one</p>
+              <p>3. Your team will appear here as office buildings</p>
+            </div>
+          </div>
         </div>
       </div>
     )
@@ -52,10 +61,10 @@ export default function BuildingView({ squads, onSelectSquad, loading }: Buildin
           <button
             key={squad.name}
             onClick={() => onSelectSquad(squad.name)}
-            className="text-left rounded-lg bg-bg-surface border border-border shadow-elevation-1 p-5 transition-default hover:bg-bg-hover hover:shadow-elevation-2 focus-visible:ring-2 focus-visible:ring-border-focus animate-fade-in-up"
+            className="text-left rounded-lg bg-bg-surface border border-border shadow-elevation-1 p-5 transition-default hover:bg-bg-hover hover:shadow-elevation-2 hover:-translate-y-0.5 focus-visible:ring-2 focus-visible:ring-border-focus animate-fade-in-up group"
           >
             <div className="flex items-center gap-3 mb-3">
-              <span className="text-2xl">🏢</span>
+              <span className="text-2xl group-hover:scale-110 transition-transform duration-200">🏢</span>
               <h3 className="text-md font-semibold text-text-primary">{squad.name}</h3>
             </div>
             <div className="flex items-center justify-between">
@@ -65,6 +74,11 @@ export default function BuildingView({ squads, onSelectSquad, loading }: Buildin
               <span className="text-xs text-text-tertiary bg-bg-raised px-2 py-0.5 rounded-full">
                 Floor 1
               </span>
+            </div>
+            <div className="mt-3 pt-3 border-t border-border">
+              <p className="text-xs text-accent flex items-center gap-1">
+                Enter building →
+              </p>
             </div>
           </button>
         ))}

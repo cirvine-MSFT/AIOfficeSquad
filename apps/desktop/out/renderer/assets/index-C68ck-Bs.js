@@ -7221,8 +7221,8 @@ function Header({ breadcrumbs, onNavigate, connected }) {
       ] })
     ] }),
     /* @__PURE__ */ jsxRuntimeExports.jsx("div", { className: "flex items-center gap-3 app-no-drag", children: /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "flex items-center gap-2 text-sm", children: [
-      /* @__PURE__ */ jsxRuntimeExports.jsx("span", { className: `status-dot ${connected ? "status-dot-active" : "status-dot-idle"}` }),
-      /* @__PURE__ */ jsxRuntimeExports.jsx("span", { className: "text-text-secondary", children: connected ? "Ready" : "Loading…" })
+      /* @__PURE__ */ jsxRuntimeExports.jsx("span", { className: `w-2 h-2 rounded-full ${connected ? "bg-status-active shadow-[0_0_6px_rgba(74,222,128,0.4)]" : "bg-status-idle"}` }),
+      /* @__PURE__ */ jsxRuntimeExports.jsx("span", { className: "text-text-secondary", children: connected ? "Connected" : "Offline" })
     ] }) })
   ] });
 }
@@ -7310,10 +7310,10 @@ function getAvatarColor(identifier) {
   }
   return AVATAR_COLORS[Math.abs(hash) % AVATAR_COLORS.length];
 }
-function getInitials$2(name) {
+function getInitials$3(name) {
   return name.split(/[\s-]+/).map((w2) => w2[0]).join("").toUpperCase().slice(0, 2);
 }
-function getRoleKey$2(role) {
+function getRoleKey$3(role) {
   const normalized = role.toLowerCase().replace(/\s+/g, "");
   if (normalized in ROLE_COLORS) return normalized;
   if (normalized === "squadexpert") return "expert";
@@ -7360,7 +7360,7 @@ function Sidebar({
     selectedSquadId && /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "p-3 flex-1 overflow-y-auto", children: [
       /* @__PURE__ */ jsxRuntimeExports.jsx("h3", { className: "text-xs font-semibold text-text-tertiary uppercase tracking-wider mb-2 px-2", children: "Agents" }),
       loading ? /* @__PURE__ */ jsxRuntimeExports.jsx("p", { className: "text-sm text-text-tertiary px-2 animate-pulse", children: "Loading agents..." }) : agents.length === 0 ? /* @__PURE__ */ jsxRuntimeExports.jsx("p", { className: "text-sm text-text-tertiary px-2", children: "No agents in squad" }) : /* @__PURE__ */ jsxRuntimeExports.jsx("ul", { className: "space-y-0.5", children: agents.map((agent, i) => {
-        const roleKey = getRoleKey$2(agent.role);
+        const roleKey = getRoleKey$3(agent.role);
         const avatarBg = roleKey ? ROLE_COLORS[roleKey].accent : getAvatarColor(agent.name);
         return /* @__PURE__ */ jsxRuntimeExports.jsx("li", { children: /* @__PURE__ */ jsxRuntimeExports.jsxs(
           "button",
@@ -7374,7 +7374,7 @@ function Sidebar({
                 {
                   className: "flex items-center justify-center rounded-full w-6 h-6 text-2xs font-semibold text-white shrink-0",
                   style: { backgroundColor: avatarBg },
-                  children: getInitials$2(agent.name)
+                  children: getInitials$3(agent.name)
                 }
               ),
               /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "flex-1 min-w-0", children: [
@@ -7402,13 +7402,29 @@ function BuildingView({ squads, onSelectSquad, loading }) {
     ] }) });
   }
   if (squads.length === 0) {
-    return /* @__PURE__ */ jsxRuntimeExports.jsx("div", { className: "flex-1 flex items-center justify-center animate-fade-in", children: /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "text-center px-6", children: [
-      /* @__PURE__ */ jsxRuntimeExports.jsx("div", { className: "text-4xl mb-4", children: "🏫" }),
-      /* @__PURE__ */ jsxRuntimeExports.jsx("h2", { className: "text-lg font-semibold text-text-primary mb-2", children: "No squads found" }),
-      /* @__PURE__ */ jsxRuntimeExports.jsxs("p", { className: "text-sm text-text-secondary max-w-sm", children: [
-        "Open a project with a ",
+    return /* @__PURE__ */ jsxRuntimeExports.jsx("div", { className: "flex-1 flex items-center justify-center animate-fade-in", children: /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "text-center px-6 max-w-md", children: [
+      /* @__PURE__ */ jsxRuntimeExports.jsx("div", { className: "text-5xl mb-4", children: "🏫" }),
+      /* @__PURE__ */ jsxRuntimeExports.jsx("h2", { className: "text-xl font-semibold text-text-primary mb-2", children: "Welcome to Squad Campus" }),
+      /* @__PURE__ */ jsxRuntimeExports.jsxs("p", { className: "text-sm text-text-secondary mb-6", children: [
+        "Your AI team's home base. Open a project with a ",
         /* @__PURE__ */ jsxRuntimeExports.jsx("code", { children: ".squad/" }),
-        " directory to get started."
+        " directory to see your team working in their office."
+      ] }),
+      /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "bg-bg-surface border border-border rounded-lg p-4 text-left", children: [
+        /* @__PURE__ */ jsxRuntimeExports.jsx("p", { className: "text-xs text-text-tertiary uppercase tracking-wider mb-2", children: "Quick Start" }),
+        /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "space-y-2 text-sm text-text-secondary", children: [
+          /* @__PURE__ */ jsxRuntimeExports.jsxs("p", { children: [
+            "1. Navigate to a repo with a ",
+            /* @__PURE__ */ jsxRuntimeExports.jsx("code", { children: ".squad/" }),
+            " directory"
+          ] }),
+          /* @__PURE__ */ jsxRuntimeExports.jsxs("p", { children: [
+            "2. Run ",
+            /* @__PURE__ */ jsxRuntimeExports.jsx("code", { children: "npx @bradygaster/squad-cli init" }),
+            " to create one"
+          ] }),
+          /* @__PURE__ */ jsxRuntimeExports.jsx("p", { children: "3. Your team will appear here as office buildings" })
+        ] })
       ] })
     ] }) });
   }
@@ -7426,10 +7442,10 @@ function BuildingView({ squads, onSelectSquad, loading }) {
       "button",
       {
         onClick: () => onSelectSquad(squad.name),
-        className: "text-left rounded-lg bg-bg-surface border border-border shadow-elevation-1 p-5 transition-default hover:bg-bg-hover hover:shadow-elevation-2 focus-visible:ring-2 focus-visible:ring-border-focus animate-fade-in-up",
+        className: "text-left rounded-lg bg-bg-surface border border-border shadow-elevation-1 p-5 transition-default hover:bg-bg-hover hover:shadow-elevation-2 hover:-translate-y-0.5 focus-visible:ring-2 focus-visible:ring-border-focus animate-fade-in-up group",
         children: [
           /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "flex items-center gap-3 mb-3", children: [
-            /* @__PURE__ */ jsxRuntimeExports.jsx("span", { className: "text-2xl", children: "🏢" }),
+            /* @__PURE__ */ jsxRuntimeExports.jsx("span", { className: "text-2xl group-hover:scale-110 transition-transform duration-200", children: "🏢" }),
             /* @__PURE__ */ jsxRuntimeExports.jsx("h3", { className: "text-md font-semibold text-text-primary", children: squad.name })
           ] }),
           /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "flex items-center justify-between", children: [
@@ -7439,7 +7455,8 @@ function BuildingView({ squads, onSelectSquad, loading }) {
               squad.memberCount !== 1 ? "s" : ""
             ] }),
             /* @__PURE__ */ jsxRuntimeExports.jsx("span", { className: "text-xs text-text-tertiary bg-bg-raised px-2 py-0.5 rounded-full", children: "Floor 1" })
-          ] })
+          ] }),
+          /* @__PURE__ */ jsxRuntimeExports.jsx("div", { className: "mt-3 pt-3 border-t border-border", children: /* @__PURE__ */ jsxRuntimeExports.jsx("p", { className: "text-xs text-accent flex items-center gap-1", children: "Enter building →" }) })
         ]
       },
       squad.name
@@ -7450,7 +7467,8 @@ function FloorHeader({
   squadName,
   floor,
   members,
-  activeSessionCount
+  activeSessionCount,
+  connected = false
 }) {
   return /* @__PURE__ */ jsxRuntimeExports.jsx("div", { className: "px-6 py-5 border-b border-border bg-bg-raised shrink-0", children: /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "flex items-center justify-between", children: [
     /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { children: [
@@ -7464,15 +7482,16 @@ function FloorHeader({
       /* @__PURE__ */ jsxRuntimeExports.jsxs("p", { className: "text-sm text-text-secondary mt-0.5", children: [
         members.length,
         " member",
-        members.length !== 1 ? "s" : ""
+        members.length !== 1 ? "s" : "",
+        !connected && /* @__PURE__ */ jsxRuntimeExports.jsx("span", { className: "ml-2 text-xs text-text-tertiary", children: "· Roster mode (SDK offline)" })
       ] })
     ] }),
-    activeSessionCount > 0 && /* @__PURE__ */ jsxRuntimeExports.jsxs("span", { className: "inline-flex items-center gap-1.5 text-xs font-medium px-2.5 py-1 rounded-full bg-status-active/15 text-status-active", children: [
+    /* @__PURE__ */ jsxRuntimeExports.jsx("div", { className: "flex items-center gap-3", children: activeSessionCount > 0 && /* @__PURE__ */ jsxRuntimeExports.jsxs("span", { className: "inline-flex items-center gap-1.5 text-xs font-medium px-2.5 py-1 rounded-full bg-status-active/15 text-status-active", children: [
       /* @__PURE__ */ jsxRuntimeExports.jsx("span", { className: "w-1.5 h-1.5 rounded-full bg-status-active animate-pulse" }),
       activeSessionCount,
       " active session",
       activeSessionCount !== 1 ? "s" : ""
-    ] })
+    ] }) })
   ] }) });
 }
 const STATUS_INDICATOR = {
@@ -7558,8 +7577,75 @@ function NewSessionCard({ onClick }) {
     }
   );
 }
+function getInitials$2(name) {
+  return name.split(/[\s-]+/).map((w2) => w2[0]).join("").toUpperCase().slice(0, 2);
+}
+function getRoleKey$2(role) {
+  const normalized = role.toLowerCase().replace(/\s+/g, "");
+  if (normalized in ROLE_COLORS) return normalized;
+  if (normalized === "squadexpert") return "expert";
+  return null;
+}
+const STATUS_LABEL = {
+  active: "Active",
+  idle: "Idle",
+  error: "Error",
+  working: "Working"
+};
+const STATUS_BADGE = {
+  active: "bg-status-active/15 text-status-active",
+  idle: "bg-status-idle/15 text-status-idle",
+  error: "bg-status-error/15 text-status-error",
+  working: "bg-status-working/15 text-status-working"
+};
+function AgentCard({ agent, selected, onClick }) {
+  const roleKey = getRoleKey$2(agent.role);
+  const avatarBg = roleKey ? ROLE_COLORS[roleKey].accent : getAvatarColor(agent.name);
+  return /* @__PURE__ */ jsxRuntimeExports.jsx(
+    "button",
+    {
+      onClick,
+      className: `w-full text-left rounded-lg bg-bg-surface border shadow-elevation-1 p-4 transition-default hover:bg-bg-hover hover:shadow-elevation-2 focus-visible:ring-2 focus-visible:ring-border-focus animate-fade-in-up ${selected ? "border-accent bg-bg-active" : "border-border"}`,
+      children: /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "flex flex-col items-center gap-3", children: [
+        /* @__PURE__ */ jsxRuntimeExports.jsx(
+          "div",
+          {
+            className: "flex items-center justify-center rounded-full w-10 h-10 text-lg font-semibold text-white shrink-0",
+            style: { backgroundColor: avatarBg },
+            children: getInitials$2(agent.name)
+          }
+        ),
+        /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "text-center min-w-0", children: [
+          /* @__PURE__ */ jsxRuntimeExports.jsx("div", { className: "text-md font-semibold text-text-primary truncate", children: agent.name }),
+          /* @__PURE__ */ jsxRuntimeExports.jsx(
+            "div",
+            {
+              className: "text-sm font-medium mt-0.5",
+              style: { color: roleKey ? ROLE_COLORS[roleKey].text : void 0 },
+              children: roleKey ? ROLE_COLORS[roleKey].label : agent.role
+            }
+          )
+        ] }),
+        /* @__PURE__ */ jsxRuntimeExports.jsxs(
+          "span",
+          {
+            className: `inline-flex items-center gap-1.5 text-xs font-medium px-2 py-0.5 rounded-sm ${STATUS_BADGE[agent.status] ?? ""}`,
+            children: [
+              /* @__PURE__ */ jsxRuntimeExports.jsx("span", { className: `status-dot status-dot-${agent.status}` }),
+              STATUS_LABEL[agent.status] ?? agent.status
+            ]
+          }
+        ),
+        agent.lastActivity && /* @__PURE__ */ jsxRuntimeExports.jsx("p", { className: "text-2xs text-text-tertiary truncate w-full text-center", children: agent.lastActivity })
+      ] })
+    }
+  );
+}
 function FloorView({
   squad,
+  agents,
+  selectedAgent,
+  onSelectAgent,
   onSelectSession,
   onCreateSession,
   loading
@@ -7578,32 +7664,50 @@ function FloorView({
     /* @__PURE__ */ jsxRuntimeExports.jsx("div", { className: "flex-1 overflow-auto p-6", style: { background: "#12151c" }, children: loading ? /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "text-center py-12", children: [
       /* @__PURE__ */ jsxRuntimeExports.jsx("div", { className: "inline-block w-8 h-8 border-4 border-text-tertiary border-t-accent rounded-full animate-spin mb-3" }),
       /* @__PURE__ */ jsxRuntimeExports.jsx("p", { className: "text-sm text-text-tertiary", children: "Loading floor plan…" })
-    ] }) : squad.sessions.length === 0 ? /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "max-w-[1200px] mx-auto", children: [
-      /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "flex items-center gap-2 text-2xs text-text-tertiary uppercase tracking-wider mb-5", children: [
-        /* @__PURE__ */ jsxRuntimeExports.jsx("span", { className: "flex-1 h-px bg-border" }),
-        "Hallway",
-        /* @__PURE__ */ jsxRuntimeExports.jsx("span", { className: "flex-1 h-px bg-border" })
-      ] }),
-      /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "text-center py-12", children: [
-        /* @__PURE__ */ jsxRuntimeExports.jsx("p", { className: "text-sm text-text-tertiary mb-4", children: "No sessions yet. Start one to open a room." }),
-        /* @__PURE__ */ jsxRuntimeExports.jsx(NewSessionCard, { onClick: onCreateSession })
-      ] })
-    ] }) : /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "max-w-[1200px] mx-auto", children: [
-      /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "flex items-center gap-2 text-2xs text-text-tertiary uppercase tracking-wider mb-5", children: [
-        /* @__PURE__ */ jsxRuntimeExports.jsx("span", { className: "flex-1 h-px bg-border" }),
-        "Hallway",
-        /* @__PURE__ */ jsxRuntimeExports.jsx("span", { className: "flex-1 h-px bg-border" })
-      ] }),
-      /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-6", children: [
-        squad.sessions.map((session) => /* @__PURE__ */ jsxRuntimeExports.jsx(
-          SessionCard,
+    ] }) : /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "max-w-[1200px] mx-auto space-y-8", children: [
+      /* @__PURE__ */ jsxRuntimeExports.jsxs("section", { children: [
+        /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "flex items-center gap-2 text-2xs text-text-tertiary uppercase tracking-wider mb-4", children: [
+          /* @__PURE__ */ jsxRuntimeExports.jsx("span", { className: "w-[3px] h-3 bg-accent rounded-sm" }),
+          "Open Office — ",
+          agents.length,
+          " desk",
+          agents.length !== 1 ? "s" : "",
+          /* @__PURE__ */ jsxRuntimeExports.jsx("span", { className: "flex-1 h-px bg-border" })
+        ] }),
+        agents.length === 0 ? /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "text-center py-8", children: [
+          /* @__PURE__ */ jsxRuntimeExports.jsx("span", { className: "text-3xl mb-2 block", children: "🏢" }),
+          /* @__PURE__ */ jsxRuntimeExports.jsx("p", { className: "text-sm text-text-tertiary", children: "No team members on this floor" })
+        ] }) : /* @__PURE__ */ jsxRuntimeExports.jsx("div", { className: "grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4", children: agents.map((agent) => /* @__PURE__ */ jsxRuntimeExports.jsx(
+          AgentCard,
           {
-            session,
-            onClick: () => onSelectSession(session.id)
+            agent,
+            selected: selectedAgent === agent.name,
+            onClick: () => onSelectAgent(agent.name)
           },
-          session.id
-        )),
-        /* @__PURE__ */ jsxRuntimeExports.jsx(NewSessionCard, { onClick: onCreateSession })
+          agent.name
+        )) })
+      ] }),
+      /* @__PURE__ */ jsxRuntimeExports.jsxs("section", { children: [
+        /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "flex items-center gap-2 text-2xs text-text-tertiary uppercase tracking-wider mb-4", children: [
+          /* @__PURE__ */ jsxRuntimeExports.jsx("span", { className: "w-[3px] h-3 bg-status-active rounded-sm" }),
+          "Session Rooms",
+          /* @__PURE__ */ jsxRuntimeExports.jsx("span", { className: "flex-1 h-px bg-border" }),
+          activeSessionCount > 0 && /* @__PURE__ */ jsxRuntimeExports.jsxs("span", { className: "text-status-active", children: [
+            activeSessionCount,
+            " active"
+          ] })
+        ] }),
+        /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-4", children: [
+          squad.sessions.map((session) => /* @__PURE__ */ jsxRuntimeExports.jsx(
+            SessionCard,
+            {
+              session,
+              onClick: () => onSelectSession(session.id)
+            },
+            session.id
+          )),
+          /* @__PURE__ */ jsxRuntimeExports.jsx(NewSessionCard, { onClick: onCreateSession })
+        ] })
       ] })
     ] }) })
   ] });
@@ -8268,16 +8372,28 @@ class ErrorBoundary extends reactExports.Component {
   }
   render() {
     if (this.state.hasError) {
-      return /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "flex flex-col items-center justify-center p-6 text-center min-h-[200px]", children: [
-        /* @__PURE__ */ jsxRuntimeExports.jsx("p", { className: "text-sm text-status-error mb-3", children: this.state.error?.message ?? "Something went wrong" }),
-        /* @__PURE__ */ jsxRuntimeExports.jsx(
-          "button",
-          {
-            onClick: () => this.setState({ hasError: false, error: null }),
-            className: "px-3 py-1.5 text-sm font-medium rounded-md bg-accent text-white hover:bg-accent-hover transition-default",
-            children: "Try Again"
-          }
-        )
+      return /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "flex flex-col items-center justify-center p-6 text-center min-h-[200px] animate-fade-in", children: [
+        /* @__PURE__ */ jsxRuntimeExports.jsx("span", { className: "text-2xl mb-2", children: "⚠️" }),
+        /* @__PURE__ */ jsxRuntimeExports.jsx("p", { className: "text-sm text-text-secondary mb-1", children: "Something went wrong" }),
+        /* @__PURE__ */ jsxRuntimeExports.jsx("p", { className: "text-xs text-text-tertiary mb-4 max-w-xs", children: this.state.error?.message ?? "An unexpected error occurred" }),
+        /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "flex gap-2", children: [
+          /* @__PURE__ */ jsxRuntimeExports.jsx(
+            "button",
+            {
+              onClick: () => this.setState({ hasError: false, error: null }),
+              className: "px-3 py-1.5 text-sm font-medium rounded-md bg-accent text-white hover:bg-accent-hover transition-default",
+              children: "Try Again"
+            }
+          ),
+          /* @__PURE__ */ jsxRuntimeExports.jsx(
+            "button",
+            {
+              onClick: () => window.location.reload(),
+              className: "px-3 py-1.5 text-sm font-medium rounded-md bg-bg-surface border border-border text-text-secondary hover:text-text-primary hover:bg-bg-hover transition-default",
+              children: "Reload App"
+            }
+          )
+        ] })
       ] });
     }
     return this.props.children;
@@ -8477,44 +8593,49 @@ function App() {
           loading
         }
       ),
-      navigation.state.level === "building" && /* @__PURE__ */ jsxRuntimeExports.jsx(
-        BuildingView,
-        {
-          squads: squads.map((s) => ({
-            name: s.name,
-            memberCount: roster.length
-          })),
-          onSelectSquad: (name) => navigation.selectSquad(name),
-          loading
-        }
-      ),
-      navigation.state.level === "floor" && /* @__PURE__ */ jsxRuntimeExports.jsx(
-        FloorView,
-        {
-          squad: {
-            id: navigation.state.selectedSquadId ?? "",
-            name: config?.name ?? "",
-            floor: 1,
-            members: roster,
-            sessions: []
-          },
-          onSelectSession: navigation.selectSession,
-          onCreateSession: () => {
-            const agent = effectiveAgent ?? "";
-            chat.createSession(agent);
-          },
-          loading
-        }
-      ),
-      navigation.state.level === "office" && currentSessionDetail && /* @__PURE__ */ jsxRuntimeExports.jsx(
-        OfficeView,
-        {
-          session: currentSessionDetail,
-          streamingText: chat.streamingText,
-          onBack: navigation.back,
-          loading
-        }
-      ),
+      /* @__PURE__ */ jsxRuntimeExports.jsxs(ErrorBoundary, { children: [
+        navigation.state.level === "building" && /* @__PURE__ */ jsxRuntimeExports.jsx(
+          BuildingView,
+          {
+            squads: squads.map((s) => ({
+              name: s.name,
+              memberCount: roster.length
+            })),
+            onSelectSquad: (name) => navigation.selectSquad(name),
+            loading
+          }
+        ),
+        navigation.state.level === "floor" && /* @__PURE__ */ jsxRuntimeExports.jsx(
+          FloorView,
+          {
+            squad: {
+              id: navigation.state.selectedSquadId ?? "",
+              name: config?.name ?? "",
+              floor: 1,
+              members: roster,
+              sessions: []
+            },
+            agents,
+            selectedAgent: effectiveAgent,
+            onSelectAgent: handleSelectAgent,
+            onSelectSession: navigation.selectSession,
+            onCreateSession: () => {
+              const agent = effectiveAgent ?? "";
+              chat.createSession(agent);
+            },
+            loading
+          }
+        ),
+        navigation.state.level === "office" && currentSessionDetail && /* @__PURE__ */ jsxRuntimeExports.jsx(
+          OfficeView,
+          {
+            session: currentSessionDetail,
+            streamingText: chat.streamingText,
+            onBack: navigation.back,
+            loading
+          }
+        )
+      ] }),
       selectedAgentInfo && /* @__PURE__ */ jsxRuntimeExports.jsx(ErrorBoundary, { children: /* @__PURE__ */ jsxRuntimeExports.jsx(
         ChatPanel,
         {
@@ -8528,16 +8649,16 @@ function App() {
           sending: chat.sending
         }
       ) }),
-      activePanel === "decisions" && /* @__PURE__ */ jsxRuntimeExports.jsx("div", { className: "w-80 border-l border-border shrink-0 animate-fade-in", children: /* @__PURE__ */ jsxRuntimeExports.jsx(DecisionsTimeline, {}) }),
-      activePanel === "cost" && /* @__PURE__ */ jsxRuntimeExports.jsx("div", { className: "w-80 border-l border-border shrink-0 animate-fade-in", children: /* @__PURE__ */ jsxRuntimeExports.jsx(
+      activePanel === "decisions" && /* @__PURE__ */ jsxRuntimeExports.jsx(ErrorBoundary, { children: /* @__PURE__ */ jsxRuntimeExports.jsx("div", { className: "w-80 border-l border-border shrink-0 animate-fade-in", children: /* @__PURE__ */ jsxRuntimeExports.jsx(DecisionsTimeline, {}) }) }),
+      activePanel === "cost" && /* @__PURE__ */ jsxRuntimeExports.jsx(ErrorBoundary, { children: /* @__PURE__ */ jsxRuntimeExports.jsx("div", { className: "w-80 border-l border-border shrink-0 animate-fade-in", children: /* @__PURE__ */ jsxRuntimeExports.jsx(
         CostDashboard,
         {
           totalTokens: chat.usage.totalTokens,
           estimatedCost: chat.usage.estimatedCost,
           model: chat.usage.model
         }
-      ) }),
-      activePanel === "hooks" && /* @__PURE__ */ jsxRuntimeExports.jsx("div", { className: "w-80 border-l border-border shrink-0 animate-fade-in", children: /* @__PURE__ */ jsxRuntimeExports.jsx(HooksPanel, {}) })
+      ) }) }),
+      activePanel === "hooks" && /* @__PURE__ */ jsxRuntimeExports.jsx(ErrorBoundary, { children: /* @__PURE__ */ jsxRuntimeExports.jsx("div", { className: "w-80 border-l border-border shrink-0 animate-fade-in", children: /* @__PURE__ */ jsxRuntimeExports.jsx(HooksPanel, {}) }) })
     ] }),
     /* @__PURE__ */ jsxRuntimeExports.jsx(
       StatusBar,

@@ -51,6 +51,7 @@ const config: Config = {
           hover: '#1f2330',     // interactive hover
           active: '#252936',    // selected/active state
           overlay: '#0d0f14',   // modal overlays
+          sunken: '#0b0d13',    // recessed panels (darker than bg)
         },
 
         // ── Border & divider ──

@@ -11,19 +11,22 @@ export interface FloorHeaderProps {
   members: SquadMember[]
   /** Number of active sessions on this floor */
   activeSessionCount: number
+  /** SDK connection status */
+  connected?: boolean
 }
 
 // ── Component ──
 
 /**
  * Header bar for the FloorView — shows squad name, floor number,
- * member count, and an active sessions badge.
+ * member count, connection status, and an active sessions badge.
  */
 export default function FloorHeader({
   squadName,
   floor,
   members,
   activeSessionCount,
+  connected = false,
 }: FloorHeaderProps) {
   return (
     <div className="px-6 py-5 border-b border-border bg-bg-raised shrink-0">
@@ -37,15 +40,22 @@ export default function FloorHeader({
           </h2>
           <p className="text-sm text-text-secondary mt-0.5">
             {members.length} member{members.length !== 1 ? 's' : ''}
+            {!connected && (
+              <span className="ml-2 text-xs text-text-tertiary">
+                · Roster mode (SDK offline)
+              </span>
+            )}
           </p>
         </div>
 
-        {activeSessionCount > 0 && (
-          <span className="inline-flex items-center gap-1.5 text-xs font-medium px-2.5 py-1 rounded-full bg-status-active/15 text-status-active">
-            <span className="w-1.5 h-1.5 rounded-full bg-status-active animate-pulse" />
-            {activeSessionCount} active session{activeSessionCount !== 1 ? 's' : ''}
-          </span>
-        )}
+        <div className="flex items-center gap-3">
+          {activeSessionCount > 0 && (
+            <span className="inline-flex items-center gap-1.5 text-xs font-medium px-2.5 py-1 rounded-full bg-status-active/15 text-status-active">
+              <span className="w-1.5 h-1.5 rounded-full bg-status-active animate-pulse" />
+              {activeSessionCount} active session{activeSessionCount !== 1 ? 's' : ''}
+            </span>
+          )}
+        </div>
       </div>
     </div>
   )
