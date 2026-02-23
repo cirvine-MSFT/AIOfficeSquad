@@ -7605,7 +7605,8 @@ function AgentCard({ agent, selected, onClick }) {
     "button",
     {
       onClick,
-      className: `w-full text-left rounded-lg bg-bg-surface border shadow-elevation-1 p-4 transition-default hover:bg-bg-hover hover:shadow-elevation-2 focus-visible:ring-2 focus-visible:ring-border-focus animate-fade-in-up ${selected ? "border-accent bg-bg-active" : "border-border"}`,
+      title: `${agent.name} — ${agent.role} (${STATUS_LABEL[agent.status] ?? agent.status})`,
+      className: `w-full text-left rounded-lg bg-bg-surface border shadow-elevation-1 p-4 transition-default hover:bg-bg-hover hover:shadow-elevation-2 hover:-translate-y-0.5 focus-visible:ring-2 focus-visible:ring-border-focus animate-fade-in-up ${selected ? "border-accent bg-bg-active" : "border-border"}`,
       children: /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "flex flex-col items-center gap-3", children: [
         /* @__PURE__ */ jsxRuntimeExports.jsx(
           "div",
@@ -8399,6 +8400,70 @@ class ErrorBoundary extends reactExports.Component {
     return this.props.children;
   }
 }
+const SHORTCUTS = [
+  { keys: ["Esc"], description: "Go back / deselect agent" },
+  { keys: ["1", "–", "9"], description: "Quick-select agent by position" },
+  { keys: ["?"], description: "Toggle this help panel" }
+];
+function KeyboardShortcuts() {
+  const [visible, setVisible] = reactExports.useState(false);
+  const toggle = reactExports.useCallback(() => setVisible((v2) => !v2), []);
+  reactExports.useEffect(() => {
+    function handleKeyDown(e) {
+      if (e.target instanceof HTMLInputElement || e.target instanceof HTMLTextAreaElement) return;
+      if (e.key === "?") {
+        e.preventDefault();
+        toggle();
+      }
+    }
+    window.addEventListener("keydown", handleKeyDown);
+    return () => window.removeEventListener("keydown", handleKeyDown);
+  }, [toggle]);
+  if (!visible) return null;
+  return /* @__PURE__ */ jsxRuntimeExports.jsx(
+    "div",
+    {
+      className: "fixed inset-0 z-50 flex items-center justify-center bg-bg-overlay/80 animate-fade-in",
+      onClick: toggle,
+      children: /* @__PURE__ */ jsxRuntimeExports.jsxs(
+        "div",
+        {
+          className: "bg-bg-surface border border-border rounded-xl shadow-elevation-3 p-6 max-w-sm w-full mx-4 animate-scale-in",
+          onClick: (e) => e.stopPropagation(),
+          children: [
+            /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "flex items-center justify-between mb-4", children: [
+              /* @__PURE__ */ jsxRuntimeExports.jsx("h2", { className: "text-lg font-semibold text-text-primary", children: "⌨️ Keyboard Shortcuts" }),
+              /* @__PURE__ */ jsxRuntimeExports.jsx(
+                "button",
+                {
+                  onClick: toggle,
+                  className: "text-text-tertiary hover:text-text-primary transition-default text-lg",
+                  children: "✕"
+                }
+              )
+            ] }),
+            /* @__PURE__ */ jsxRuntimeExports.jsx("div", { className: "space-y-3", children: SHORTCUTS.map((shortcut, i) => /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "flex items-center justify-between", children: [
+              /* @__PURE__ */ jsxRuntimeExports.jsx("span", { className: "text-sm text-text-secondary", children: shortcut.description }),
+              /* @__PURE__ */ jsxRuntimeExports.jsx("div", { className: "flex items-center gap-1", children: shortcut.keys.map((key, j) => /* @__PURE__ */ jsxRuntimeExports.jsx(
+                "kbd",
+                {
+                  className: "kbd",
+                  children: key
+                },
+                j
+              )) })
+            ] }, i)) }),
+            /* @__PURE__ */ jsxRuntimeExports.jsx("div", { className: "mt-4 pt-3 border-t border-border", children: /* @__PURE__ */ jsxRuntimeExports.jsxs("p", { className: "text-xs text-text-tertiary text-center", children: [
+              "Press ",
+              /* @__PURE__ */ jsxRuntimeExports.jsx("kbd", { className: "kbd", children: "?" }),
+              " to close"
+            ] }) })
+          ]
+        }
+      )
+    }
+  );
+}
 function mergeAgentInfo(members, statuses) {
   const statusMap = new Map(
     statuses.filter((s) => s && typeof s.name === "string").map((s) => [s.name.toLowerCase(), s])
@@ -8620,8 +8685,10 @@ function App() {
             onSelectAgent: handleSelectAgent,
             onSelectSession: navigation.selectSession,
             onCreateSession: () => {
-              const agent = effectiveAgent ?? "";
-              chat.createSession(agent);
+              const agent = effectiveAgent ?? agents[0]?.name ?? "";
+              if (agent) {
+                chat.createSession(agent);
+              }
             },
             loading
           }
@@ -8672,7 +8739,8 @@ function App() {
         totalMembers: roster.length,
         connected: !loading
       }
-    )
+    ),
+    /* @__PURE__ */ jsxRuntimeExports.jsx(KeyboardShortcuts, {})
   ] });
 }
 window.onerror = (msg, src, line, col, err) => {

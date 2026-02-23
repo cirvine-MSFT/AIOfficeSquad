@@ -13,6 +13,7 @@ import DecisionsTimeline from './components/DecisionsTimeline'
 import CostDashboard from './components/CostDashboard'
 import HooksPanel from './components/HooksPanel'
 import { ErrorBoundary } from './components/ErrorBoundary'
+import KeyboardShortcuts from './components/KeyboardShortcuts'
 import type { AgentInfo } from './components/AgentCard'
 
 function mergeAgentInfo(members: SquadMember[], statuses: AgentStatus[]): AgentInfo[] {
@@ -286,8 +287,10 @@ export default function App() {
               onSelectAgent={handleSelectAgent}
               onSelectSession={navigation.selectSession}
               onCreateSession={() => {
-                const agent = effectiveAgent ?? ''
-                chat.createSession(agent)
+                const agent = effectiveAgent ?? agents[0]?.name ?? ''
+                if (agent) {
+                  chat.createSession(agent)
+                }
               }}
               loading={loading}
             />
@@ -357,6 +360,9 @@ export default function App() {
         totalMembers={roster.length}
         connected={!loading}
       />
+
+      {/* Keyboard shortcuts overlay (toggle with ?) */}
+      <KeyboardShortcuts />
     </div>
   )
 }
