@@ -7310,10 +7310,10 @@ function getAvatarColor(identifier) {
   }
   return AVATAR_COLORS[Math.abs(hash) % AVATAR_COLORS.length];
 }
-function getInitials$3(name) {
+function getInitials$4(name) {
   return name.split(/[\s-]+/).map((w2) => w2[0]).join("").toUpperCase().slice(0, 2);
 }
-function getRoleKey$3(role) {
+function getRoleKey$4(role) {
   const normalized = role.toLowerCase().replace(/\s+/g, "");
   if (normalized in ROLE_COLORS) return normalized;
   if (normalized === "squadexpert") return "expert";
@@ -7361,7 +7361,7 @@ function Sidebar({
     selectedSquadId && /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "p-3 flex-1 overflow-y-auto", children: [
       /* @__PURE__ */ jsxRuntimeExports.jsx("h3", { className: "text-xs font-semibold text-text-tertiary uppercase tracking-wider mb-2 px-2", children: "Agents" }),
       loading ? /* @__PURE__ */ jsxRuntimeExports.jsx("p", { className: "text-sm text-text-tertiary px-2 animate-pulse", children: "Loading agents..." }) : agents.length === 0 ? /* @__PURE__ */ jsxRuntimeExports.jsx("p", { className: "text-sm text-text-tertiary px-2", children: "No agents in squad" }) : /* @__PURE__ */ jsxRuntimeExports.jsx("ul", { className: "space-y-0.5", children: agents.map((agent, i) => {
-        const roleKey = getRoleKey$3(agent.role);
+        const roleKey = getRoleKey$4(agent.role);
         const avatarBg = roleKey ? ROLE_COLORS[roleKey].accent : getAvatarColor(agent.name);
         return /* @__PURE__ */ jsxRuntimeExports.jsx("li", { children: /* @__PURE__ */ jsxRuntimeExports.jsxs(
           "button",
@@ -7375,7 +7375,7 @@ function Sidebar({
                 {
                   className: "flex items-center justify-center rounded-full w-6 h-6 text-2xs font-semibold text-white shrink-0",
                   style: { backgroundColor: avatarBg },
-                  children: getInitials$3(agent.name)
+                  children: getInitials$4(agent.name)
                 }
               ),
               /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "flex-1 min-w-0", children: [
@@ -7589,16 +7589,16 @@ function NewSessionCard({ onClick }) {
     }
   );
 }
-function getInitials$2(name) {
+function getInitials$3(name) {
   return name.split(/[\s-]+/).map((w2) => w2[0]).join("").toUpperCase().slice(0, 2);
 }
-function getRoleKey$2(role) {
+function getRoleKey$3(role) {
   const normalized = role.toLowerCase().replace(/\s+/g, "");
   if (normalized in ROLE_COLORS) return normalized;
   if (normalized === "squadexpert") return "expert";
   return null;
 }
-const ROLE_ICON = {
+const ROLE_ICON$1 = {
   lead: "🎖️",
   frontend: "🎨",
   backend: "⚙️",
@@ -7621,9 +7621,9 @@ const STATUS_BADGE = {
   working: "bg-status-working/15 text-status-working"
 };
 function AgentCard({ agent, selected, onClick, index = 0 }) {
-  const roleKey = getRoleKey$2(agent.role);
+  const roleKey = getRoleKey$3(agent.role);
   const avatarBg = roleKey ? ROLE_COLORS[roleKey].accent : getAvatarColor(agent.name);
-  const roleIcon = roleKey ? ROLE_ICON[roleKey] : "👤";
+  const roleIcon = roleKey ? ROLE_ICON$1[roleKey] : "👤";
   return /* @__PURE__ */ jsxRuntimeExports.jsx(
     "button",
     {
@@ -7638,7 +7638,7 @@ function AgentCard({ agent, selected, onClick, index = 0 }) {
             {
               className: "flex items-center justify-center rounded-full w-10 h-10 text-lg font-semibold text-white shrink-0",
               style: { backgroundColor: avatarBg },
-              children: getInitials$2(agent.name)
+              children: getInitials$3(agent.name)
             }
           ),
           /* @__PURE__ */ jsxRuntimeExports.jsx("span", { className: "absolute -bottom-1 -right-1 text-sm", title: agent.role, children: roleIcon })
@@ -7773,25 +7773,25 @@ function FloorView({
     ] }) })
   ] });
 }
-function getInitials$1(name) {
+function getInitials$2(name) {
   return name.split(/[\s-]+/).map((w2) => w2[0]).join("").toUpperCase().slice(0, 2);
 }
-function getRoleKey$1(role) {
+function getRoleKey$2(role) {
   const normalized = role.toLowerCase().replace(/\s+/g, "");
   if (normalized in ROLE_COLORS) return normalized;
   if (normalized === "squadexpert") return "expert";
   return null;
 }
 function getAvatarBg(name, role) {
-  const roleKey = getRoleKey$1(role);
+  const roleKey = getRoleKey$2(role);
   return roleKey ? ROLE_COLORS[roleKey].accent : getAvatarColor(name);
 }
 function getRoleLabel(role) {
-  const roleKey = getRoleKey$1(role);
+  const roleKey = getRoleKey$2(role);
   return roleKey ? ROLE_COLORS[roleKey].label : role;
 }
 function getRoleTextColor(role) {
-  const roleKey = getRoleKey$1(role);
+  const roleKey = getRoleKey$2(role);
   return roleKey ? ROLE_COLORS[roleKey].text : void 0;
 }
 const SIZE_CLASSES = {
@@ -7806,7 +7806,7 @@ function RoleAvatar({ name, role, size }) {
     {
       className: `flex items-center justify-center rounded-full font-semibold text-white shrink-0 ${SIZE_CLASSES[size]}`,
       style: { backgroundColor: bg2 },
-      children: getInitials$1(name)
+      children: getInitials$2(name)
     }
   );
 }
@@ -8036,10 +8036,10 @@ function StreamingOutput({ text }) {
     /* @__PURE__ */ jsxRuntimeExports.jsx("span", { className: "inline-block w-0.5 h-4 bg-accent ml-0.5 animate-pulse-status align-middle" })
   ] });
 }
-function getInitials(name) {
+function getInitials$1(name) {
   return name.split(/[\s-]+/).map((w2) => w2[0]).join("").toUpperCase().slice(0, 2);
 }
-function getRoleKey(role) {
+function getRoleKey$1(role) {
   const normalized = role.toLowerCase().replace(/\s+/g, "");
   if (normalized in ROLE_COLORS) return normalized;
   if (normalized === "squadexpert") return "expert";
@@ -8058,7 +8058,7 @@ function ChatPanel({
   const [input, setInput] = reactExports.useState("");
   const messagesEndRef = reactExports.useRef(null);
   const inputRef = reactExports.useRef(null);
-  const roleKey = getRoleKey(agentRole);
+  const roleKey = getRoleKey$1(agentRole);
   const avatarBg = roleKey ? ROLE_COLORS[roleKey].accent : getAvatarColor(agentName);
   reactExports.useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
@@ -8080,7 +8080,7 @@ function ChatPanel({
         {
           className: "flex items-center justify-center rounded-full w-8 h-8 text-base font-semibold text-white shrink-0",
           style: { backgroundColor: avatarBg },
-          children: getInitials(agentName)
+          children: getInitials$1(agentName)
         }
       ),
       /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "min-w-0", children: [
@@ -8121,7 +8121,7 @@ function ChatPanel({
                 {
                   className: "flex items-center justify-center rounded-full w-6 h-6 text-2xs font-semibold text-white shrink-0 mr-2 mt-0.5",
                   style: { backgroundColor: avatarBg },
-                  children: getInitials(agentName)
+                  children: getInitials$1(agentName)
                 }
               ),
               /* @__PURE__ */ jsxRuntimeExports.jsx(
@@ -8141,7 +8141,7 @@ function ChatPanel({
             {
               className: "flex items-center justify-center rounded-full w-6 h-6 text-2xs font-semibold text-white shrink-0 mr-2 mt-0.5",
               style: { backgroundColor: avatarBg },
-              children: getInitials(agentName)
+              children: getInitials$1(agentName)
             }
           ),
           /* @__PURE__ */ jsxRuntimeExports.jsx("div", { className: "max-w-[85%] rounded-lg px-3 py-2 bg-bg-surface", children: /* @__PURE__ */ jsxRuntimeExports.jsx(StreamingOutput, { text: streamingText }) })
@@ -8524,6 +8524,112 @@ function KeyboardShortcuts() {
     }
   );
 }
+function getInitials(name) {
+  return name.split(/[\s-]+/).map((w2) => w2[0]).join("").toUpperCase().slice(0, 2);
+}
+function getRoleKey(role) {
+  const normalized = role.toLowerCase().replace(/\s+/g, "");
+  if (normalized in ROLE_COLORS) return normalized;
+  if (normalized === "squadexpert") return "expert";
+  return null;
+}
+const ROLE_ICON = {
+  lead: "🎖️",
+  frontend: "🎨",
+  backend: "⚙️",
+  tester: "🧪",
+  expert: "📚",
+  design: "✏️",
+  scribe: "📝",
+  monitor: "📡"
+};
+const ROLE_DESC = {
+  lead: "Coordinates the squad, assigns tasks, and makes architectural decisions.",
+  frontend: "Builds UI components, handles styling, and implements user interactions.",
+  backend: "Develops server logic, APIs, data models, and system integrations.",
+  tester: "Writes tests, finds bugs, ensures quality, and validates changes.",
+  expert: "Deep knowledge of the squad SDK and tooling ecosystem.",
+  design: "Creates visual designs, UX flows, and design system tokens.",
+  scribe: "Logs decisions, writes documentation, and maintains project records.",
+  monitor: "Watches system health, tracks performance, and reports anomalies."
+};
+const STATUS_STYLES = {
+  active: { label: "Active", color: "text-status-active", bg: "bg-status-active/10" },
+  idle: { label: "Idle", color: "text-status-idle", bg: "bg-status-idle/10" },
+  error: { label: "Error", color: "text-status-error", bg: "bg-status-error/10" },
+  working: { label: "Working", color: "text-status-working", bg: "bg-status-working/10" }
+};
+function AgentDetailPanel({ agent, onClose, onChat }) {
+  const roleKey = getRoleKey(agent.role);
+  const avatarBg = roleKey ? ROLE_COLORS[roleKey].accent : getAvatarColor(agent.name);
+  const roleIcon = roleKey ? ROLE_ICON[roleKey] : "👤";
+  const roleLabel = roleKey ? ROLE_COLORS[roleKey].label : agent.role;
+  const roleDesc = roleKey ? ROLE_DESC[roleKey] : "";
+  const status = STATUS_STYLES[agent.status] ?? STATUS_STYLES.idle;
+  return /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "w-80 bg-bg-raised border-l border-border flex flex-col overflow-hidden animate-slide-in-right shrink-0", children: [
+    /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "flex items-center justify-between px-4 py-3 border-b border-border", children: [
+      /* @__PURE__ */ jsxRuntimeExports.jsx("h3", { className: "text-sm font-semibold text-text-primary", children: "Agent Details" }),
+      /* @__PURE__ */ jsxRuntimeExports.jsx(
+        "button",
+        {
+          onClick: onClose,
+          className: "text-text-tertiary hover:text-text-primary transition-default text-lg leading-none",
+          children: "✕"
+        }
+      )
+    ] }),
+    /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "flex flex-col items-center px-4 py-6 gap-3", children: [
+      /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "relative", children: [
+        /* @__PURE__ */ jsxRuntimeExports.jsx(
+          "div",
+          {
+            className: "flex items-center justify-center rounded-full w-16 h-16 text-2xl font-bold text-white",
+            style: { backgroundColor: avatarBg },
+            children: getInitials(agent.name)
+          }
+        ),
+        /* @__PURE__ */ jsxRuntimeExports.jsx("span", { className: "absolute -bottom-1 -right-1 text-xl", children: roleIcon })
+      ] }),
+      /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "text-center", children: [
+        /* @__PURE__ */ jsxRuntimeExports.jsx("h4", { className: "text-lg font-semibold text-text-primary", children: agent.name }),
+        /* @__PURE__ */ jsxRuntimeExports.jsx(
+          "p",
+          {
+            className: "text-sm font-medium mt-0.5",
+            style: { color: roleKey ? ROLE_COLORS[roleKey].text : void 0 },
+            children: roleLabel
+          }
+        )
+      ] }),
+      /* @__PURE__ */ jsxRuntimeExports.jsxs("span", { className: `inline-flex items-center gap-1.5 text-xs font-medium px-3 py-1 rounded-full ${status.bg} ${status.color}`, children: [
+        /* @__PURE__ */ jsxRuntimeExports.jsx("span", { className: `status-dot status-dot-${agent.status}` }),
+        status.label
+      ] })
+    ] }),
+    roleDesc && /* @__PURE__ */ jsxRuntimeExports.jsx("div", { className: "px-4 pb-4", children: /* @__PURE__ */ jsxRuntimeExports.jsx("p", { className: "text-xs text-text-secondary leading-relaxed", children: roleDesc }) }),
+    /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "px-4 pb-4 space-y-2 text-xs", children: [
+      agent.lastActivity && /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "flex justify-between", children: [
+        /* @__PURE__ */ jsxRuntimeExports.jsx("span", { className: "text-text-tertiary", children: "Last activity" }),
+        /* @__PURE__ */ jsxRuntimeExports.jsx("span", { className: "text-text-secondary", children: agent.lastActivity })
+      ] }),
+      agent.sessionId && /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "flex justify-between", children: [
+        /* @__PURE__ */ jsxRuntimeExports.jsx("span", { className: "text-text-tertiary", children: "Session" }),
+        /* @__PURE__ */ jsxRuntimeExports.jsx("span", { className: "text-text-secondary font-mono", children: agent.sessionId.slice(0, 8) })
+      ] })
+    ] }),
+    /* @__PURE__ */ jsxRuntimeExports.jsx("div", { className: "mt-auto p-4 border-t border-border space-y-2", children: /* @__PURE__ */ jsxRuntimeExports.jsxs(
+      "button",
+      {
+        onClick: () => onChat(agent.name),
+        className: "w-full flex items-center justify-center gap-2 px-4 py-2.5 rounded-lg bg-accent text-white text-sm font-medium transition-default hover:bg-accent/90",
+        children: [
+          "💬 Chat with ",
+          agent.name
+        ]
+      }
+    ) })
+  ] });
+}
 function mergeAgentInfo(members, statuses) {
   const statusMap = new Map(
     statuses.filter((s) => s && typeof s.name === "string").map((s) => [s.name.toLowerCase(), s])
@@ -8550,6 +8656,7 @@ function App() {
   const navigation = useNavigation(squads, []);
   const [selectedAgent, setSelectedAgent] = reactExports.useState(null);
   const [activePanel, setActivePanel] = reactExports.useState("none");
+  const [showChat, setShowChat] = reactExports.useState(false);
   const effectiveAgent = navigation.state.level === "office" ? navigation.state.selectedAgentName : selectedAgent;
   const chat = useChat(effectiveAgent);
   const selectedAgentInfo = agents.find((a) => a.name === effectiveAgent);
@@ -8561,7 +8668,11 @@ function App() {
       if (navigation.state.level === "office") {
         navigation.selectAgent(name);
       } else {
-        setSelectedAgent((prev) => prev === name ? null : name);
+        setSelectedAgent((prev) => {
+          const next = prev === name ? null : name;
+          if (next !== prev) setShowChat(false);
+          return next;
+        });
       }
     },
     [navigation]
@@ -8781,7 +8892,18 @@ function App() {
           }
         )
       ] }),
-      selectedAgentInfo && /* @__PURE__ */ jsxRuntimeExports.jsx(ErrorBoundary, { children: /* @__PURE__ */ jsxRuntimeExports.jsx(
+      selectedAgentInfo && !showChat && /* @__PURE__ */ jsxRuntimeExports.jsx(ErrorBoundary, { children: /* @__PURE__ */ jsxRuntimeExports.jsx(
+        AgentDetailPanel,
+        {
+          agent: selectedAgentInfo,
+          onClose: () => setSelectedAgent(null),
+          onChat: (name) => {
+            setShowChat(true);
+            chat.createSession(name);
+          }
+        }
+      ) }),
+      selectedAgentInfo && showChat && /* @__PURE__ */ jsxRuntimeExports.jsx(ErrorBoundary, { children: /* @__PURE__ */ jsxRuntimeExports.jsx(
         ChatPanel,
         {
           agentName: selectedAgentInfo.name,

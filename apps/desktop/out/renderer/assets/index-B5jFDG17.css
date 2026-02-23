@@ -731,6 +731,9 @@ pre code {
 .h-12{
   height: 3rem;
 }
+.h-16{
+  height: 4rem;
+}
 .h-2{
   height: 0.5rem;
 }
@@ -799,6 +802,9 @@ pre code {
 }
 .w-12{
   width: 3rem;
+}
+.w-16{
+  width: 4rem;
 }
 .w-2{
   width: 0.5rem;
@@ -1279,6 +1285,9 @@ pre code {
   --tw-bg-opacity: 1;
   background-color: rgb(74 222 128 / var(--tw-bg-opacity, 1));
 }
+.bg-status-active\/10{
+  background-color: rgb(74 222 128 / 0.1);
+}
 .bg-status-active\/15{
   background-color: rgb(74 222 128 / 0.15);
 }
@@ -1296,12 +1305,18 @@ pre code {
   --tw-bg-opacity: 1;
   background-color: rgb(250 204 21 / var(--tw-bg-opacity, 1));
 }
+.bg-status-idle\/10{
+  background-color: rgb(250 204 21 / 0.1);
+}
 .bg-status-idle\/15{
   background-color: rgb(250 204 21 / 0.15);
 }
 .bg-status-working{
   --tw-bg-opacity: 1;
   background-color: rgb(96 165 250 / var(--tw-bg-opacity, 1));
+}
+.bg-status-working\/10{
+  background-color: rgb(96 165 250 / 0.1);
 }
 .bg-status-working\/15{
   background-color: rgb(96 165 250 / 0.15);
@@ -1468,6 +1483,10 @@ pre code {
   padding-top: 1.25rem;
   padding-bottom: 1.25rem;
 }
+.py-6{
+  padding-top: 1.5rem;
+  padding-bottom: 1.5rem;
+}
 .py-8{
   padding-top: 2rem;
   padding-bottom: 2rem;
@@ -1477,6 +1496,9 @@ pre code {
 }
 .pb-3{
   padding-bottom: 0.75rem;
+}
+.pb-4{
+  padding-bottom: 1rem;
 }
 .pl-6{
   padding-left: 1.5rem;
@@ -1557,6 +1579,9 @@ pre code {
 }
 .italic{
   font-style: italic;
+}
+.leading-none{
+  line-height: 1;
 }
 .leading-relaxed{
   line-height: 1.625;
@@ -1868,6 +1893,9 @@ pre code {
 }
 .hover\:bg-accent\/5:hover{
   background-color: rgb(91 141 239 / 0.05);
+}
+.hover\:bg-accent\/90:hover{
+  background-color: rgb(91 141 239 / 0.9);
 }
 .hover\:bg-bg-hover:hover{
   --tw-bg-opacity: 1;

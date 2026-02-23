@@ -14,6 +14,7 @@ import CostDashboard from './components/CostDashboard'
 import HooksPanel from './components/HooksPanel'
 import { ErrorBoundary } from './components/ErrorBoundary'
 import KeyboardShortcuts from './components/KeyboardShortcuts'
+import AgentDetailPanel from './components/AgentDetailPanel'
 import type { AgentInfo } from './components/AgentCard'
 
 function mergeAgentInfo(members: SquadMember[], statuses: AgentStatus[]): AgentInfo[] {
@@ -52,6 +53,7 @@ export default function App() {
   // ── Agent selection (local state for floor-level compat; nav hook handles office level) ──
   const [selectedAgent, setSelectedAgent] = useState<string | null>(null)
   const [activePanel, setActivePanel] = useState<'none' | 'decisions' | 'cost' | 'hooks'>('none')
+  const [showChat, setShowChat] = useState(false)
   const effectiveAgent =
     navigation.state.level === 'office'
       ? navigation.state.selectedAgentName
@@ -72,7 +74,11 @@ export default function App() {
       if (navigation.state.level === 'office') {
         navigation.selectAgent(name)
       } else {
-        setSelectedAgent((prev) => (prev === name ? null : name))
+        setSelectedAgent((prev) => {
+          const next = prev === name ? null : name
+          if (next !== prev) setShowChat(false)
+          return next
+        })
       }
     },
     [navigation]
@@ -327,8 +333,22 @@ export default function App() {
           )}
         </ErrorBoundary>
 
-        {/* Chat detail panel — shows when agent is selected */}
-        {selectedAgentInfo && (
+        {/* Agent detail panel — shows when agent selected but chat is not open */}
+        {selectedAgentInfo && !showChat && (
+          <ErrorBoundary>
+            <AgentDetailPanel
+              agent={selectedAgentInfo}
+              onClose={() => setSelectedAgent(null)}
+              onChat={(name) => {
+                setShowChat(true)
+                chat.createSession(name)
+              }}
+            />
+          </ErrorBoundary>
+        )}
+
+        {/* Chat panel — shows when actively chatting */}
+        {selectedAgentInfo && showChat && (
           <ErrorBoundary>
             <ChatPanel
               agentName={selectedAgentInfo.name}
