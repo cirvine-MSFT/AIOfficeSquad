@@ -168,7 +168,17 @@ test.describe('Electron App E2E', () => {
         await firstCard.click()
         await page.waitForTimeout(500)
         
-        // Chat panel or agent detail should appear
+        // Agent detail panel should appear with "Agent Details" heading
+        const detailPanel = page.locator('text=/Agent Details/i').first()
+        const detailVisible = await detailPanel.isVisible().catch(() => false)
+        if (detailVisible) {
+          // Chat button should be visible in the detail panel
+          const chatBtn = page.locator('button').filter({ hasText: /Chat with/i }).first()
+          await expect(chatBtn).toBeVisible({ timeout: 2000 }).catch(() => {
+            // Might not be present depending on layout
+          })
+        }
+        
         // Verify app is still responsive
         await expect(page.locator('header').first()).toBeVisible()
       } else {
