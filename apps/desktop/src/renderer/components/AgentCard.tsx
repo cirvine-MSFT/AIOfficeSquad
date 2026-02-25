@@ -17,17 +17,6 @@ interface AgentCardProps {
   index?: number
 }
 
-const ROLE_ICON: Record<string, string> = {
-  lead: '🎖️',
-  frontend: '🎨',
-  backend: '⚙️',
-  tester: '🧪',
-  expert: '📚',
-  design: '✏️',
-  scribe: '📝',
-  monitor: '📡',
-}
-
 const STATUS_LABEL: Record<string, string> = {
   active: 'Active',
   idle: 'Idle',
@@ -35,17 +24,21 @@ const STATUS_LABEL: Record<string, string> = {
   working: 'Working',
 }
 
-const STATUS_BADGE: Record<string, string> = {
-  active: 'bg-status-active/15 text-status-active',
-  idle: 'bg-status-idle/15 text-status-idle',
-  error: 'bg-status-error/15 text-status-error',
-  working: 'bg-status-working/15 text-status-working',
+/** Monitor glow color per status */
+const MONITOR_GLOW: Record<string, { border: string; shadow: string; bg: string }> = {
+  active: { border: '#4ade80', shadow: '0 0 10px rgba(74,222,128,0.3) inset', bg: 'rgba(74,222,128,0.15)' },
+  working: { border: '#60a5fa', shadow: '0 0 10px rgba(96,165,250,0.3) inset', bg: 'rgba(96,165,250,0.15)' },
+  error: { border: '#f87171', shadow: '0 0 10px rgba(248,113,113,0.3) inset', bg: 'rgba(248,113,113,0.15)' },
+  idle: { border: '#3d4555', shadow: 'none', bg: 'linear-gradient(135deg, #1a2535 0%, #0f1420 100%)' },
 }
 
 export default function AgentCard({ agent, selected, onClick, index = 0 }: AgentCardProps) {
   const roleKey = getRoleKey(agent.role)
-  const avatarBg = roleKey ? ROLE_COLORS[roleKey].accent : getAvatarColor(agent.name)
-  const roleIcon = roleKey ? ROLE_ICON[roleKey] : '👤'
+  const roleAccent = roleKey ? ROLE_COLORS[roleKey].accent : getAvatarColor(agent.name)
+  const roleText = roleKey ? ROLE_COLORS[roleKey].text : undefined
+  const roleLabel = roleKey ? ROLE_COLORS[roleKey].label : agent.role
+  const isOccupied = agent.status === 'active' || agent.status === 'working'
+  const monitorStyle = MONITOR_GLOW[agent.status] ?? MONITOR_GLOW.idle
 
   return (
     <button
@@ -53,43 +46,76 @@ export default function AgentCard({ agent, selected, onClick, index = 0 }: Agent
       aria-label={`${agent.name}, ${agent.role}, ${STATUS_LABEL[agent.status] ?? agent.status}`}
       aria-pressed={selected}
       title={`${agent.name} — ${agent.role} (${STATUS_LABEL[agent.status] ?? agent.status})`}
-      className={`w-full text-left rounded-lg bg-bg-surface border shadow-elevation-1 p-4 transition-default hover:bg-bg-hover hover:shadow-elevation-2 hover:-translate-y-0.5 focus-visible:ring-2 focus-visible:ring-border-focus animate-fade-in-up ${
-        selected ? 'border-accent bg-bg-active' : 'border-border'
+      className={`w-full text-left rounded-lg border transition-all duration-200 hover:-translate-y-0.5 focus-visible:ring-2 focus-visible:ring-border-focus animate-fade-in-up ${
+        selected ? 'border-accent bg-bg-active shadow-[0_0_15px_rgba(91,141,239,0.2)]' : 'border-[#2a2f3d] bg-[#2a2f3d]'
       }`}
-      style={{ animationDelay: `${index * 60}ms`, animationFillMode: 'both' }}
+      style={{
+        animationDelay: `${index * 60}ms`,
+        animationFillMode: 'both',
+        boxShadow: isOccupied && !selected ? `0 0 15px ${monitorStyle.border}33` : undefined,
+      }}
     >
-      <div className="flex flex-col items-center gap-3">
-        {/* Avatar with role icon */}
-        <div className="relative">
-          <div
-            className="flex items-center justify-center rounded-full w-10 h-10 text-lg font-semibold text-white shrink-0"
-            style={{ backgroundColor: avatarBg }}
-          >
-            {getInitials(agent.name)}
-          </div>
-          <span className="absolute -bottom-1 -right-1 text-sm" title={agent.role}>
-            {roleIcon}
-          </span>
-        </div>
-
-        {/* Info */}
-        <div className="text-center min-w-0">
-          <div className="text-md font-semibold text-text-primary truncate">{agent.name}</div>
-          <div
-            className="text-sm font-medium mt-0.5"
-            style={{ color: roleKey ? ROLE_COLORS[roleKey].text : undefined }}
-          >
-            {roleKey ? ROLE_COLORS[roleKey].label : agent.role}
-          </div>
-        </div>
-
-        {/* Status badge */}
-        <span
-          className={`inline-flex items-center gap-1.5 text-xs font-medium px-2 py-0.5 rounded-sm ${STATUS_BADGE[agent.status] ?? ''}`}
+      <div className="flex flex-col items-center gap-2 p-3">
+        {/* Desk workstation surface */}
+        <div
+          className="w-full flex flex-col items-center justify-center rounded-lg p-3 relative"
+          style={{
+            aspectRatio: '1.4',
+            background: '#2a2f3d',
+            border: `2px solid ${isOccupied ? monitorStyle.border : '#3d4555'}`,
+            boxShadow: isOccupied ? `0 2px 8px ${monitorStyle.border}33` : '0 2px 8px rgba(0,0,0,0.3)',
+          }}
         >
-          <span className={`status-dot status-dot-${agent.status}`} />
-          {STATUS_LABEL[agent.status] ?? agent.status}
-        </span>
+          {/* Monitor */}
+          <div
+            className="flex items-center justify-center rounded-t mb-1"
+            style={{
+              width: '60%',
+              aspectRatio: '16/10',
+              background: isOccupied ? monitorStyle.bg : 'linear-gradient(135deg, #1a2535 0%, #0f1420 100%)',
+              border: `2px solid ${monitorStyle.border}`,
+              boxShadow: monitorStyle.shadow,
+              borderRadius: '4px 4px 0 0',
+            }}
+          >
+            {isOccupied && <span className="text-base" style={{ animation: 'glow 2s ease-in-out infinite' }}>💻</span>}
+          </div>
+          {/* Monitor stand */}
+          <div className="h-[3px] rounded-sm" style={{ width: '70%', background: '#3d4555' }} />
+        </div>
+
+        {/* Chair slot with agent sitting */}
+        <div
+          className="flex items-center justify-center"
+          style={{
+            width: 32,
+            height: 24,
+            background: isOccupied ? '#151820' : '#252936',
+            borderRadius: '8px 8px 4px 4px',
+            border: '1px solid #3d4555',
+          }}
+        >
+          {isOccupied && (
+            <span className="text-base" style={{ animation: 'typing 1.5s ease-in-out infinite' }}>🧑‍💻</span>
+          )}
+        </div>
+
+        {/* Nameplate */}
+        <div
+          className="text-[11px] font-semibold px-2.5 py-1 rounded-md text-center truncate max-w-full"
+          style={{
+            background: '#0f1117',
+            border: `1px solid ${isOccupied ? monitorStyle.border : '#2a2f3d'}`,
+            color: isOccupied ? monitorStyle.border : '#e8eaf0',
+          }}
+        >
+          {agent.name}
+        </div>
+
+        {/* Role label */}
+        <div className="text-[10px] font-medium uppercase tracking-wider" style={{ color: roleText ?? roleAccent }}>
+          {roleLabel}
+        </div>
 
         {/* Last activity */}
         {agent.lastActivity && (

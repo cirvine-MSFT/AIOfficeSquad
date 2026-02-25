@@ -97,8 +97,8 @@ export default function FloorView({
 
             {/* ── Open Office: Agent desk grid ── */}
             <section>
-              <div className="flex items-center gap-2 text-2xs text-text-tertiary uppercase tracking-wider mb-4">
-                <span className="w-[3px] h-3 bg-accent rounded-sm" />
+              <div className="flex items-center gap-2 text-[11px] text-text-tertiary uppercase tracking-widest mb-5">
+                <span className="flex-1 h-px bg-border" />
                 Open Office — {agents.length} desk{agents.length !== 1 ? 's' : ''}
                 <span className="flex-1 h-px bg-border" />
               </div>
@@ -125,13 +125,10 @@ export default function FloorView({
 
             {/* ── Session Rooms: Hallway ── */}
             <section>
-              <div className="flex items-center gap-2 text-2xs text-text-tertiary uppercase tracking-wider mb-4">
-                <span className="w-[3px] h-3 bg-status-active rounded-sm" />
-                Session Rooms
+              <div className="flex items-center gap-2 text-[11px] text-text-tertiary uppercase tracking-widest mb-5">
                 <span className="flex-1 h-px bg-border" />
-                {activeSessionCount > 0 && (
-                  <span className="text-status-active">{activeSessionCount} active</span>
-                )}
+                Session Rooms{activeSessionCount > 0 ? ` — ${activeSessionCount} active` : ''}
+                <span className="flex-1 h-px bg-border" />
               </div>
 
               <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-4">

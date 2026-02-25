@@ -362,9 +362,12 @@ export default function App() {
               squads={squads.map((s) => ({
                 name: s.name,
                 memberCount: roster.length,
+                activeSessionCount: sessions.filter((sess) => sess.status === 'active').length,
+                floor: 1,
               }))}
               onSelectSquad={(name) => navigation.selectSquad(name)}
               loading={loading}
+              hubName={config?.name ?? 'Squad Campus'}
             />
           )}
 

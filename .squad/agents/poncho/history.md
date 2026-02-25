@@ -95,3 +95,8 @@
   - Header and StatusBar `connected` prop now uses `sdkConnected` instead of `!loading`.
   - mapSessions() is a module-level helper to avoid duplication across 3 call sites.
   - onConnectionState useEffect has a guard (`if (!window.squadAPI.onConnectionState) return`) for backward compat until preload is updated.
+- Office-Feel UI Overhaul — Brought BuildingView, AgentCard, and FloorView hallway labels closer to the mockup.html design spec:
+  - BuildingView.tsx: Complete rewrite from generic card grid to a visual building with roof/sign, horizontal floor bands with 5 window slots per floor (lit=active sessions, warm amber glow), floor number badges, building foundation strip, and building label below. Click a floor row to enter. Uses inline styles for complex gradients matching mockup's `.building-view` / `.floor-row` / `.window.lit` patterns. Added optional props: `hubName`, `activeSessionCount`, `floor` (all backward-compatible).
+  - AgentCard.tsx: Rewritten from round avatar circles to desk workstation style. Each card has a desk surface (aspect-ratio 1.4), a monitor area (16:10 ratio) with status-colored glow (blue=working, green=active, red=error), a monitor stand, a chair slot with 🧑‍💻 emoji for occupied agents, a nameplate with agent name, and a role label with role-specific color. Matches mockup's `.desk-workstation` / `.desk-monitor` / `.desk-chair-slot` patterns.
+  - FloorView.tsx: Hallway section labels changed from accent-bar + trailing line to mockup's `.hallway-label` pattern — centered text with extending border lines on both sides. Applied to both "Open Office" and "Session Rooms" sections.
+  - Pre-existing TS errors in preload/index.ts remain unchanged (rootDir boundary issue). All renderer files compile clean.
