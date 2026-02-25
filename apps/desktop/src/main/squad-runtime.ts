@@ -1,4 +1,5 @@
 import { readFile, access } from 'fs/promises'
+import { existsSync } from 'fs'
 import { join, dirname } from 'path'
 import { execSync } from 'child_process'
 import type {
@@ -60,6 +61,41 @@ export class SquadRuntime {
     return this._isReady
   }
 
+  /**
+   * Find the system-installed Copilot CLI binary.
+   *
+   * Electron's process.execPath is electron.exe, not node.exe.
+   * The SDK does `spawn(process.execPath, [jsFile, ...args])` for .js files,
+   * which fails because Electron ≠ Node.js.
+   *
+   * Strategy: return { nodePath, bundledCliPath } so we can use
+   * cliPath=node.exe + cliArgs=[bundledCli.js] to bypass the Electron issue.
+   */
+  private findCopilotCli(): { cliPath: string; cliArgs: string[] } | null {
+    // Find node.exe — check common locations first (no execSync to avoid vitest hangs)
+    const nodeCandidates = [
+      join(process.env.ProgramFiles ?? 'C:\\Program Files', 'nodejs', 'node.exe'),
+      join(process.env.LOCALAPPDATA ?? '', 'Programs', 'node', 'node.exe'),
+      process.env.NODE ?? '',
+    ].filter(Boolean)
+
+    let nodePath: string | null = null
+    for (const candidate of nodeCandidates) {
+      if (existsSync(candidate)) {
+        nodePath = candidate
+        break
+      }
+    }
+    if (!nodePath) return null
+
+    // Use the bundled @github/copilot CLI from node_modules
+    const bundledCli = join(this.squadRoot, 'node_modules', '@github', 'copilot', 'index.js')
+    if (existsSync(bundledCli)) {
+      return { cliPath: nodePath, cliArgs: [bundledCli] }
+    }
+    return null
+  }
+
   // ── Lifecycle ──────────────────────────────────────────────────
 
   /**
@@ -80,7 +116,21 @@ export class SquadRuntime {
         const { RalphMonitor } = await import('@bradygaster/squad-sdk/ralph')
 
         this.eventBus = new EventBus()
-        this.client = new SquadClientWithPool({})
+
+        // Electron's process.execPath is the Electron binary, not Node.js.
+        // The SDK spawns `@github/copilot/index.js` via process.execPath,
+        // which fails because Electron ≠ Node.js. Fix: use system node.exe
+        // as cliPath and pass the bundled CLI .js file as a cliArg.
+        const cliInfo = this.findCopilotCli()
+        const clientOpts: Record<string, unknown> = { cwd: this.squadRoot }
+        if (cliInfo) {
+          clientOpts.cliPath = cliInfo.cliPath
+          clientOpts.cliArgs = cliInfo.cliArgs
+          console.log('[SquadRuntime] Using node.exe:', cliInfo.cliPath, 'with CLI:', cliInfo.cliArgs[0])
+        } else {
+          console.log('[SquadRuntime] No system node.exe found, using bundled default')
+        }
+        this.client = new SquadClientWithPool(clientOpts)
         await this.client.connect()
         this.pipeline = new StreamingPipeline()
         this.monitor = new RalphMonitor()

@@ -42,15 +42,33 @@ function createWindow(): void {
     return { action: 'deny' }
   })
 
-  // Detect renderer crashes
+  // Detect renderer crashes — auto-recover
   mainWindow.webContents.on('render-process-gone', (_event, details) => {
     console.error('[Main] RENDERER CRASHED:', details.reason, details.exitCode)
+    // Auto-reload unless the user intentionally closed
+    if (details.reason !== 'clean-exit' && mainWindow && !mainWindow.isDestroyed()) {
+      console.log('[Main] Auto-reloading renderer...')
+      setTimeout(() => {
+        if (mainWindow && !mainWindow.isDestroyed()) {
+          mainWindow.webContents.reloadIgnoringCache()
+        }
+      }, 1000)
+    }
   })
   mainWindow.webContents.on('unresponsive', () => {
     console.error('[Main] RENDERER UNRESPONSIVE')
   })
   mainWindow.webContents.on('did-fail-load', (_event, code, desc) => {
     console.error('[Main] RENDERER FAILED TO LOAD:', code, desc)
+    // Auto-retry load after failure (e.g., Vite dev server not ready yet)
+    if (code !== -3 && mainWindow && !mainWindow.isDestroyed()) {
+      console.log('[Main] Retrying load in 2s...')
+      setTimeout(() => {
+        if (mainWindow && !mainWindow.isDestroyed()) {
+          mainWindow.webContents.reloadIgnoringCache()
+        }
+      }, 2000)
+    }
   })
 
   // Open devtools in dev mode so we can see errors (but not during tests)
