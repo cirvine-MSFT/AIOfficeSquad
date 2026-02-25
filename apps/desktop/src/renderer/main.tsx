@@ -4,13 +4,13 @@ import './styles/globals.css'
 import App from './App'
 import { ErrorBoundary } from './components/ErrorBoundary'
 
-// Global error logging
-window.onerror = (msg, src, line, col, err) => {
-  console.error('[Renderer] WINDOW ERROR:', msg, src, line, col, err)
-}
-window.onunhandledrejection = (event) => {
+// Global error handlers — use addEventListener so we never clobber other listeners
+window.addEventListener('error', (event) => {
+  console.error('[Renderer] WINDOW ERROR:', event.message, event.filename, event.lineno, event.colno, event.error)
+})
+window.addEventListener('unhandledrejection', (event) => {
   console.error('[Renderer] UNHANDLED REJECTION:', event.reason)
-}
+})
 
 ReactDOM.createRoot(document.getElementById('root')!).render(
   <React.StrictMode>

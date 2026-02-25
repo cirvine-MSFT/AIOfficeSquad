@@ -20,6 +20,19 @@ const squadAPI = {
   getConnectionInfo: () => ipcRenderer.invoke("squad:get-connection-info").catch((err) => ({ ok: false, error: err instanceof Error ? err.message : String(err) })),
   getHookActivity: () => ipcRenderer.invoke("squad:get-hook-activity").catch((err) => ({ ok: false, error: err instanceof Error ? err.message : String(err) })),
   // ── Push channels (main → renderer) ───────────────────────────
+  onConnectionState: (callback) => {
+    const handler = (_event, data) => {
+      try {
+        callback(data);
+      } catch (err) {
+        console.error("[Preload] onConnectionState callback error:", err);
+      }
+    };
+    ipcRenderer.on("squad:connection-state", handler);
+    return () => {
+      ipcRenderer.removeListener("squad:connection-state", handler);
+    };
+  },
   onEvent: (callback) => {
     const handler = (_event, data) => {
       try {

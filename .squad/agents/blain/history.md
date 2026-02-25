@@ -59,4 +59,11 @@
   - **useChat tests:** unique message ID generation, createSession mapping, empty agent error, failed/default error, sendMessage adds user message, no-op without agent/session, send error handling, stream delta accumulation, streamingText for active session, usage event commits assistant message, usage token accumulation, cost formula verification ($3/$15 per MTok), clearError, multi-agent message isolation, initial computed values.
   - **Pattern:** Test React hooks as pure state machines without jsdom/React rendering. Create a mirror class that replicates the hook's state transitions and computed values. Inject mock IPC results as function parameters instead of mocking `window.squadAPI`.
   - All 124 desktop tests passing (was 85). Zero new dependencies added.
+- 2025-07-25: Created crash resistance unit tests for Poncho's ErrorBoundary hardening:
+  - `apps/desktop/src/__tests__/renderer/crash-resistance.test.ts` — 18 tests total (12 SquadRuntime + 6 IPC handler)
+  - **SquadRuntime tests:** initialize() doesn't throw when SDK imports fail, failed init nulls all SDK objects (no async crash vectors), cleanup() sets _isReady=false BEFORE cleanup work (ordering verified via mock instrumentation), cleanup safe with null objects, cleanup safe when methods throw, loadSquadConfig defaults when team.md missing, getRoster empty on missing file, all getter methods (getStatus/getAuthStatus/listModels/getAgentStatuses) return safe defaults when not connected, all getters safe after failed init.
+  - **IPC handler tests:** handle() wrapper converts thrown Error to {ok:false, error:string}, converts non-Error throws, converts synchronous throws. send() doesn't throw when window is null, send() doesn't throw when window is destroyed (and doesn't deliver), send() delivers when window is valid.
+  - **Pattern:** Use `sdkControl = { shouldFail: false }` object flag (not primitive) to control SDK mock constructors per-test. Object references survive vi.mock hoisting; primitive `let` variables may not.
+  - **Pattern:** Verify ordering of cleanup steps by instrumenting mock implementations to capture `runtime.isReady` during execution. Proves _isReady is set BEFORE cleanup calls, preventing race conditions.
+  - All 142 desktop tests passing (was 124).
 

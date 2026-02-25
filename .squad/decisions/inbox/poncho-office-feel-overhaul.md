@@ -1,0 +1,4 @@
+### 2026-02-24T00:00:00Z: Office-Feel UI Overhaul — visual style aligned with mockup.html
+**By:** Poncho (Frontend Dev)
+**What:** Rewrote BuildingView (card grid → visual building with roof/floors/windows/foundation), AgentCard (avatar circles → desk workstations with monitors/chairs/nameplates), and FloorView hallway labels (accent bar → centered text with extending lines). All changes are CSS/JSX only — props interfaces are backward-compatible (new optional fields: hubName, activeSessionCount, floor on BuildingView's Squad type).
+**Why:** Casey flagged the app didn't match the mockup or keep the office feel. The building view was the biggest gap — a generic dashboard instead of an architectural building. Agent cards looked like contact profiles instead of desk workstations. The hallway labels didn't match the mockup's centered-with-lines pattern. All changes extract CSS patterns directly from mockup.html.

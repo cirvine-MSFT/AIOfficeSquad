@@ -140,10 +140,11 @@ export default function App() {
 
   // ── Event subscription: refresh agent statuses ──
   useEffect(() => {
+    if (!window.squadAPI?.onEvent) return
     const unsubEvent = window.squadAPI.onEvent(() => {
       window.squadAPI.getAgentStatuses().then((res) => {
         const result = res as { ok: boolean; data?: AgentStatus[] }
-        if (result.ok && result.data) setAgentStatuses(result.data)
+        if (result?.ok && Array.isArray(result.data)) setAgentStatuses(result.data)
       }).catch(() => { /* swallow — status refresh is best-effort */ })
     })
     return () => { unsubEvent() }
@@ -151,11 +152,11 @@ export default function App() {
 
   // ── Connection state push events ──
   useEffect(() => {
-    if (!window.squadAPI.onConnectionState) return  // guard until preload is updated
+    if (!window.squadAPI?.onConnectionState) return  // guard until preload is updated
     const unsub = window.squadAPI.onConnectionState((state: { connected: boolean }) => {
-      setSdkConnected(state.connected)
+      setSdkConnected(state?.connected ?? false)
       // Refresh sessions when connection state changes
-      if (state.connected) {
+      if (state?.connected) {
         window.squadAPI.listSessions().then((res) => {
           const result = res as { ok: boolean; data?: any[] }
           if (result.ok && Array.isArray(result.data)) {
@@ -171,12 +172,14 @@ export default function App() {
   useEffect(() => {
     if (!sdkConnected) return
     const interval = setInterval(() => {
-      window.squadAPI.listSessions().then((res) => {
-        const result = res as { ok: boolean; data?: any[] }
-        if (result.ok && Array.isArray(result.data)) {
-          setSessions(mapSessions(result.data))
-        }
-      }).catch(() => {})
+      try {
+        window.squadAPI?.listSessions?.()?.then((res) => {
+          const result = res as { ok: boolean; data?: any[] }
+          if (result?.ok && Array.isArray(result.data)) {
+            setSessions(mapSessions(result.data))
+          }
+        }).catch(() => {})
+      } catch (_e) { /* swallow — session refresh is best-effort */ }
     }, 15000) // every 15 seconds
     return () => clearInterval(interval)
   }, [sdkConnected])
@@ -266,14 +269,18 @@ export default function App() {
   }
 
   return (
+    <ErrorBoundary>
     <div className="flex flex-col h-screen bg-bg text-text-primary overflow-hidden">
-      <Header
-        breadcrumbs={navigation.breadcrumbs}
-        onNavigate={handleBreadcrumbNavigate}
-        connected={sdkConnected}
-      />
+      <ErrorBoundary>
+        <Header
+          breadcrumbs={navigation.breadcrumbs}
+          onNavigate={handleBreadcrumbNavigate}
+          connected={sdkConnected}
+        />
+      </ErrorBoundary>
 
       {/* Toolbar with panel toggles */}
+      <ErrorBoundary>
       <div className="flex items-center gap-1 px-4 py-1 bg-bg-raised border-b border-border shrink-0">
         <button
           onClick={() => setActivePanel((p) => (p === 'decisions' ? 'none' : 'decisions'))}
@@ -306,6 +313,7 @@ export default function App() {
           🛡️ Hooks
         </button>
       </div>
+      </ErrorBoundary>
 
       {/* Error banner */}
       {chat.error && (
@@ -333,30 +341,32 @@ export default function App() {
 
       {/* Main three-panel layout */}
       <div className="flex flex-1 overflow-hidden">
-        <Sidebar
-          hubName={config?.name ?? 'Squad Campus'}
-          squads={squads.map((s) => ({
-            id: s.id,
-            name: s.name,
-            floor: 1,
-            memberCount: roster.length,
-            activeSessionCount: sessions.length,
-            status: 'connected' as const,
-          }))}
-          selectedSquadId={navigation.state.selectedSquadId}
-          onSelectSquad={navigation.selectSquad}
-          agents={agents}
-          selectedAgent={effectiveAgent}
-          onSelectAgent={handleSelectAgent}
-          onChatWithAgent={(name) => {
-            setShowChat(true)
-            chat.createSession(name)
-          }}
-          loading={loading}
-        />
+        <ErrorBoundary>
+          <Sidebar
+            hubName={config?.name ?? 'Squad Campus'}
+            squads={squads.map((s) => ({
+              id: s.id,
+              name: s.name,
+              floor: 1,
+              memberCount: roster.length,
+              activeSessionCount: sessions.length,
+              status: 'connected' as const,
+            }))}
+            selectedSquadId={navigation.state.selectedSquadId}
+            onSelectSquad={navigation.selectSquad}
+            agents={agents}
+            selectedAgent={effectiveAgent}
+            onSelectAgent={handleSelectAgent}
+            onChatWithAgent={(name) => {
+              setShowChat(true)
+              chat.createSession(name)
+            }}
+            loading={loading}
+          />
+        </ErrorBoundary>
 
         {/* Main content — 3-level conditional rendering, each wrapped in ErrorBoundary */}
-        <ErrorBoundary>
+        <ErrorBoundary resetKey={navigation.state.level}>
           {navigation.state.level === 'building' && (
             <BuildingView
               squads={squads.map((s) => ({
@@ -463,20 +473,23 @@ export default function App() {
         )}
       </div>
 
-      <StatusBar
-        squadRoot={config?.root ?? null}
-        squadName={config?.name ?? null}
-        sessionCount={sessions.length}
-        totalTokens={chat.usage.totalTokens}
-        estimatedCost={chat.usage.estimatedCost}
-        model={chat.usage.model}
-        totalMembers={roster.length}
-        connected={sdkConnected}
-      />
+      <ErrorBoundary>
+        <StatusBar
+          squadRoot={config?.root ?? null}
+          squadName={config?.name ?? null}
+          sessionCount={sessions.length}
+          totalTokens={chat.usage.totalTokens}
+          estimatedCost={chat.usage.estimatedCost}
+          model={chat.usage.model}
+          totalMembers={roster.length}
+          connected={sdkConnected}
+        />
+      </ErrorBoundary>
 
       {/* Keyboard shortcuts overlay (toggle with ?) */}
       <KeyboardShortcuts />
     </div>
+    </ErrorBoundary>
   )
 }
 
